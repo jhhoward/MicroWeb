@@ -7,9 +7,8 @@
 #include "Renderer.h"
 #include "Page.h"
 
-HTMLParser::HTMLParser(Page& inPage, HTMLRenderer& inRenderer)
+HTMLParser::HTMLParser(Page& inPage)
 : page(inPage)
-, renderer(inRenderer)
 , sectionStackSize(0)
 , parseState(ParseText)
 , textBufferSize(0)

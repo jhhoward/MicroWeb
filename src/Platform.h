@@ -12,6 +12,10 @@ public:
 
 	virtual void ClearScreen() = 0;
 
+	virtual void ClearWindow() = 0;
+	virtual void ScrollWindow(int delta) = 0;
+	virtual void SetScissorRegion(int y1, int y2) = 0;
+
 	virtual void DrawString(const char* text, int x, int y, int size = 1, FontStyle::Type style = FontStyle::Regular) = 0;
 	virtual void DrawScrollBar(int position, int size) = 0;
 	virtual void DrawTitle(const char* text) = 0;

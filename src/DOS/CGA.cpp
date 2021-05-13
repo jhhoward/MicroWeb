@@ -28,12 +28,12 @@
 
 #define WINDOW_VRAM_TOP_EVEN (BYTES_PER_LINE * (WINDOW_TOP / 2))
 #define WINDOW_VRAM_TOP_ODD (0x2000 + BYTES_PER_LINE * (WINDOW_TOP / 2))
-#define WINDOW_VRAM_BOTTOM_EVEN (BYTES_PER_LINE * (WINDOW_BOTTOM / 2 - 1))
-#define WINDOW_VRAM_BOTTOM_ODD (0x2000 + BYTES_PER_LINE * (WINDOW_BOTTOM / 2 - 1))
+#define WINDOW_VRAM_BOTTOM_EVEN (BYTES_PER_LINE * (WINDOW_BOTTOM / 2))
+#define WINDOW_VRAM_BOTTOM_ODD (0x2000 + BYTES_PER_LINE * (WINDOW_BOTTOM / 2))
 #define BYTES_PER_LINE 80
 
 int scissorX1 = 0, scissorY1 = 0;
-int scissorX2 = SCREEN_WIDTH, scissorY2 = SCREEN_HEIGHT;
+int scissorX2 = SCREEN_WIDTH - SCROLL_BAR_WIDTH, scissorY2 = SCREEN_HEIGHT;
 
 CGADriver::CGADriver()
 {
@@ -221,9 +221,9 @@ void CGADriver::DrawString(const char* text, int x, int y, int size, FontStyle::
 		}
 	}
 
-	if ((style & FontStyle::Underline) && y + font->glyphHeight - 1 < scissorY2)
+	if ((style & FontStyle::Underline) && y - firstLine + font->glyphHeight - 1 < scissorY2)
 	{
-		HLine(startX, y + font->glyphHeight - 1, x - startX);
+		HLine(startX, y - firstLine + font->glyphHeight - 1, x - startX);
 	}
 }
 
@@ -424,4 +424,99 @@ void CGADriver::DrawButtonRect(int x, int y, int width, int height)
 	HLine(x + 1, y + height - 1, width - 2);
 	VLine(x, y + 1, height - 2);
 	VLine(x + width - 1, y + 1, height - 2);
+}
+
+void ScrollRegionUp(int dest, int src, int count);
+#pragma aux ScrollRegionUp = \
+	"push ds" \
+	"push es" \
+	"mov ax, 0xb800" \
+	"mov ds, ax" \
+	"mov es, ax" \
+	"_loopLine:" \
+	"mov cx, 39" \
+	"rep movsw" \
+	"add di, 2" \
+	"add si, 2" \
+	"dec dx" \
+	"jnz _loopLine" \
+	"pop es" \
+	"pop ds" \
+	modify [ax cx dx di si] \
+	parm [di][si][dx]
+
+void ScrollRegionDown(int dest, int src, int count);
+#pragma aux ScrollRegionDown = \
+	"push ds" \
+	"push es" \
+	"mov ax, 0xb800" \
+	"mov ds, ax" \
+	"mov es, ax" \
+	"_loopLine:" \
+	"mov cx, 39" \
+	"rep movsw" \
+	"sub di, 158" \
+	"sub si, 158" \
+	"dec dx" \
+	"jnz _loopLine" \
+	"pop es" \
+	"pop ds" \
+	modify [ax cx dx di si] \
+	parm [di][si][dx]
+
+void ClearRegion(int offset, int count);
+#pragma aux ClearRegion = \
+	"push es" \
+	"mov ax, 0xb800" \
+	"mov es, ax" \
+	"mov ax, 0xffff" \
+	"_loopLine:" \
+	"mov cx, 39" \
+	"rep stosw" \
+	"add di, 2" \
+	"dec dx" \
+	"jnz _loopLine" \
+	"pop es" \
+	modify [cx di ax cx dx] \
+	parm [di] [dx]
+
+void CGADriver::ScrollWindow(int amount)
+{
+	amount &= ~1;
+
+	if (amount > 0)
+	{
+		int lines = (WINDOW_HEIGHT - amount) >> 1;
+		int offset = amount * (BYTES_PER_LINE >> 1);
+		ScrollRegionUp(WINDOW_VRAM_TOP_EVEN, WINDOW_VRAM_TOP_EVEN + offset, lines);
+		ScrollRegionUp(WINDOW_VRAM_TOP_ODD, WINDOW_VRAM_TOP_ODD + offset, lines);
+
+		//ClearRegion(0x1ef0 - offset, (WINDOW_HEIGHT / 2) - lines);
+		//ClearRegion(0x3ef0 - offset, (WINDOW_HEIGHT / 2) - lines);
+
+		ClearRegion(WINDOW_VRAM_BOTTOM_EVEN - offset, (WINDOW_HEIGHT / 2) - lines);
+		ClearRegion(WINDOW_VRAM_BOTTOM_ODD - offset, (WINDOW_HEIGHT / 2) - lines);
+	}
+	else if (amount < 0)
+	{
+		int lines = (WINDOW_HEIGHT + amount) >> 1;
+		int offset = amount * (BYTES_PER_LINE >> 1);
+		ScrollRegionDown(WINDOW_VRAM_BOTTOM_EVEN - BYTES_PER_LINE, WINDOW_VRAM_BOTTOM_EVEN - BYTES_PER_LINE + offset, lines);
+		ScrollRegionDown(WINDOW_VRAM_BOTTOM_ODD - BYTES_PER_LINE, WINDOW_VRAM_BOTTOM_ODD - BYTES_PER_LINE + offset, lines);
+
+		ClearRegion(WINDOW_VRAM_TOP_EVEN, (WINDOW_HEIGHT / 2) - lines);
+		ClearRegion(WINDOW_VRAM_TOP_ODD, (WINDOW_HEIGHT / 2) - lines);
+	}
+}
+
+void CGADriver::ClearWindow()
+{
+	ClearRegion(WINDOW_VRAM_TOP_EVEN, (WINDOW_HEIGHT / 2));
+	ClearRegion(WINDOW_VRAM_TOP_ODD, (WINDOW_HEIGHT / 2));
+}
+
+void CGADriver::SetScissorRegion(int y1, int y2)
+{
+	scissorY1 = y1;
+	scissorY2 = y2;
 }

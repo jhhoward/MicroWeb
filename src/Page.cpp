@@ -3,8 +3,9 @@
 #include <string.h>
 #include "Platform.h"
 #include "Page.h"
+#include "App.h"
 
-Page::Page()
+Page::Page(App& inApp) : app(inApp)
 {
 	currentLineStartWidgetIndex = -1;
 	currentWidgetIndex = -1;
@@ -16,6 +17,7 @@ Page::Page()
 	cursorY = 0;
 	needLeadingWhiteSpace = false;
 	pendingVerticalPadding = 0;
+	widgetURL = NULL;
 
 	styleStackSize = 1;
 	styleStack[0] = WidgetStyle(FontStyle::Regular, 1, false);
@@ -77,6 +79,7 @@ Widget* Page::CreateWidget()
 		current.width = 0;
 		current.height = Platform::video->GetLineHeight(current.style.fontSize);
 		current.text = NULL;
+		current.linkURL = widgetURL;
 
 		if (currentLineStartWidgetIndex == -1)
 		{
@@ -98,16 +101,8 @@ void Page::FinishCurrentWidget()
 	{
 		Widget& current = widgets[currentWidgetIndex];
 		cursorX += current.width;
-		current.text = new char[textBufferSize + 1];
-
-		if (current.text)
-		{
-			for (int n = 0; n < textBufferSize; n++)
-			{
-				current.text[n] = textBuffer[n];
-			}
-			current.text[textBufferSize] = '\0';
-		}
+		
+		current.text = allocator.AllocString(textBuffer, textBufferSize);
 
 		textBufferSize = 0;
 
@@ -150,22 +145,7 @@ void Page::FinishCurrentLine()
 		cursorY += lineHeight;
 		pageHeight = cursorY;
 
-		// TODO render somewhere else?
-		Platform::mouse->Hide();
-
-		int scrollWidgetSize = pageHeight < Platform::video->windowHeight ? Platform::video->windowHeight : Platform::video->windowHeight * Platform::video->windowHeight / pageHeight;
-		if (scrollWidgetSize < 8)
-			scrollWidgetSize = 8;
-		Platform::video->DrawScrollBar(0, scrollWidgetSize);
-
-		for (int n = currentLineStartWidgetIndex; n < numWidgets; n++)
-		{
-			if (widgets[n].text)
-			{
-				Platform::video->DrawString(widgets[n].text, widgets[n].x, widgets[n].y + Platform::video->windowY, widgets[n].style.fontSize, widgets[n].style.fontStyle);
-			}
-		}
-		Platform::mouse->Show();
+		app.renderer.OnPageWidgetsLoaded(&widgets[currentLineStartWidgetIndex], numWidgets - currentLineStartWidgetIndex);
 
 		currentLineStartWidgetIndex = -1;
 	}
@@ -245,7 +225,10 @@ void Page::AppendText(const char* text)
 						// Case where widget is empty and needs to move to the next line
 
 						// Move to new line
+						int oldCurrentWidgetIndex = currentWidgetIndex;
+						currentWidgetIndex = -1;
 						FinishCurrentLine();
+						currentWidgetIndex = oldCurrentWidgetIndex;
 						currentLineStartWidgetIndex = currentWidgetIndex;
 						current->x = cursorX;
 						current->y = cursorY;
@@ -284,25 +267,6 @@ void Page::AppendText(const char* text)
 	}
 }
 
-
-void Page::Render()
-{
-	//FinishCurrentWidget();
-
-	Platform::mouse->Hide();
-
-	for (int n = 0; n < numWidgets; n++)
-	{
-		Widget& widget = widgets[n];
-		if (widget.text)
-		{
-			Platform::video->DrawString(widget.text, widget.x, widget.y, widget.style.fontSize, widget.style.fontStyle);
-		}
-	}
-
-	Platform::mouse->Show();
-}
-
 void Page::BreakLine(int padding)
 {
 	FinishCurrentLine();
@@ -321,4 +285,26 @@ void Page::SetTitle(const char* inTitle)
 	Platform::mouse->Hide();
 	Platform::video->DrawTitle(inTitle);
 	Platform::mouse->Show();
+}
+
+Widget* Page::GetWidget(int x, int y)
+{
+	for (int n = 0; n < numWidgets; n++)
+	{
+		Widget* widget = &widgets[n];
+
+		if (x >= widget->x && y >= widget->y && x < widget->x + widget->width && y < widget->y + widget->height)
+			return widget;
+	}
+	return NULL;
+}
+
+void Page::SetWidgetURL(const char* url)
+{
+	widgetURL = allocator.AllocString(url);
+}
+
+void Page::ClearWidgetURL()
+{
+	widgetURL = NULL;
 }

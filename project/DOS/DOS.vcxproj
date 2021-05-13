@@ -63,7 +63,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <NMakeBuildCommandLine>build.bat</NMakeBuildCommandLine>
+    <NMakeBuildCommandLine>rebuild.bat</NMakeBuildCommandLine>
     <NMakeOutput>run.bat</NMakeOutput>
     <NMakeCleanCommandLine>clean.bat</NMakeCleanCommandLine>
     <NMakeReBuildCommandLine>rebuild.bat</NMakeReBuildCommandLine>
@@ -85,7 +85,7 @@
     <NMakePreprocessorDefinitions>_DOS;WIN32;NDEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <NMakeBuildCommandLine>build.bat</NMakeBuildCommandLine>
+    <NMakeBuildCommandLine>rebuild.bat</NMakeBuildCommandLine>
     <NMakeOutput>run.bat</NMakeOutput>
     <NMakeCleanCommandLine>clean.bat</NMakeCleanCommandLine>
     <NMakeReBuildCommandLine>rebuild.bat</NMakeReBuildCommandLine>
@@ -95,6 +95,7 @@
   <ItemDefinitionGroup>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\App.cpp" />
     <ClCompile Include="..\..\src\DOS\CGA.cpp" />
     <ClCompile Include="..\..\src\DOS\DOSMouse.cpp" />
     <ClCompile Include="..\..\src\DOS\Platform.cpp" />
@@ -106,6 +107,8 @@
     <ClCompile Include="..\..\src\Tags.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\App.h" />
+    <ClInclude Include="..\..\src\LinAlloc.h" />
     <ClInclude Include="..\..\src\Cursor.h" />
     <ClInclude Include="..\..\src\DOS\CGA.h" />
     <ClInclude Include="..\..\src\DOS\DOSMouse.h" />
@@ -114,7 +117,6 @@
     <ClInclude Include="..\..\src\Parser.h" />
     <ClInclude Include="..\..\src\Platform.h" />
     <ClInclude Include="..\..\src\Renderer.h" />
-    <ClInclude Include="..\..\src\Style.h" />
     <ClInclude Include="..\..\src\Tags.h" />
     <ClInclude Include="..\..\src\Widget.h" />
   </ItemGroup>

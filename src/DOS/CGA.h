@@ -11,6 +11,10 @@ public:
 	virtual void Shutdown();
 	virtual void ClearScreen();
 
+	virtual void ClearWindow();
+	virtual void ScrollWindow(int delta);
+	virtual void SetScissorRegion(int y1, int y2);
+
 	virtual void DrawString(const char* text, int x, int y, int size = 1, FontStyle::Type style = FontStyle::Regular);
 	virtual void DrawTitle(const char* text);
 	virtual void DrawStatus(const char* text);

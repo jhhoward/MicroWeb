@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Style.h"
 #include "Parser.h"
 #include "Font.h"
 

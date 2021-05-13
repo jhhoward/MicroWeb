@@ -1,7 +1,7 @@
 bin = MicroWeb.exe
 SRC_PATH = ..\..\src
 OBJDIR=obj
-objects = MicroWeb.obj Parser.obj Renderer.obj Tags.obj Platform.obj CGA.obj Font.obj DOSMouse.obj Page.obj
+objects = MicroWeb.obj App.obj Parser.obj Renderer.obj Tags.obj Platform.obj CGA.obj Font.obj DOSMouse.obj Page.obj
 
 CC = wpp
 CFLAGS = -zq -0 -ot -bt=DOS -w2 -mc
@@ -12,6 +12,9 @@ $(bin): $(objects)
 
 
 MicroWeb.obj: $(SRC_PATH)\MicroWeb.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+App.obj: $(SRC_PATH)\App.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 Parser.obj: $(SRC_PATH)\Parser.cpp

@@ -1,6 +1,5 @@
 #pragma once
 
-class HTMLRenderer;
 class Page;
 
 struct HTMLParseSection
@@ -38,12 +37,11 @@ private:
 class HTMLParser
 {
 public:
-	HTMLParser(Page& page, HTMLRenderer& renderer);
+	HTMLParser(Page& page);
 
 	void Parse(char* buffer, size_t count);
 
 	Page& page;
-	HTMLRenderer& renderer;
 
 	void PushSection(HTMLParseSection::Type section);
 	void PopSection(HTMLParseSection::Type section);
@@ -65,7 +63,7 @@ private:
 	};
 	
 	ParseState parseState;
-	char textBuffer[256];
+	char textBuffer[2560];
 	size_t textBufferSize;
 
 	HTMLParseSection::Type sectionStack[MAX_PARSE_SECTION_STACK_SIZE];

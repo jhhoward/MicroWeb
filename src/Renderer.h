@@ -1,25 +1,30 @@
 #pragma once
-#include "Style.h"
 
-#define MAX_STYLE_STACK_SIZE 32
+class App;
+struct Widget;
 
-class HTMLRenderer
+class Renderer
 {
 public:
-	HTMLRenderer() : currentLineLength(0), styleStackSize(0) 
-	{
-		styleStack[0] = 0;
-	}
-	void DrawText(const char* str);
-	void BreakLine(int margin = 0);
-	void EnsureNewLine();
-	void IncreaseLineHeight(int lineHeight) {}
-	
-	void PushStyle(StyleMask style);
-	void PopStyle();
+	Renderer(App& inApp);
+
+	void Scroll(int delta);
+
+	void OnPageWidgetsLoaded(Widget* widget, int count);
+	void RedrawScrollBar();
+
+	Widget* PickPageWidget(int x, int y);
+	bool IsOverPageWidget(Widget* widget, int x, int y);
+
+	void DrawStatus(const char* status);
 
 private:
-	int currentLineLength;
-	StyleMask styleStack[MAX_STYLE_STACK_SIZE];
-	uint8_t styleStackSize;
+	void RenderWidget(Widget* widget);
+	int GetMaxScrollPosition();
+
+	App& app;
+	int scrollPosition;
+	int pageTopWidgetIndex;
+	const char* oldStatus;
 };
+

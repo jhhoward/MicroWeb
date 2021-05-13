@@ -24,4 +24,5 @@ struct Widget
 	{
 		char* text;
 	};
+	char* linkURL;
 };

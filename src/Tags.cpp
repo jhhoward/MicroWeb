@@ -3,7 +3,6 @@
 #include <ctype.h>
 #include "Tags.h"
 #include "Parser.h"
-#include "Renderer.h"
 #include "Page.h"
 #include "Platform.h"
 
@@ -88,10 +87,6 @@ void HrTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 	parser.page.PopStyle();
 
 	parser.page.BreakLine();
-
-	//parser.renderer.BreakLine();
-	//parser.renderer.DrawText("---------------------------");
-	//parser.renderer.BreakLine();
 }
 
 void BrTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
@@ -142,10 +137,11 @@ void ATagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 	AttributeParser attributes(attributeStr);
 	while(attributes.Parse())
 	{
-		//printf("KEY: %s = %s\n", attributes.Key(), attributes.Value());
+		if (!strcmp(attributes.Key(), "href"))
+		{
+			parser.page.SetWidgetURL(attributes.Value());
+		}
 	}
-	//printf("{attributes='%s'}\n", attributeStr);
-	//parser.renderer.DrawText("[");
 
 	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
 	currentStyle.fontStyle = (FontStyle::Type)(currentStyle.fontStyle | FontStyle::Underline);
@@ -154,8 +150,7 @@ void ATagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 }
 void ATagHandler::Close(class HTMLParser& parser) const
 {
-	//parser.renderer.DrawText("]");
-
+	parser.page.ClearWidgetURL();
 	parser.page.PopStyle();
 }
 

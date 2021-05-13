@@ -1,0 +1,9 @@
+.vs/
+*.filters
+*.user
+project/AssetGen/x64/
+*.obj
+*.err
+project/DOS/x64/
+project/Windows/x64/
+project/x64/
