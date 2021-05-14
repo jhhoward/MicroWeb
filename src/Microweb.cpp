@@ -12,13 +12,13 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
-	FILE* fs = fopen(argv[1], "r");
+	/*FILE* fs = fopen(argv[1], "r");
 	if (!fs)
 	{
 		fprintf(stderr, "Error opening %s\n", argv[1]);
 		return 0;
 	}
-	fclose(fs);
+	fclose(fs);*/
 
 	App* app = new App();
 

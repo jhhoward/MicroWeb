@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdlib.h>
 #include "Font.h"
 #include "Cursor.h"
 #include "Widget.h"
@@ -38,11 +39,34 @@ public:
 	Widget addressBar;
 };
 
+class HTTPRequest
+{
+public:
+	enum Status
+	{
+		Stopped,
+		Connecting,
+		Downloading,
+		Finished,
+		Error
+	};
+
+	virtual Status GetStatus() = 0;
+	virtual size_t ReadData(char* buffer, size_t count) = 0;
+	virtual void Stop() = 0;
+};
+
 class NetworkDriver
 {
 public:
 	virtual void Init() = 0;
 	virtual void Shutdown() = 0;
+	virtual void Update() = 0;
+
+	virtual bool IsConnected() = 0;
+
+	virtual HTTPRequest* CreateRequest(char* url) = 0;
+	virtual void DestroyRequest(HTTPRequest* request) = 0;
 };
 
 class MouseDriver

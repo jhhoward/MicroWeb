@@ -30,14 +30,32 @@ void App::Run()
 {
 	while (1)
 	{
-		if (loadTask.fs && !feof(loadTask.fs))
-		{
-			char buffer[50];
+		Platform::network->Update();
 
-			size_t bytesRead = fread(buffer, 1, 50, loadTask.fs);
-			if (bytesRead)
+		if (loadTask.type == LoadTask::LocalFile)
+		{
+			if (loadTask.fs && !feof(loadTask.fs))
 			{
-				parser.Parse(buffer, bytesRead);
+				char buffer[50];
+
+				size_t bytesRead = fread(buffer, 1, 50, loadTask.fs);
+				if (bytesRead)
+				{
+					parser.Parse(buffer, bytesRead);
+				}
+			}
+		}
+		else if (loadTask.type == LoadTask::RemoteFile)
+		{
+			if (loadTask.request && loadTask.request->GetStatus() == HTTPRequest::Downloading)
+			{
+				char buffer[50];
+
+				size_t bytesRead = loadTask.request->ReadData(buffer, 50);
+				if (bytesRead)
+				{
+					parser.Parse(buffer, bytesRead);
+				}
 			}
 		}
 
@@ -133,9 +151,15 @@ void App::Run()
 	}
 }
 
-void App::OpenURL(const char* url)
+void App::OpenURL(char* url)
 {
-	loadTask.type = LoadTask::LocalFile;
 	loadTask.fs = fopen(url, "r");
+	loadTask.type = LoadTask::LocalFile;
+
+	if (!loadTask.fs)
+	{
+		loadTask.type = LoadTask::RemoteFile;
+		loadTask.request = Platform::network->CreateRequest(url);
+	}
 }
 

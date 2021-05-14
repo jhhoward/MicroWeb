@@ -1,14 +1,34 @@
 bin = MicroWeb.exe
 SRC_PATH = ..\..\src
 OBJDIR=obj
-objects = MicroWeb.obj App.obj Parser.obj Renderer.obj Tags.obj Platform.obj CGA.obj Font.obj DOSMouse.obj Page.obj
-
+objects = MicroWeb.obj App.obj Parser.obj Renderer.obj Tags.obj Platform.obj CGA.obj Font.obj DOSMouse.obj DOSNet.obj Page.obj
+memory_model = -ml
 CC = wpp
-CFLAGS = -zq -0 -ot -bt=DOS -w2 -mc
+CFLAGS = -zq -0 -ot -bt=DOS -w2 $(memory_model)
 LD = wlink
 
-$(bin): $(objects)
-    $(LD) system dos name $@ file { $(objects) }
+# begin mTCP stuff
+tcp_h_dir = ..\..\lib\mTCP\TCPINC\
+tcp_c_dir = ..\..\lib\mTCP\TCPLIB\
+
+tcpobjs = packet.obj arp.obj eth.obj ip.obj tcp.obj tcpsockm.obj udp.obj utils.obj dns.obj timer.obj ipasm.obj trace.obj
+
+tcp_compile_options = -0 $(memory_model) -DCFG_H="tcp.cfg" -oh -ok -ot -s -oa -ei -zp2 -zpw -we -ob -ol+ -oi+
+tcp_compile_options += -i=$(tcp_h_dir)
+
+.cpp : $(tcp_c_dir)
+
+.asm : $(tcp_c_dir)
+
+.asm.obj :
+  wasm -0 $(memory_model) $[*
+
+.cpp.obj :
+  wpp $[* $(tcp_compile_options)
+# end mTCP stuff
+
+$(bin): $(objects) $(tcpobjs)
+    $(LD) system dos name $@ file { $(objects) $(tcpobjs) }
 
 
 MicroWeb.obj: $(SRC_PATH)\MicroWeb.cpp
@@ -40,6 +60,9 @@ CGA.obj: $(SRC_PATH)\DOS\CGA.cpp
 
 DOSMouse.obj: $(SRC_PATH)\DOS\DOSMouse.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
+
+DOSNet.obj: $(SRC_PATH)\DOS\DOSNet.cpp
+	 $(CC) -fo=$@ $(CFLAGS) -i=$(tcp_h_dir) -DCFG_H="tcp.cfg" $<
 
 clean: .symbolic
     del *.obj

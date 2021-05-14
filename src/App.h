@@ -5,6 +5,8 @@
 #include "Page.h"
 #include "Renderer.h"
 
+class HTTPRequest;
+
 struct LoadTask
 {
 	LoadTask() : type(LocalFile), fs(NULL) {}
@@ -20,6 +22,7 @@ struct LoadTask
 	union
 	{
 		FILE* fs;
+		HTTPRequest* request;
 	};
 };
 
@@ -32,7 +35,7 @@ public:
 	~App();
 
 	void Run();
-	void OpenURL(const char* url);
+	void OpenURL(char* url);
 
 	Page page;
 	Renderer renderer;
