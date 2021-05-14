@@ -276,6 +276,50 @@ void CGADriver::HLine(int x, int y, int count)
 	*VRAMptr = data;
 }
 
+void CGADriver::ClearHLine(int x, int y, int count)
+{
+	uint8_t far* VRAMptr = (uint8_t far*) CGA_BASE_VRAM_ADDRESS;
+
+	VRAMptr += (y >> 1) * BYTES_PER_LINE;
+	VRAMptr += (x >> 3);
+
+	if (y & 1)
+	{
+		VRAMptr += 0x2000;
+	}
+
+	uint8_t data = *VRAMptr;
+	uint8_t mask = (0x80 >> (x & 7));
+
+	while (count--)
+	{
+		data |= mask;
+		x++;
+		mask >>= 1;
+		if ((x & 7) == 0)
+		{
+			*VRAMptr++ = data;
+			while (count > 8)
+			{
+				*VRAMptr++ = 0xff;
+				count -= 8;
+			}
+			mask = 0x80;
+			data = *VRAMptr;
+		}
+	}
+
+	*VRAMptr = data;
+}
+
+void CGADriver::ClearRect(int x, int y, int width, int height)
+{
+	for (int j = 0; j < height; j++)
+	{
+		ClearHLine(x, y + j, width);
+	}
+}
+
 void CGADriver::VLine(int x, int y, int count)
 {
 	uint8_t far* VRAMptr = (uint8_t far*) CGA_BASE_VRAM_ADDRESS;

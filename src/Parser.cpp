@@ -16,6 +16,13 @@ HTMLParser::HTMLParser(Page& inPage)
 	sectionStack[0] = HTMLParseSection::Document;
 }
 
+void HTMLParser::Reset()
+{
+	parseState = ParseText;
+	textBufferSize = 0;
+	sectionStackSize = 0;
+}
+
 void HTMLParser::PushSection(HTMLParseSection::Type section)
 {
 	if (sectionStackSize < MAX_PARSE_SECTION_STACK_SIZE - 1)
@@ -332,6 +339,21 @@ bool AttributeParser::Parse()
 		*attributeString = '\0';
 		attributeString++;
 	}
+	else if (*attributeString == '\'')
+	{
+		attributeString++;
+		key = attributeString;
+		while (*attributeString != '\'')
+		{
+			if (*attributeString == '\0')
+			{
+				return false;
+			}
+			attributeString++;
+		}
+		*attributeString = '\0';
+		attributeString++;
+	}
 	else
 	{
 		key = attributeString;
@@ -388,6 +410,21 @@ bool AttributeParser::Parse()
 		while(*attributeString != '"')
 		{
 			if(*attributeString == '\0')
+			{
+				return false;
+			}
+			attributeString++;
+		}
+		*attributeString = '\0';
+		attributeString++;
+	}
+	else if (*attributeString == '\'')
+	{
+		attributeString++;
+		value = attributeString;
+		while (*attributeString != '\'')
+		{
+			if (*attributeString == '\0')
 			{
 				return false;
 			}

@@ -14,6 +14,7 @@ public:
 	virtual void ClearScreen() = 0;
 
 	virtual void ClearWindow() = 0;
+	virtual void ClearRect(int x, int y, int width, int height) = 0;
 	virtual void ScrollWindow(int delta) = 0;
 	virtual void SetScissorRegion(int y1, int y2) = 0;
 

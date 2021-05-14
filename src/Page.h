@@ -2,6 +2,7 @@
 
 #include "Widget.h"
 #include "LinAlloc.h"
+#include "URL.h"
 
 #define MAX_PAGE_WIDGETS 1000
 #define MAX_PAGE_STYLE_STACK_SIZE 32
@@ -13,6 +14,8 @@ class Page
 {
 public:
 	Page(App& inApp);
+
+	void Reset();
 
 	void AppendText(const char* text);
 	void BreakLine(int padding = 0);
@@ -31,6 +34,8 @@ public:
 	LinearAllocator allocator;
 
 	int GetPageHeight() { return pageHeight; }
+
+	URL pageURL;
 
 private:
 	friend class Renderer;

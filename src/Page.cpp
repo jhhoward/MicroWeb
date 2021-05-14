@@ -7,6 +7,11 @@
 
 Page::Page(App& inApp) : app(inApp)
 {
+	Reset();
+}
+
+void Page::Reset()
+{
 	currentLineStartWidgetIndex = -1;
 	currentWidgetIndex = -1;
 	submittedWidgetIndex = 0;
@@ -18,9 +23,11 @@ Page::Page(App& inApp) : app(inApp)
 	needLeadingWhiteSpace = false;
 	pendingVerticalPadding = 0;
 	widgetURL = NULL;
+	textBufferSize = 0;
 
 	styleStackSize = 1;
 	styleStack[0] = WidgetStyle(FontStyle::Regular, 1, false);
+	allocator.Reset();
 }
 
 WidgetStyle& Page::GetStyleStackTop()

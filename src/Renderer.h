@@ -8,6 +8,7 @@ class Renderer
 public:
 	Renderer(App& inApp);
 
+	void Reset();
 	void Scroll(int delta);
 
 	void OnPageWidgetsLoaded(Widget* widget, int count);
@@ -17,6 +18,7 @@ public:
 	bool IsOverPageWidget(Widget* widget, int x, int y);
 
 	void DrawStatus(const char* status);
+	void DrawAddress(const char* address);
 
 private:
 	void RenderWidget(Widget* widget);

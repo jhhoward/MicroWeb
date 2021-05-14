@@ -10,10 +10,20 @@
 
 Renderer::Renderer(App& inApp) 
 	: app(inApp)
-	, scrollPosition(0)
 {
 	pageTopWidgetIndex = 0;
 	oldStatus = NULL;
+	scrollPosition = 0;
+}
+
+void Renderer::Reset()
+{
+	pageTopWidgetIndex = 0;
+	oldStatus = NULL;
+	scrollPosition = 0;
+	Platform::mouse->Hide();
+	Platform::video->ClearWindow();
+	Platform::mouse->Show();
 }
 
 int Renderer::GetMaxScrollPosition()
@@ -178,4 +188,18 @@ void Renderer::DrawStatus(const char* status)
 		Platform::mouse->Show();
 		oldStatus = status;
 	}
+}
+
+void Renderer::DrawAddress(const char* address)
+{
+	Platform::mouse->Hide();
+
+	Platform::video->SetScissorRegion(0, Platform::video->windowY);
+	Widget& addressBar = Platform::video->addressBar;
+
+	Platform::video->ClearRect(addressBar.x + 1, addressBar.y + 1, addressBar.width - 2, addressBar.height - 2);
+	Platform::video->DrawString(address, addressBar.x + 2, addressBar.y + 2);
+
+	Platform::mouse->Show();
+
 }

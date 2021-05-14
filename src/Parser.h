@@ -39,6 +39,7 @@ class HTMLParser
 public:
 	HTMLParser(Page& page);
 
+	void Reset();
 	void Parse(char* buffer, size_t count);
 
 	Page& page;

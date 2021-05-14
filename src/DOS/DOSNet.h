@@ -31,6 +31,7 @@ private:
 		SocketCreationError,
 		SocketConnectionError,
 		HeaderSendError,
+		ContentReceiveError,
 
 		// Connection states
 		QueuedDNSRequest,
@@ -38,7 +39,7 @@ private:
 		OpeningSocket,
 		ConnectingSocket,
 		SendHeaders,
-		ReceiveHeaders
+		ReceiveHeaders,
 	};
 
 	void Error(InternalStatus statusError);

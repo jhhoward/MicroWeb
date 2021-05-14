@@ -120,6 +120,7 @@
     <ClInclude Include="..\..\src\Platform.h" />
     <ClInclude Include="..\..\src\Renderer.h" />
     <ClInclude Include="..\..\src\Tags.h" />
+    <ClInclude Include="..\..\src\URL.h" />
     <ClInclude Include="..\..\src\Widget.h" />
   </ItemGroup>
   <ItemGroup>

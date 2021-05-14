@@ -220,13 +220,27 @@ size_t DOSHTTPRequest::ReadData(char* buffer, size_t count)
 {
 	if (status == HTTPRequest::Downloading && sock)
 	{
-		return (size_t) sock->recv((unsigned char*) buffer, count);
+		int16_t rc = sock->recv((unsigned char*) buffer, count);
+		if (rc < 0)
+		{
+			Error(ContentReceiveError);
+		}
+		else
+		{
+			return (size_t)(rc);
+		}
 	}
 	return 0;
 }
 
 void DOSHTTPRequest::Stop()
 {
+	if (sock)
+	{
+		sock->closeNonblocking();
+		TcpSocketMgr::freeSocket(sock);
+		sock = NULL;
+	}
 	status = HTTPRequest::Stopped;
 }
 
@@ -316,6 +330,15 @@ void DOSHTTPRequest::Update()
 					}
 				}
 				break;
+			}
+		}
+		break;
+
+		case HTTPRequest::Downloading:
+		{
+			if (sock->isRemoteClosed())
+			{
+				//status = HTTPRequest::Finished;
 			}
 		}
 		break;

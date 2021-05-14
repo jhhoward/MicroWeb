@@ -10,6 +10,7 @@ App::App()
 	hoverWidget = NULL;
 	oldMouseX = -1;
 	oldMouseY = -1;
+	requestedNewPage = false;
 }
 
 App::~App()
@@ -26,37 +27,37 @@ App::~App()
 #define KEYCODE_HOME 71
 #define KEYCODE_END 79
 
+void App::ResetPage()
+{
+	page.Reset();
+	renderer.Reset();
+	parser.Reset();
+}
+
 void App::Run()
 {
 	while (1)
 	{
 		Platform::network->Update();
 
-		if (loadTask.type == LoadTask::LocalFile)
+		if (loadTask.HasContent())
 		{
-			if (loadTask.fs && !feof(loadTask.fs))
+			if (requestedNewPage)
 			{
-				char buffer[50];
-
-				size_t bytesRead = fread(buffer, 1, 50, loadTask.fs);
-				if (bytesRead)
-				{
-					parser.Parse(buffer, bytesRead);
-				}
+				ResetPage();
+				requestedNewPage = false;
+				page.pageURL = loadTask.url;
+				renderer.DrawAddress(page.pageURL.url);
 			}
-		}
-		else if (loadTask.type == LoadTask::RemoteFile)
-		{
-			if (loadTask.request && loadTask.request->GetStatus() == HTTPRequest::Downloading)
+
+			char buffer[50];
+
+			size_t bytesRead = loadTask.GetContent(buffer, 50);
+			if (bytesRead)
 			{
-				char buffer[50];
-
-				size_t bytesRead = loadTask.request->ReadData(buffer, 50);
-				if (bytesRead)
-				{
-					parser.Parse(buffer, bytesRead);
-				}
+				parser.Parse(buffer, bytesRead);
 			}
+
 		}
 
 		{
@@ -65,6 +66,18 @@ void App::Run()
 			if (buttons == 2)
 			{
 				break;
+			}
+
+			if (buttons == 1)
+			{
+				while (buttons)
+				{
+					Platform::mouse->GetMouseState(buttons, mouseX, mouseY);
+				}
+				if (hoverWidget && hoverWidget->linkURL)
+				{
+					OpenURL(URL::GenerateFromRelative(page.pageURL.url, hoverWidget->linkURL).url);
+				}
 			}
 
 			Widget* oldHoverWidget = hoverWidget;
@@ -139,6 +152,29 @@ void App::Run()
 				{
 					if (keyPress >= 32 && keyPress < 128)
 					{
+						if (keyPress == 'f')
+						{
+							//OpenURL("http://www.frogfind.com/");
+							//OpenURL("examples/sq.htm");
+						}
+						else if (keyPress == 'n')
+						{
+							OpenURL("http://68k.news/");
+							//OpenURL("examples/test.htm");
+						}
+
+						if (keyPress == 's')
+						{
+							printf("Load type: %d\n", loadTask.type);
+							if (loadTask.type == LoadTask::RemoteFile)
+							{
+								if (loadTask.request)
+								{
+									printf("Request status: %d\n", loadTask.request->GetStatus());
+								}
+								else printf("No active request\n");
+							}
+						}
 						//printf("%d - '%c'\n", keyPress, (char)keyPress);
 					}
 					else
@@ -151,15 +187,85 @@ void App::Run()
 	}
 }
 
-void App::OpenURL(char* url)
+void LoadTask::Load(const char* targetURL)
 {
-	loadTask.fs = fopen(url, "r");
-	loadTask.type = LoadTask::LocalFile;
+	url = targetURL;
 
-	if (!loadTask.fs)
+	type = LoadTask::LocalFile;
+	fs = fopen(url.url, "r");
+
+	if (!fs)
 	{
-		loadTask.type = LoadTask::RemoteFile;
-		loadTask.request = Platform::network->CreateRequest(url);
+		type = LoadTask::RemoteFile;
+		request = Platform::network->CreateRequest(url.url);
 	}
 }
 
+void LoadTask::Stop()
+{
+	switch (type)
+	{
+	case LoadTask::LocalFile:
+		if (fs)
+		{
+			fclose(fs);
+			fs = NULL;
+		}
+		break;
+	case LoadTask::RemoteFile:
+		if (request)
+		{
+			request->Stop();
+			Platform::network->DestroyRequest(request);
+			request = NULL;
+		}
+		break;
+	}
+}
+
+bool LoadTask::HasContent()
+{
+	if (type == LoadTask::LocalFile)
+	{
+		return (fs && !feof(fs));
+	}
+	else if (type == LoadTask::RemoteFile)
+	{
+		return (request && request->GetStatus() == HTTPRequest::Downloading);
+	}
+	return false;
+}
+
+size_t LoadTask::GetContent(char* buffer, size_t count)
+{
+	if (type == LoadTask::LocalFile)
+	{
+		if (fs && !feof(fs))
+		{
+			return fread(buffer, 1, count, fs);
+		}
+	}
+	else if (type == LoadTask::RemoteFile)
+	{
+		if (request && request->GetStatus() == HTTPRequest::Downloading)
+		{
+			return request->ReadData(buffer, count);
+		}
+	}
+	return 0;
+}
+
+void App::OpenURL(const char* url)
+{
+	//printf("LOAD:\"%s\"\n", url);
+	//getchar();
+	StopLoad();
+	loadTask.Load(url);
+
+	requestedNewPage = true;
+}
+
+void App::StopLoad()
+{
+	loadTask.Stop();
+}
