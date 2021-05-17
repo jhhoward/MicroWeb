@@ -35,7 +35,7 @@ struct LoadTask
 	};
 };
 
-class Widget;
+struct Widget;
 
 class App
 {
@@ -47,6 +47,8 @@ public:
 	void OpenURL(const char* url);
 
 	void StopLoad();
+
+	void ShowErrorPage(const char* message);
 
 	Page page;
 	Renderer renderer;

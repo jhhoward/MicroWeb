@@ -51,6 +51,8 @@ void HTMLParser::PopSection(HTMLParseSection::Type section)
 	{
 		// TODO: ERROR
 	}
+
+	page.FinishSection();
 }
 
 #define NUM_AMPERSAND_ESCAPE_SEQUENCES 14

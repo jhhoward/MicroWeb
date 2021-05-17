@@ -5,6 +5,8 @@
 #include "Page.h"
 #include "App.h"
 
+#define TOP_MARGIN_PADDING 1
+
 Page::Page(App& inApp) : app(inApp)
 {
 	Reset();
@@ -18,12 +20,13 @@ void Page::Reset()
 	pageWidth = Platform::video->windowWidth;
 	pageHeight = 0;
 	numWidgets = 0;
-	cursorX = 0;
-	cursorY = 0;
 	needLeadingWhiteSpace = false;
 	pendingVerticalPadding = 0;
 	widgetURL = NULL;
 	textBufferSize = 0;
+	leftMarginPadding = 1;
+	cursorX = leftMarginPadding;
+	cursorY = TOP_MARGIN_PADDING;
 
 	styleStackSize = 1;
 	styleStack[0] = WidgetStyle(FontStyle::Regular, 1, false);
@@ -71,7 +74,7 @@ Widget* Page::CreateWidget()
 
 		if (needLeadingWhiteSpace)
 		{
-			if (cursorX > 0)
+			if (cursorX > leftMarginPadding)
 			{
 				cursorX += Platform::video->GetGlyphWidth(' ', current.style.fontSize);
 			}
@@ -97,6 +100,7 @@ Widget* Page::CreateWidget()
 	}
 	else
 	{
+		printf(".\n");
 		currentWidgetIndex = -1;
 		return NULL;
 	}
@@ -157,7 +161,7 @@ void Page::FinishCurrentLine()
 		currentLineStartWidgetIndex = -1;
 	}
 
-	cursorX = 0;
+	cursorX = leftMarginPadding;
 }
 
 void Page::AppendText(const char* text)
@@ -209,7 +213,7 @@ void Page::AppendText(const char* text)
 			{
 				if (current->width == 0)
 				{
-					if (current->x == 0)
+					if (current->x == leftMarginPadding)
 					{
 						// Case with lots of text without spaces, so just break in middle of the word
 						for (int n = startIndex; n < index; n++)
@@ -314,4 +318,9 @@ void Page::SetWidgetURL(const char* url)
 void Page::ClearWidgetURL()
 {
 	widgetURL = NULL;
+}
+
+void Page::FinishSection()
+{
+	FinishCurrentLine();
 }

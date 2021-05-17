@@ -23,6 +23,7 @@ void Renderer::Reset()
 	scrollPosition = 0;
 	Platform::mouse->Hide();
 	Platform::video->ClearWindow();
+	RedrawScrollBar();
 	Platform::mouse->Show();
 }
 
@@ -38,8 +39,6 @@ int Renderer::GetMaxScrollPosition()
 
 void Renderer::Scroll(int delta)
 {
-	delta &= ~1;
-
 	if (scrollPosition + delta < 0)
 	{
 		delta = -scrollPosition;
@@ -49,6 +48,8 @@ void Renderer::Scroll(int delta)
 	{
 		delta = maxScroll - scrollPosition;
 	}
+
+	delta &= ~1;
 
 	if (delta == 0)
 	{

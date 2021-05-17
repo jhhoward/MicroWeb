@@ -81,6 +81,14 @@ public:
 	const FontStyle::Type style;
 };
 
+class ListTagHandler : public HTMLTagHandler
+{
+public:
+	ListTagHandler(const char* inName) : HTMLTagHandler(inName) {}
+	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
+	virtual void Close(class HTMLParser& parser) const;
+};
+
 class LiTagHandler : public HTMLTagHandler
 {
 public:

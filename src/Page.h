@@ -4,7 +4,7 @@
 #include "LinAlloc.h"
 #include "URL.h"
 
-#define MAX_PAGE_WIDGETS 1000
+#define MAX_PAGE_WIDGETS 2000
 #define MAX_PAGE_STYLE_STACK_SIZE 32
 #define MAX_TEXT_BUFFER_SIZE 128
 
@@ -21,6 +21,7 @@ public:
 	void BreakLine(int padding = 0);
 	void FlagLeadingWhiteSpace() { needLeadingWhiteSpace = true; }
 	void SetTitle(const char* text);
+	void FinishSection();
 
 	void SetWidgetURL(const char* url);
 	void ClearWidgetURL();
@@ -55,6 +56,8 @@ private:
 	int pageWidth, pageHeight;
 	int cursorX, cursorY;
 	int pendingVerticalPadding;
+
+	int leftMarginPadding;
 
 	bool needLeadingWhiteSpace;
 

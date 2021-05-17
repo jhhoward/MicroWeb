@@ -98,7 +98,7 @@ void App::Run()
 			{
 				if (hoverWidget && hoverWidget->linkURL)
 				{
-					renderer.DrawStatus(hoverWidget->linkURL);
+					renderer.DrawStatus(URL::GenerateFromRelative(page.pageURL.url, hoverWidget->linkURL).url);
 					Platform::mouse->SetCursor(MouseCursor::Hand);
 				}
 				else
@@ -263,9 +263,32 @@ void App::OpenURL(const char* url)
 	loadTask.Load(url);
 
 	requestedNewPage = true;
+
+	if (loadTask.type == LoadTask::RemoteFile && !loadTask.request)
+	{
+		ShowErrorPage("No network interface available");
+	}
 }
 
 void App::StopLoad()
 {
 	loadTask.Stop();
+}
+
+void App::ShowErrorPage(const char* message)
+{
+	loadTask.Stop();
+	ResetPage();
+
+	page.BreakLine(2);
+	page.PushStyle(WidgetStyle(FontStyle::Bold, 2));
+	page.AppendText("Error");
+	page.PopStyle();
+	page.BreakLine(2);
+	page.AppendText(message);
+	page.FinishSection();
+	
+	page.SetTitle("Error");
+	page.pageURL = "about:error";
+	renderer.DrawAddress(page.pageURL.url);
 }

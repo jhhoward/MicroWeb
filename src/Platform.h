@@ -60,26 +60,26 @@ public:
 class NetworkDriver
 {
 public:
-	virtual void Init() = 0;
-	virtual void Shutdown() = 0;
-	virtual void Update() = 0;
+	virtual void Init() {}
+	virtual void Shutdown() {}
+	virtual void Update() {}
 
-	virtual bool IsConnected() = 0;
+	virtual bool IsConnected() { return false; }
 
-	virtual HTTPRequest* CreateRequest(char* url) = 0;
-	virtual void DestroyRequest(HTTPRequest* request) = 0;
+	virtual HTTPRequest* CreateRequest(char* url) { return NULL; }
+	virtual void DestroyRequest(HTTPRequest* request) {}
 };
 
 class MouseDriver
 {
 public:
-	virtual void Init() = 0;
-	virtual void Shutdown() = 0;
+	virtual void Init() {}
+	virtual void Shutdown() {}
 
-	virtual void Hide() = 0;
-	virtual void Show() = 0;
-	virtual void SetCursor(MouseCursor::Type type) = 0;
-	virtual void GetMouseState(int& buttons, int& x, int& y) = 0;
+	virtual void Hide() {}
+	virtual void Show() {}
+	virtual void SetCursor(MouseCursor::Type type) {}
+	virtual void GetMouseState(int& buttons, int& x, int& y) { buttons = x = y = 0; }
 };
 
 class Platform

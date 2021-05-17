@@ -34,6 +34,9 @@ static const HTMLTagHandler* tagHandlers[] =
 	new StyleTagHandler("u", FontStyle::Underline),
 	new ATagHandler(),
 	new HTMLTagHandler("img"),
+	new ListTagHandler("ul"),
+	new ListTagHandler("ol"),
+	new ListTagHandler("menu"),
 	new LiTagHandler(),
 	new HrTagHandler(),
 	new DivTagHandler(),
@@ -249,4 +252,16 @@ void FontTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 void FontTagHandler::Close(class HTMLParser& parser) const
 {
 	parser.page.PopStyle();
+}
+
+void ListTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
+{
+	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
+	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize) >> 1);
+}
+
+void ListTagHandler::Close(class HTMLParser& parser) const
+{
+	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
+	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize) >> 1);
 }

@@ -2,10 +2,11 @@
 
 #include <stdint.h>
 #include "../Platform.h"
+#include "../URL.h"
 
 #define MAX_CONCURRENT_HTTP_REQUESTS 3
 #define HOSTNAME_LEN        (80)
-#define PATH_LEN           (256)
+#define PATH_LEN           (MAX_URL_LENGTH)
 
 typedef uint8_t  IpAddr_t[4];   // An IPv4 address is 4 bytes
 struct TcpSocket;

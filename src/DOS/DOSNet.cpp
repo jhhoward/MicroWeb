@@ -38,16 +38,18 @@ void DOSNetworkDriver::Init()
 {
 	isConnected = false;
 
-	printf("Init network driver\n");
+	//printf("Init network driver\n");
 	if (Utils::parseEnv() != 0) {
 		fprintf(stderr, "\nFailed in parseEnv()\n");
-		exit(1);
+		//exit(1);
+		return;
 	}
 
-	printf("Init network stack\n");
+	//printf("Init network stack\n");
 	if (Utils::initStack(MAX_CONCURRENT_HTTP_REQUESTS, TCP_SOCKET_RING_SIZE, ctrlBreakHandler, ctrlBreakHandler)) {
 		fprintf(stderr, "\nFailed to initialize TCP/IP - exiting\n");
-		exit(1);
+		//exit(1);
+		return;
 	}
 
 	isConnected = true;
@@ -55,30 +57,40 @@ void DOSNetworkDriver::Init()
 
 void DOSNetworkDriver::Shutdown()
 {
-	Utils::endStack();
+	if (isConnected)
+	{
+		Utils::endStack();
+		isConnected = false;
+	}
 }
 
 void DOSNetworkDriver::Update()
 {
-	PACKET_PROCESS_MULT(5);
-	Arp::driveArp();
-	Tcp::drivePackets();
-	Dns::drivePendingQuery();
-
-	for (int n = 0; n < MAX_CONCURRENT_HTTP_REQUESTS; n++)
+	if (isConnected)
 	{
-		requests[n].Update();
+		PACKET_PROCESS_MULT(5);
+		Arp::driveArp();
+		Tcp::drivePackets();
+		Dns::drivePendingQuery();
+
+		for (int n = 0; n < MAX_CONCURRENT_HTTP_REQUESTS; n++)
+		{
+			requests[n].Update();
+		}
 	}
 }
 
 HTTPRequest* DOSNetworkDriver::CreateRequest(char* url)
 {
-	for (int n = 0; n < MAX_CONCURRENT_HTTP_REQUESTS; n++)
+	if (isConnected)
 	{
-		if (requests[n].GetStatus() == HTTPRequest::Stopped)
+		for (int n = 0; n < MAX_CONCURRENT_HTTP_REQUESTS; n++)
 		{
-			requests[n].Open(url);
-			return &requests[n];
+			if (requests[n].GetStatus() == HTTPRequest::Stopped)
+			{
+				requests[n].Open(url);
+				return &requests[n];
+			}
 		}
 	}
 
