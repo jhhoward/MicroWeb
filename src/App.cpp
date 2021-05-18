@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include "App.h"
 #include "Platform.h"
-
-#include <conio.h>
+#include "KeyCodes.h"
 
 App::App() 
 	: page(*this), renderer(*this), parser(page)
@@ -18,14 +17,6 @@ App::~App()
 
 }
 
-#define KEYCODE_ARROW_UP 72
-#define KEYCODE_ARROW_DOWN 80
-
-#define KEYCODE_PAGE_UP 73
-#define KEYCODE_PAGE_DOWN 81
-
-#define KEYCODE_HOME 71
-#define KEYCODE_END 79
 
 void App::ResetPage()
 {
@@ -38,7 +29,7 @@ void App::Run()
 {
 	while (1)
 	{
-		Platform::network->Update();
+		Platform::Update();
 
 		if (loadTask.HasContent())
 		{
@@ -62,23 +53,7 @@ void App::Run()
 
 		{
 			int buttons, mouseX, mouseY;
-			Platform::mouse->GetMouseState(buttons, mouseX, mouseY);
-			if (buttons == 2)
-			{
-				break;
-			}
-
-			if (buttons == 1)
-			{
-				while (buttons)
-				{
-					Platform::mouse->GetMouseState(buttons, mouseX, mouseY);
-				}
-				if (hoverWidget && hoverWidget->linkURL)
-				{
-					OpenURL(URL::GenerateFromRelative(page.pageURL.url, hoverWidget->linkURL).url);
-				}
-			}
+			Platform::input->GetMouseStatus(buttons, mouseX, mouseY);
 
 			Widget* oldHoverWidget = hoverWidget;
 
@@ -99,90 +74,58 @@ void App::Run()
 				if (hoverWidget && hoverWidget->linkURL)
 				{
 					renderer.DrawStatus(URL::GenerateFromRelative(page.pageURL.url, hoverWidget->linkURL).url);
-					Platform::mouse->SetCursor(MouseCursor::Hand);
+					Platform::input->SetMouseCursor(MouseCursor::Hand);
 				}
 				else
 				{
 					renderer.DrawStatus("");
-					Platform::mouse->SetCursor(MouseCursor::Pointer);
+					Platform::input->SetMouseCursor(MouseCursor::Pointer);
 				}
 			}
 		}
 
-		if (kbhit())
+		switch(Platform::input->GetKeyPress())
 		{
-			int keyPress = getch();
-			if (keyPress == 27)
+		case KEYCODE_MOUSE_LEFT:
+			if (hoverWidget && hoverWidget->linkURL)
 			{
-				break;
+				OpenURL(URL::GenerateFromRelative(page.pageURL.url, hoverWidget->linkURL).url);
 			}
-			else
+			break;
+		case KEYCODE_ESCAPE:
+			return;
+		case KEYCODE_ARROW_UP:
+			renderer.Scroll(-8);
+			break;
+		case KEYCODE_ARROW_DOWN:
+			renderer.Scroll(8);
+			break;
+		case KEYCODE_PAGE_UP:
+			renderer.Scroll(-(Platform::video->windowHeight - 24));
+			break;
+		case KEYCODE_PAGE_DOWN:
+			renderer.Scroll((Platform::video->windowHeight - 24));
+			break;
+		case KEYCODE_HOME:
+			renderer.Scroll(-page.GetPageHeight());
+			break;
+		case KEYCODE_END:
+			renderer.Scroll(page.GetPageHeight());
+			break;
+		case 'n':
+			OpenURL("http://68k.news/");
+			break;
+		case 's':
+			printf("Load type: %d\n", loadTask.type);
+			if (loadTask.type == LoadTask::RemoteFile)
 			{
-				if (keyPress == 0)
+				if (loadTask.request)
 				{
-					keyPress = getch();
-					//printf("special %d\n", keyPress);
-
-					if (keyPress == KEYCODE_ARROW_UP)
-					{
-						renderer.Scroll(-8);
-					}
-					if (keyPress == KEYCODE_ARROW_DOWN)
-					{
-						renderer.Scroll(8);
-					}
-					if (keyPress == KEYCODE_PAGE_UP)
-					{
-						renderer.Scroll(-(Platform::video->windowHeight - 24));
-					}
-					if (keyPress == KEYCODE_PAGE_DOWN)
-					{
-						renderer.Scroll((Platform::video->windowHeight - 24));
-					}
-					if (keyPress == KEYCODE_HOME)
-					{
-						renderer.Scroll(-page.GetPageHeight());
-					}
-					if (keyPress == KEYCODE_END)
-					{
-						renderer.Scroll(page.GetPageHeight());
-					}
+					printf("Request status: %d\n", loadTask.request->GetStatus());
 				}
-				else
-				{
-					if (keyPress >= 32 && keyPress < 128)
-					{
-						if (keyPress == 'f')
-						{
-							//OpenURL("http://www.frogfind.com/");
-							//OpenURL("examples/sq.htm");
-						}
-						else if (keyPress == 'n')
-						{
-							OpenURL("http://68k.news/");
-							//OpenURL("examples/test.htm");
-						}
-
-						if (keyPress == 's')
-						{
-							printf("Load type: %d\n", loadTask.type);
-							if (loadTask.type == LoadTask::RemoteFile)
-							{
-								if (loadTask.request)
-								{
-									printf("Request status: %d\n", loadTask.request->GetStatus());
-								}
-								else printf("No active request\n");
-							}
-						}
-						//printf("%d - '%c'\n", keyPress, (char)keyPress);
-					}
-					else
-					{
-						//printf("%d\n", keyPress);
-					}
-				}
+				else printf("No active request\n");
 			}
+			break;
 		}
 	}
 }

@@ -1,14 +1,14 @@
 #include "../Platform.h"
 #include "CGA.h"
-#include "DOSMouse.h"
+#include "DOSInput.h"
 #include "DOSNet.h"
 
 static CGADriver cga;
-static DOSMouseDriver DOSMouse;
+static DOSInputDriver DOSinput;
 static DOSNetworkDriver DOSNet;
 
 VideoDriver* Platform::video = &cga;
-MouseDriver* Platform::mouse = &DOSMouse;
+InputDriver* Platform::input = &DOSinput;
 NetworkDriver* Platform::network = &DOSNet;
 
 void Platform::Init()
@@ -16,14 +16,18 @@ void Platform::Init()
 	network->Init();
 	video->Init();
 	video->ClearScreen();
-	mouse->Init();
-	mouse->Show();
+	input->Init();
 }
 
 void Platform::Shutdown()
 {
-	mouse->Shutdown();
+	input->Shutdown();
 	video->Shutdown();
 	network->Shutdown();
 }
 
+void Platform::Update()
+{
+	network->Update();
+	input->Update();
+}

@@ -147,6 +147,7 @@
     <ClCompile Include="..\..\src\Renderer.cpp" />
     <ClCompile Include="..\..\src\Tags.cpp" />
     <ClCompile Include="..\..\src\Windows\Platform.cpp" />
+    <ClCompile Include="..\..\src\Windows\WinInput.cpp" />
     <ClCompile Include="..\..\src\Windows\WinVid.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -162,6 +163,7 @@
     <ClInclude Include="..\..\src\Tags.h" />
     <ClInclude Include="..\..\src\URL.h" />
     <ClInclude Include="..\..\src\Widget.h" />
+    <ClInclude Include="..\..\src\Windows\WinInput.h" />
     <ClInclude Include="..\..\src\Windows\WinVid.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

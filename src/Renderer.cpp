@@ -21,10 +21,10 @@ void Renderer::Reset()
 	pageTopWidgetIndex = 0;
 	oldStatus = NULL;
 	scrollPosition = 0;
-	Platform::mouse->Hide();
+	Platform::input->HideMouse();
 	Platform::video->ClearWindow();
 	RedrawScrollBar();
-	Platform::mouse->Show();
+	Platform::input->ShowMouse();
 }
 
 int Renderer::GetMaxScrollPosition()
@@ -56,7 +56,7 @@ void Renderer::Scroll(int delta)
 		return;
 	}
 
-	Platform::mouse->Hide();
+	Platform::input->HideMouse();
 
 	if (delta < Platform::video->windowHeight && delta > -Platform::video->windowHeight)
 	{
@@ -116,7 +116,7 @@ void Renderer::Scroll(int delta)
 		RenderWidget(widget);
 	}
 
-	Platform::mouse->Show();
+	Platform::input->ShowMouse();
 }
 
 void Renderer::RedrawScrollBar()
@@ -145,7 +145,7 @@ void Renderer::RenderWidget(Widget* widget)
 
 void Renderer::OnPageWidgetsLoaded(Widget* widget, int count)
 {
-	Platform::mouse->Hide();
+	Platform::input->HideMouse();
 	Platform::video->SetScissorRegion(Platform::video->windowY, Platform::video->windowY + Platform::video->windowHeight);
 
 	while(count)
@@ -159,7 +159,7 @@ void Renderer::OnPageWidgetsLoaded(Widget* widget, int count)
 	{
 		RedrawScrollBar();
 	}
-	Platform::mouse->Show();
+	Platform::input->ShowMouse();
 }
 
 Widget* Renderer::PickPageWidget(int x, int y)
@@ -182,18 +182,18 @@ void Renderer::DrawStatus(const char* status)
 {
 	if (status != oldStatus)
 	{
-		Platform::mouse->Hide();
+		Platform::input->HideMouse();
 
 		Platform::video->DrawStatus(status ? status : "");
 
-		Platform::mouse->Show();
+		Platform::input->ShowMouse();
 		oldStatus = status;
 	}
 }
 
 void Renderer::DrawAddress(const char* address)
 {
-	Platform::mouse->Hide();
+	Platform::input->HideMouse();
 
 	Platform::video->SetScissorRegion(0, Platform::video->windowY);
 	Widget& addressBar = Platform::video->addressBar;
@@ -201,6 +201,6 @@ void Renderer::DrawAddress(const char* address)
 	Platform::video->ClearRect(addressBar.x + 1, addressBar.y + 1, addressBar.width - 2, addressBar.height - 2);
 	Platform::video->DrawString(address, addressBar.x + 2, addressBar.y + 2);
 
-	Platform::mouse->Show();
+	Platform::input->ShowMouse();
 
 }

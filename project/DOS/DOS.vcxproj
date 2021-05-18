@@ -97,7 +97,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\App.cpp" />
     <ClCompile Include="..\..\src\DOS\CGA.cpp" />
-    <ClCompile Include="..\..\src\DOS\DOSMouse.cpp" />
+    <ClCompile Include="..\..\src\DOS\DOSInput.cpp" />
     <ClCompile Include="..\..\src\DOS\DOSNet.cpp" />
     <ClCompile Include="..\..\src\DOS\Platform.cpp" />
     <ClCompile Include="..\..\src\Font.cpp" />
@@ -110,10 +110,11 @@
   <ItemGroup>
     <ClInclude Include="..\..\src\App.h" />
     <ClInclude Include="..\..\src\DOS\DOSNet.h" />
+    <ClInclude Include="..\..\src\KeyCodes.h" />
     <ClInclude Include="..\..\src\LinAlloc.h" />
     <ClInclude Include="..\..\src\Cursor.h" />
     <ClInclude Include="..\..\src\DOS\CGA.h" />
-    <ClInclude Include="..\..\src\DOS\DOSMouse.h" />
+    <ClInclude Include="..\..\src\DOS\DOSInput.h" />
     <ClInclude Include="..\..\src\Font.h" />
     <ClInclude Include="..\..\src\Page.h" />
     <ClInclude Include="..\..\src\Parser.h" />

@@ -293,9 +293,9 @@ void Page::SetTitle(const char* inTitle)
 	//title = new char[strlen(inTitle) + 1];
 	//strcpy(title, inTitle);
 
-	Platform::mouse->Hide();
+	Platform::input->HideMouse();
 	Platform::video->DrawTitle(inTitle);
-	Platform::mouse->Show();
+	Platform::input->ShowMouse();
 }
 
 Widget* Page::GetWidget(int x, int y)

@@ -70,16 +70,20 @@ public:
 	virtual void DestroyRequest(HTTPRequest* request) {}
 };
 
-class MouseDriver
+typedef uint16_t InputButtonCode;
+
+class InputDriver
 {
 public:
 	virtual void Init() {}
 	virtual void Shutdown() {}
+	virtual void Update() {}
 
-	virtual void Hide() {}
-	virtual void Show() {}
-	virtual void SetCursor(MouseCursor::Type type) {}
-	virtual void GetMouseState(int& buttons, int& x, int& y) { buttons = x = y = 0; }
+	virtual void HideMouse() = 0;
+	virtual void ShowMouse() = 0;
+	virtual void SetMouseCursor(MouseCursor::Type type) = 0;
+	virtual void GetMouseStatus(int& buttons, int& x, int& y) = 0;
+	virtual InputButtonCode GetKeyPress() { return 0; }
 };
 
 class Platform
@@ -87,8 +91,9 @@ class Platform
 public:
 	static void Init();
 	static void Shutdown();
+	static void Update();
 
 	static VideoDriver* video;
 	static NetworkDriver* network;
-	static MouseDriver* mouse;
+	static InputDriver* input;
 };
