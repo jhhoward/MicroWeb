@@ -102,6 +102,7 @@ void Renderer::Update()
 		int bestLineStartIndex = -1;
 		int currentLineIndex = -1;
 		int currentLineHeight = -1;
+		int currentLineTop = -1;
 
 		for (int n = pageTopWidgetIndex; n < app.page.numFinishedWidgets; n++)
 		{
@@ -113,19 +114,27 @@ void Renderer::Update()
 			{
 				// First widget in the line - possibly a new line
 
-				if (currentLineIndex != -1 && currentLineIndex != bestLineStartIndex)
+				if (currentLineTop != -1)
 				{
-					// Last line was completely below the cutoff line so stop
-					break;
+					if (currentLineTop < upperRenderLine)
+					{
+						bestLineStartIndex = currentLineIndex;
+					}
+					else
+					{
+						// Last line was completely below the cutoff line so stop
+						break;
+					}
 				}
 
 				currentLineIndex = n;
 				currentLineHeight = widgetLine;
+				currentLineTop = widgetTop;
 			}
 
-			if (widgetTop < upperRenderLine || bestLineStartIndex == -1)
+			if (widgetTop < currentLineTop)
 			{
-				bestLineStartIndex = currentLineIndex;
+				currentLineTop = widgetTop;
 			}
 		}
 
