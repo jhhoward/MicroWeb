@@ -12,7 +12,6 @@ public:
 	void Update();
 	void Scroll(int delta);
 
-	void OnPageWidgetsLoaded(Widget* widget, int count);
 	void RedrawScrollBar();
 
 	Widget* PickPageWidget(int x, int y);
@@ -21,10 +20,10 @@ public:
 	void DrawStatus(const char* status);
 	void DrawAddress(const char* address);
 
+	void RenderWidget(Widget* widget, int baseY = 0);
 private:
 	void DrawButtonRect(int x, int y, int width, int height);
 
-	void RenderWidget(Widget* widget);
 	int GetMaxScrollPosition();
 
 	App& app;

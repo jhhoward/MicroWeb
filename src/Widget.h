@@ -48,7 +48,8 @@ struct Widget
 		Text,
 		HorizontalRule,
 		Button,
-		TextField
+		TextField,
+		ScrollBar
 	};
 
 	Type type : 8;

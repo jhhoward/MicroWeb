@@ -17,6 +17,18 @@ struct URL
 		strcpy(url, other.url);
 	}
 
+	URL& operator= (const URL& other)
+	{
+		strcpy(url, other.url);
+		return *this;
+	}
+
+	URL& operator= (const char* other)
+	{
+		strcpy(url, other);
+		return *this;
+	}
+
 	static const URL& GenerateFromRelative(const char* baseURL, const char* relativeURL)
 	{
 		static URL result;

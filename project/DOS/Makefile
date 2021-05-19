@@ -1,7 +1,7 @@
 bin = MicroWeb.exe
 SRC_PATH = ..\..\src
 OBJDIR=obj
-objects = MicroWeb.obj App.obj Parser.obj Renderer.obj Tags.obj Platform.obj CGA.obj Font.obj DOSInput.obj DOSNet.obj Page.obj
+objects = MicroWeb.obj App.obj Parser.obj Renderer.obj Tags.obj Platform.obj CGA.obj Font.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj
 memory_model = -ml
 CC = wpp
 CFLAGS = -zq -0 -ot -bt=DOS -w2 $(memory_model)
@@ -53,6 +53,9 @@ Platform.obj: $(SRC_PATH)\DOS\Platform.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 Font.obj: $(SRC_PATH)\Font.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+Interface.obj: $(SRC_PATH)\Interface.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 CGA.obj: $(SRC_PATH)\DOS\CGA.cpp

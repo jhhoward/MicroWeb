@@ -5,6 +5,7 @@
 #include "Page.h"
 #include "Renderer.h"
 #include "URL.h"
+#include "Interface.h"
 
 #define MAX_PAGE_URL_HISTORY 5
 
@@ -44,7 +45,11 @@ public:
 	~App();
 
 	void Run();
+	void Close() { running = false; }
 	void OpenURL(const char* url);
+
+	void PreviousPage();
+	void NextPage();
 
 	void StopLoad();
 
@@ -53,16 +58,17 @@ public:
 	Page page;
 	Renderer renderer;
 	HTMLParser parser;
+	AppInterface ui;
 
 private:
 	void ResetPage();
+	void RequestNewPage(const char* url);
 
 	bool requestedNewPage;
 	LoadTask loadTask;
-	Widget* hoverWidget;
-	int oldMouseX, oldMouseY;
+	bool running;
 
-//	URL pageHistory[MAX_PAGE_URL_HISTORY];
-//	int pageHistorySize;
-//	int pageHistoryPos;
+	URL pageHistory[MAX_PAGE_URL_HISTORY];
+	int pageHistorySize;
+	int pageHistoryPos;
 };

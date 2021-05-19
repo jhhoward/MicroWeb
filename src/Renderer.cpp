@@ -27,6 +27,7 @@ void Renderer::Reset()
 	Platform::input->HideMouse();
 	Platform::video->ClearWindow();
 	RedrawScrollBar();
+	app.ui.DrawInterfaceWidgets();
 	Platform::input->ShowMouse();
 }
 
@@ -68,7 +69,7 @@ void Renderer::Update()
 				if (line == -1 || widgetLine == line)
 				{
 					Platform::input->HideMouse();
-					RenderWidget(widget);
+					RenderWidget(widget, baseY);
 					line = widgetLine;
 					renderedAnything = true;
 				}
@@ -158,7 +159,7 @@ void Renderer::Update()
 				}
 
 				Platform::input->HideMouse();
-				RenderWidget(widget);
+				RenderWidget(widget, baseY);
 				if (widgetTop < upperRenderLine)
 				{
 					upperRenderLine = widgetTop;
@@ -170,31 +171,11 @@ void Renderer::Update()
 				upperRenderLine = Platform::video->windowY;
 			}
 		}
-
-		/*
-		int lineStartIndex = pageTopWidgetIndex;
-		int minY = upperRenderLine;
-		int currentLineHeight = -1;
-
-		for (int n = pageTopWidgetIndex; n < app.page.numFinishedWidgets; n++)
+		else
 		{
-			Widget* widget = &app.page.widgets[n];
-			int widgetTop = widget->y + baseY;
-
-			if (widgetTop > upperRenderLine)
-			{
-				break;
-			}
-
-			int widgetLine = widgetTop + widget->height;
-
-			if (currentLineHeight == -1 || widgetLine != currentLineHeight)
-			{
-				currentLineHeight = widgetLine;
-				lineStartIndex = n;
-			}
+			// Everything must have been rendered, reset 
+			upperRenderLine = Platform::video->windowY;
 		}
-		*/
 	}
 
 	Platform::input->ShowMouse();
@@ -269,16 +250,6 @@ void Renderer::Scroll(int delta)
 		}
 	}
 
-	/*
-	for (int n = pageTopWidgetIndex; n < app.page.numFinishedWidgets; n++)
-	{
-		Widget* widget = &app.page.widgets[n];
-		if (widget->y > scrollPosition + Platform::video->windowHeight)
-		{
-			break;
-		}
-		RenderWidget(widget);
-	}*/
 	lowerRenderLine -= delta;
 	upperRenderLine -= delta;
 	int windowBottom = Platform::video->windowY + Platform::video->windowHeight;
@@ -318,10 +289,8 @@ void Renderer::RedrawScrollBar()
 	Platform::video->DrawScrollBar(widgetPosition, scrollWidgetSize);
 }
 
-void Renderer::RenderWidget(Widget* widget)
+void Renderer::RenderWidget(Widget* widget, int baseY)
 {
-	int baseY = Platform::video->windowY - scrollPosition;
-
 	switch (widget->type)
 	{
 	case Widget::Text:
@@ -349,28 +318,9 @@ void Renderer::RenderWidget(Widget* widget)
 	}
 }
 
-void Renderer::OnPageWidgetsLoaded(Widget* widget, int count)
-{
-	Platform::input->HideMouse();
-	Platform::video->SetScissorRegion(Platform::video->windowY, Platform::video->windowY + Platform::video->windowHeight);
-
-	while(count)
-	{
-		RenderWidget(widget);
-		count--;
-		widget++;
-	}
-
-	if (app.page.pageHeight > Platform::video->windowHeight)
-	{
-		RedrawScrollBar();
-	}
-	Platform::input->ShowMouse();
-}
-
 Widget* Renderer::PickPageWidget(int x, int y)
 {
-	if (y < Platform::video->windowY || y > Platform::video->windowY + Platform::video->windowHeight || x > Platform::video->windowWidth)
+	if (y < upperRenderLine || y > lowerRenderLine || x > Platform::video->windowWidth)
 	{
 		return NULL;
 	}
@@ -402,7 +352,7 @@ void Renderer::DrawAddress(const char* address)
 	Platform::input->HideMouse();
 
 	Platform::video->SetScissorRegion(0, Platform::video->windowY);
-	Widget& addressBar = Platform::video->addressBar;
+	Widget& addressBar = app.ui.addressBar;
 
 	Platform::video->ClearRect(addressBar.x + 1, addressBar.y + 1, addressBar.width - 2, addressBar.height - 2);
 	Platform::video->DrawString(address, addressBar.x + 2, addressBar.y + 2);

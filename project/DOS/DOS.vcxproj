@@ -101,6 +101,7 @@
     <ClCompile Include="..\..\src\DOS\DOSNet.cpp" />
     <ClCompile Include="..\..\src\DOS\Platform.cpp" />
     <ClCompile Include="..\..\src\Font.cpp" />
+    <ClCompile Include="..\..\src\Interface.cpp" />
     <ClCompile Include="..\..\src\Microweb.cpp" />
     <ClCompile Include="..\..\src\Page.cpp" />
     <ClCompile Include="..\..\src\Parser.cpp" />
@@ -110,6 +111,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\src\App.h" />
     <ClInclude Include="..\..\src\DOS\DOSNet.h" />
+    <ClInclude Include="..\..\src\Interface.h" />
     <ClInclude Include="..\..\src\KeyCodes.h" />
     <ClInclude Include="..\..\src\LinAlloc.h" />
     <ClInclude Include="..\..\src\Cursor.h" />

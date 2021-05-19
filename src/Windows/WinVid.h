@@ -11,6 +11,7 @@ public:
 	virtual void Init();
 	virtual void Shutdown();
 
+	virtual void ArrangeAppInterfaceWidgets(class App& app) {}
 	virtual void ClearScreen();
 
 	virtual void ClearWindow();

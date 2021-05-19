@@ -1,15 +1,13 @@
 #include <stdio.h>
 #include "App.h"
 #include "Platform.h"
-#include "KeyCodes.h"
 
 App::App() 
-	: page(*this), renderer(*this), parser(page)
+	: page(*this), renderer(*this), parser(page), ui(*this)
 {
-	hoverWidget = NULL;
-	oldMouseX = -1;
-	oldMouseY = -1;
 	requestedNewPage = false;
+	pageHistorySize = 0;
+	pageHistoryPos = -1;
 }
 
 App::~App()
@@ -27,7 +25,9 @@ void App::ResetPage()
 
 void App::Run()
 {
-	while (1)
+	running = true;
+
+	while (running)
 	{
 		Platform::Update();
 		renderer.Update();
@@ -49,96 +49,9 @@ void App::Run()
 			{
 				parser.Parse(buffer, bytesRead);
 			}
-
 		}
 
-		{
-			int buttons, mouseX, mouseY;
-			Platform::input->GetMouseStatus(buttons, mouseX, mouseY);
-
-			Widget* oldHoverWidget = hoverWidget;
-
-			if (hoverWidget && !renderer.IsOverPageWidget(hoverWidget, mouseX, mouseY))
-			{
-				hoverWidget = renderer.PickPageWidget(mouseX, mouseY);
-			}
-			else if (!hoverWidget && (mouseX != oldMouseX || mouseY != oldMouseY))
-			{
-				hoverWidget = renderer.PickPageWidget(mouseX, mouseY);
-			}
-
-			oldMouseX = mouseX;
-			oldMouseY = mouseY;
-
-			if (hoverWidget != oldHoverWidget)
-			{
-				if (hoverWidget && hoverWidget->GetLinkURL())
-				{
-					renderer.DrawStatus(URL::GenerateFromRelative(page.pageURL.url, hoverWidget->GetLinkURL()).url);
-					Platform::input->SetMouseCursor(MouseCursor::Hand);
-				}
-				else
-				{
-					renderer.DrawStatus("");
-					Platform::input->SetMouseCursor(MouseCursor::Pointer);
-				}
-			}
-		}
-
-		InputButtonCode keyPress;
-		int scrollDelta = 0;
-
-		while (keyPress = Platform::input->GetKeyPress())
-		{
-			switch (keyPress)
-			{
-			case KEYCODE_MOUSE_LEFT:
-				if (hoverWidget && hoverWidget->GetLinkURL())
-				{
-					OpenURL(URL::GenerateFromRelative(page.pageURL.url, hoverWidget->GetLinkURL()).url);
-				}
-				break;
-			case KEYCODE_ESCAPE:
-				return;
-			case KEYCODE_ARROW_UP:
-				scrollDelta -= 8;
-				break;
-			case KEYCODE_ARROW_DOWN:
-				scrollDelta += 8;
-				break;
-			case KEYCODE_PAGE_UP:
-				scrollDelta -= (Platform::video->windowHeight - 24);
-				break;
-			case KEYCODE_PAGE_DOWN:
-				scrollDelta += (Platform::video->windowHeight - 24);
-				break;
-			case KEYCODE_HOME:
-				renderer.Scroll(-page.GetPageHeight());
-				break;
-			case KEYCODE_END:
-				renderer.Scroll(page.GetPageHeight());
-				break;
-			case 'n':
-				OpenURL("http://68k.news");
-				break;
-			case 's':
-				printf("Load type: %d\n", loadTask.type);
-				if (loadTask.type == LoadTask::RemoteFile)
-				{
-					if (loadTask.request)
-					{
-						printf("Request status: %d\n", loadTask.request->GetStatus());
-					}
-					else printf("No active request\n");
-				}
-				break;
-			}
-		}
-
-		if (scrollDelta)
-		{
-			renderer.Scroll(scrollDelta);
-		}
+		ui.Update();
 	}
 }
 
@@ -210,10 +123,8 @@ size_t LoadTask::GetContent(char* buffer, size_t count)
 	return 0;
 }
 
-void App::OpenURL(const char* url)
+void App::RequestNewPage(const char* url)
 {
-	//printf("LOAD:\"%s\"\n", url);
-	//getchar();
 	StopLoad();
 	loadTask.Load(url);
 
@@ -223,6 +134,24 @@ void App::OpenURL(const char* url)
 	{
 		ShowErrorPage("No network interface available");
 	}
+}
+
+void App::OpenURL(const char* url)
+{
+	RequestNewPage(url);
+
+	pageHistoryPos++;
+	if (pageHistoryPos >= MAX_PAGE_URL_HISTORY)
+	{
+		for (int n = 0; n < MAX_PAGE_URL_HISTORY - 1; n++)
+		{
+			pageHistory[n] = pageHistory[n + 1];
+		}
+		pageHistoryPos--;
+	}
+
+	pageHistory[pageHistoryPos] = url;
+	pageHistorySize = pageHistoryPos + 1;
 }
 
 void App::StopLoad()
@@ -246,4 +175,22 @@ void App::ShowErrorPage(const char* message)
 	page.SetTitle("Error");
 	page.pageURL = "about:error";
 	renderer.DrawAddress(page.pageURL.url);
+}
+
+void App::PreviousPage()
+{
+	if (pageHistoryPos > 0)
+	{
+		pageHistoryPos--;
+		RequestNewPage(pageHistory[pageHistoryPos].url);
+	}
+}
+
+void App::NextPage()
+{
+	if (pageHistoryPos + 1 < pageHistorySize)
+	{
+		pageHistoryPos++;
+		RequestNewPage(pageHistory[pageHistoryPos].url);
+	}
 }

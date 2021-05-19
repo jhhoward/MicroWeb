@@ -11,6 +11,8 @@ public:
 	virtual void Shutdown();
 	virtual void ClearScreen();
 
+	virtual void ArrangeAppInterfaceWidgets(class AppInterface& app);
+
 	virtual void ClearWindow();
 	virtual void ScrollWindow(int delta);
 	virtual void SetScissorRegion(int y1, int y2);

@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include "CGA.h"
 #include "CGAData.inc"
+#include "../Interface.h"
 
 #define CGA_BASE_VRAM_ADDRESS (uint8_t*) MK_FP(0xB800, 0)
 
@@ -16,9 +17,15 @@
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 200
 
-#define ADDRESS_BAR_X 80
+#define NAVIGATION_BUTTON_WIDTH 24
+#define NAVIGATION_BUTTON_HEIGHT 12
+
+#define BACK_BUTTON_X 4
+#define FORWARD_BUTTON_X 32
+
+#define ADDRESS_BAR_X 60
 #define ADDRESS_BAR_Y 10
-#define ADDRESS_BAR_WIDTH 480
+#define ADDRESS_BAR_WIDTH 576
 #define ADDRESS_BAR_HEIGHT 12
 #define TITLE_BAR_HEIGHT 8
 #define STATUS_BAR_HEIGHT 8
@@ -43,16 +50,6 @@ CGADriver::CGADriver()
 	windowHeight = WINDOW_HEIGHT;
 	windowX = 0;
 	windowY = WINDOW_TOP;
-
-	addressBar.x = ADDRESS_BAR_X;
-	addressBar.y = ADDRESS_BAR_Y;
-	addressBar.width = ADDRESS_BAR_WIDTH;
-	addressBar.height = ADDRESS_BAR_HEIGHT;
-
-	scrollBar.x = SCREEN_WIDTH - SCROLL_BAR_WIDTH;
-	scrollBar.y = WINDOW_TOP;
-	scrollBar.width = SCROLL_BAR_WIDTH;
-	scrollBar.height = WINDOW_HEIGHT;
 }
 
 void CGADriver::Init()
@@ -104,8 +101,8 @@ void CGADriver::ClearScreen()
 	// Scroll bar 
 	DrawScrollBar(0, WINDOW_HEIGHT);
 
-	DrawButtonRect(addressBar.x, addressBar.y, addressBar.width, addressBar.height);
-	DrawString("file://path/to/file", addressBar.x + 2, addressBar.y + 2, 1);
+	//DrawButtonRect(addressBar.x, addressBar.y, addressBar.width, addressBar.height);
+//	DrawString("file://path/to/file", addressBar.x + 2, addressBar.y + 2, 1);
 
 	DrawTitle("MicroWeb");
 	DrawStatus("Status");
@@ -584,4 +581,27 @@ void CGADriver::SetScissorRegion(int y1, int y2)
 {
 	scissorY1 = y1;
 	scissorY2 = y2;
+}
+
+void CGADriver::ArrangeAppInterfaceWidgets(AppInterface& app)
+{
+	app.addressBar.x = ADDRESS_BAR_X;
+	app.addressBar.y = ADDRESS_BAR_Y;
+	app.addressBar.width = ADDRESS_BAR_WIDTH;
+	app.addressBar.height = ADDRESS_BAR_HEIGHT;
+
+	app.scrollBar.x = SCREEN_WIDTH - SCROLL_BAR_WIDTH;
+	app.scrollBar.y = WINDOW_TOP;
+	app.scrollBar.width = SCROLL_BAR_WIDTH;
+	app.scrollBar.height = WINDOW_HEIGHT;
+
+	app.backButton.x = BACK_BUTTON_X;
+	app.backButton.y = ADDRESS_BAR_Y;
+	app.backButton.width = NAVIGATION_BUTTON_WIDTH;
+	app.backButton.height = NAVIGATION_BUTTON_HEIGHT;
+
+	app.forwardButton.x = FORWARD_BUTTON_X;
+	app.forwardButton.y = ADDRESS_BAR_Y;
+	app.forwardButton.width = NAVIGATION_BUTTON_WIDTH;
+	app.forwardButton.height = NAVIGATION_BUTTON_HEIGHT;
 }

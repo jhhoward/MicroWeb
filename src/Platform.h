@@ -13,6 +13,8 @@ public:
 
 	virtual void ClearScreen() = 0;
 
+	virtual void ArrangeAppInterfaceWidgets(class AppInterface& app) = 0;
+
 	virtual void ClearWindow() = 0;
 	virtual void ClearRect(int x, int y, int width, int height) = 0;
 	virtual void ScrollWindow(int delta) = 0;
@@ -38,9 +40,6 @@ public:
 	int windowWidth;
 	int windowHeight;
 	int windowX, windowY;
-
-	Widget scrollBar;
-	Widget addressBar;
 };
 
 class HTTPRequest
