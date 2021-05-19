@@ -8,8 +8,8 @@ class WindowsInputDriver : public InputDriver
 public:
 	virtual void Init();
 
-	virtual void ShowMouse() {}
-	virtual void HideMouse() {}
+	virtual void ShowMouse();
+	virtual void HideMouse();
 
 	virtual void SetMouseCursor(MouseCursor::Type type);
 	virtual void GetMouseStatus(int& buttons, int& x, int& y);

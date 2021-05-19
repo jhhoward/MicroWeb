@@ -13,16 +13,63 @@ struct WidgetStyle
 	bool center : 1;
 };
 
+struct TextWidgetData
+{
+	char* text;
+	char* linkURL;
+};
+
+struct WidgetFormData
+{
+	enum MethodType
+	{
+		Get,
+		Post
+	};
+	char* action;
+	MethodType method;
+};
+
+struct ButtonWidgetData
+{
+	char* text;
+	WidgetFormData* form;
+};
+
+struct TextFieldWidgetData
+{
+
+};
+
 struct Widget
 {
-	uint8_t type;
+	enum Type
+	{
+		Text,
+		HorizontalRule,
+		Button,
+		TextField
+	};
+
+	Type type : 8;
 	uint16_t x, y;
 	uint16_t width, height;
 	WidgetStyle style;
 
+	char* GetLinkURL()
+	{
+		if (type == Text)
+		{
+			return text->linkURL;
+		}
+		return NULL;
+	}
+
 	union
 	{
-		char* text;
+		TextWidgetData* text;
+		ButtonWidgetData* button;
+		TextFieldWidgetData* textField;
 	};
-	char* linkURL;
 };
+

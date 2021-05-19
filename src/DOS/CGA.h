@@ -22,6 +22,9 @@ public:
 	virtual void DrawButtonRect(int x, int y, int width, int height);
 	virtual void ClearRect(int x, int y, int width, int height);
 
+	virtual void HLine(int x, int y, int count);
+	virtual void VLine(int x, int y, int count);
+
 	virtual int GetGlyphWidth(char c, int fontSize = 1, FontStyle::Type style = FontStyle::Regular);
 	virtual int GetLineHeight(int fontSize = 1);
 	virtual Font* GetFont(int fontSize);
@@ -33,8 +36,6 @@ public:
 private:
 	int GetScreenMode();
 	void SetScreenMode(int screenMode);
-	void HLine(int x, int y, int count);
-	void VLine(int x, int y, int count);
 
 	void ClearHLine(int x, int y, int count);
 

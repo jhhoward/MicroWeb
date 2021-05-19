@@ -17,8 +17,12 @@ public:
 
 	void Reset();
 
+	void AddHorizontalRule();
+	void AddButton(char* text);
+	void AddTextField(char* text);
 	void AppendText(const char* text);
 	void BreakLine(int padding = 0);
+	void BreakTextLine();
 	void FlagLeadingWhiteSpace() { needLeadingWhiteSpace = true; }
 	void SetTitle(const char* text);
 	void FinishSection();
@@ -41,7 +45,8 @@ public:
 private:
 	friend class Renderer;
 
-	Widget* CreateWidget();
+	Widget* CreateWidget(Widget::Type type);
+	Widget* CreateTextWidget();
 	void FinishCurrentWidget();
 	void FinishCurrentLine();
 
@@ -51,7 +56,7 @@ private:
 
 	int currentLineStartWidgetIndex;
 	int currentWidgetIndex;
-	int submittedWidgetIndex;
+	int numFinishedWidgets;
 
 	int pageWidth, pageHeight;
 	int cursorX, cursorY;

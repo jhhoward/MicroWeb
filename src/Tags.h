@@ -121,4 +121,12 @@ public:
 	virtual void Close(class HTMLParser& parser) const;
 };
 
+class InputTagHandler : public HTMLTagHandler
+{
+public:
+	InputTagHandler() : HTMLTagHandler("input") {}
+	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
+};
+
+
 const HTMLTagHandler* DetermineTag(const char* str);

@@ -242,6 +242,9 @@ Font* CGADriver::GetFont(int fontSize)
 
 void CGADriver::HLine(int x, int y, int count)
 {
+	if (y < scissorY1 || y >= scissorY2)
+		return;
+
 	uint8_t far* VRAMptr = (uint8_t far*) CGA_BASE_VRAM_ADDRESS;
 
 	VRAMptr += (y >> 1) * BYTES_PER_LINE;
@@ -322,6 +325,24 @@ void CGADriver::ClearRect(int x, int y, int width, int height)
 
 void CGADriver::VLine(int x, int y, int count)
 {
+	if (y < scissorY1)
+	{
+		count -= (scissorY1 - y);
+		y = scissorY1;
+	}
+	if (y >= scissorY2)
+	{
+		return;
+	}
+	if (y + count >= scissorY2)
+	{
+		count = scissorY2 - y;
+	}
+	if (count <= 0)
+	{
+		return;
+	}
+
 	uint8_t far* VRAMptr = (uint8_t far*) CGA_BASE_VRAM_ADDRESS;
 	uint8_t mask = ~(0x80 >> (x & 7));
 

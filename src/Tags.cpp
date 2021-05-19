@@ -41,6 +41,7 @@ static const HTMLTagHandler* tagHandlers[] =
 	new HrTagHandler(),
 	new DivTagHandler(),
 	new SizeTagHandler("small", 0),
+	new InputTagHandler(),
 	NULL
 };
 
@@ -82,19 +83,12 @@ const HTMLTagHandler* DetermineTag(const char* str)
 
 void HrTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	parser.page.BreakLine();
-
-	WidgetStyle style(FontStyle::Regular, 1, true);
-	parser.page.PushStyle(style);
-	parser.page.AppendText("--------------------");
-	parser.page.PopStyle();
-
-	parser.page.BreakLine();
+	parser.page.AddHorizontalRule();
 }
 
 void BrTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	parser.page.BreakLine();
+	parser.page.BreakTextLine();
 }
 
 void HTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
@@ -264,4 +258,53 @@ void ListTagHandler::Close(class HTMLParser& parser) const
 {
 	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
 	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize) >> 1);
+}
+
+struct HTMLInputTag
+{
+	enum Type
+	{
+		Unknown,
+		Submit,
+		Text
+	};
+};
+
+void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
+{
+	char* value = NULL;
+	HTMLInputTag::Type type = HTMLInputTag::Unknown;
+
+	AttributeParser attributes(attributeStr);
+	while (attributes.Parse())
+	{
+		if (!strcmp(attributes.Key(), "type"))
+		{
+			if (!strcmp(attributes.Value(), "submit"))
+			{
+				type = HTMLInputTag::Submit;
+			}
+			else if (!strcmp(attributes.Value(), "text"))
+			{
+				type = HTMLInputTag::Text;
+			}
+		}
+		if (!strcmp(attributes.Key(), "value"))
+		{
+			value = parser.page.allocator.AllocString(attributes.Value());
+		}
+	}
+
+	switch (type)
+	{
+	case HTMLInputTag::Submit:
+		if (value)
+		{
+			parser.page.AddButton(value);
+		}
+		break;
+	case HTMLInputTag::Text:
+		parser.page.AddTextField(value);
+		break;
+	}
 }

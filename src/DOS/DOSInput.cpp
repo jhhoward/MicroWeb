@@ -16,6 +16,7 @@ void DOSInputDriver::Init()
 	currentCursor = MouseCursor::Hand;
 	SetMouseCursor(MouseCursor::Pointer);
 	lastMouseButtons = 0;
+	mouseVisible = false;
 
 	ShowMouse();
 }
@@ -27,16 +28,22 @@ void DOSInputDriver::Shutdown()
 
 void DOSInputDriver::ShowMouse()
 {
+	if (mouseVisible)
+		return;
 	union REGS inreg, outreg;
 	inreg.x.ax = 1;
 	int86(0x33, &inreg, &outreg);
+	mouseVisible = true;
 }
 
 void DOSInputDriver::HideMouse()
 {
+	if (!mouseVisible)
+		return;
 	union REGS inreg, outreg;
 	inreg.x.ax = 2;
 	int86(0x33, &inreg, &outreg);
+	mouseVisible = false;
 }
 
 static void SetMouseCursorASM(unsigned short far* data, uint16_t hotSpotX, uint16_t hotSpotY);

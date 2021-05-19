@@ -30,6 +30,7 @@ void App::Run()
 	while (1)
 	{
 		Platform::Update();
+		renderer.Update();
 
 		if (loadTask.HasContent())
 		{
@@ -41,9 +42,9 @@ void App::Run()
 				renderer.DrawAddress(page.pageURL.url);
 			}
 
-			char buffer[50];
+			static char buffer[256];
 
-			size_t bytesRead = loadTask.GetContent(buffer, 50);
+			size_t bytesRead = loadTask.GetContent(buffer, 256);
 			if (bytesRead)
 			{
 				parser.Parse(buffer, bytesRead);
@@ -71,9 +72,9 @@ void App::Run()
 
 			if (hoverWidget != oldHoverWidget)
 			{
-				if (hoverWidget && hoverWidget->linkURL)
+				if (hoverWidget && hoverWidget->GetLinkURL())
 				{
-					renderer.DrawStatus(URL::GenerateFromRelative(page.pageURL.url, hoverWidget->linkURL).url);
+					renderer.DrawStatus(URL::GenerateFromRelative(page.pageURL.url, hoverWidget->GetLinkURL()).url);
 					Platform::input->SetMouseCursor(MouseCursor::Hand);
 				}
 				else
@@ -84,48 +85,59 @@ void App::Run()
 			}
 		}
 
-		switch(Platform::input->GetKeyPress())
+		InputButtonCode keyPress;
+		int scrollDelta = 0;
+
+		while (keyPress = Platform::input->GetKeyPress())
 		{
-		case KEYCODE_MOUSE_LEFT:
-			if (hoverWidget && hoverWidget->linkURL)
+			switch (keyPress)
 			{
-				OpenURL(URL::GenerateFromRelative(page.pageURL.url, hoverWidget->linkURL).url);
-			}
-			break;
-		case KEYCODE_ESCAPE:
-			return;
-		case KEYCODE_ARROW_UP:
-			renderer.Scroll(-8);
-			break;
-		case KEYCODE_ARROW_DOWN:
-			renderer.Scroll(8);
-			break;
-		case KEYCODE_PAGE_UP:
-			renderer.Scroll(-(Platform::video->windowHeight - 24));
-			break;
-		case KEYCODE_PAGE_DOWN:
-			renderer.Scroll((Platform::video->windowHeight - 24));
-			break;
-		case KEYCODE_HOME:
-			renderer.Scroll(-page.GetPageHeight());
-			break;
-		case KEYCODE_END:
-			renderer.Scroll(page.GetPageHeight());
-			break;
-		case 'n':
-			OpenURL("http://68k.news/");
-			break;
-		case 's':
-			printf("Load type: %d\n", loadTask.type);
-			if (loadTask.type == LoadTask::RemoteFile)
-			{
-				if (loadTask.request)
+			case KEYCODE_MOUSE_LEFT:
+				if (hoverWidget && hoverWidget->GetLinkURL())
 				{
-					printf("Request status: %d\n", loadTask.request->GetStatus());
+					OpenURL(URL::GenerateFromRelative(page.pageURL.url, hoverWidget->GetLinkURL()).url);
 				}
-				else printf("No active request\n");
+				break;
+			case KEYCODE_ESCAPE:
+				return;
+			case KEYCODE_ARROW_UP:
+				scrollDelta -= 8;
+				break;
+			case KEYCODE_ARROW_DOWN:
+				scrollDelta += 8;
+				break;
+			case KEYCODE_PAGE_UP:
+				scrollDelta -= (Platform::video->windowHeight - 24);
+				break;
+			case KEYCODE_PAGE_DOWN:
+				scrollDelta += (Platform::video->windowHeight - 24);
+				break;
+			case KEYCODE_HOME:
+				renderer.Scroll(-page.GetPageHeight());
+				break;
+			case KEYCODE_END:
+				renderer.Scroll(page.GetPageHeight());
+				break;
+			case 'n':
+				OpenURL("http://68k.news");
+				break;
+			case 's':
+				printf("Load type: %d\n", loadTask.type);
+				if (loadTask.type == LoadTask::RemoteFile)
+				{
+					if (loadTask.request)
+					{
+						printf("Request status: %d\n", loadTask.request->GetStatus());
+					}
+					else printf("No active request\n");
+				}
+				break;
 			}
-			break;
+		}
+
+		if (scrollDelta)
+		{
+			renderer.Scroll(scrollDelta);
 		}
 	}
 }

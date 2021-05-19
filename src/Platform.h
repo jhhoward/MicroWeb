@@ -23,6 +23,9 @@ public:
 	virtual void DrawTitle(const char* text) = 0;
 	virtual void DrawStatus(const char* text) = 0;
 
+	virtual void HLine(int x, int y, int count) = 0;
+	virtual void VLine(int x, int y, int count) = 0;
+
 	virtual MouseCursorData* GetCursorGraphic(MouseCursor::Type type) = 0;
 
 	virtual Font* GetFont(int fontSize) = 0;

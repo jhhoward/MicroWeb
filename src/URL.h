@@ -58,7 +58,19 @@ struct URL
 		}
 		else
 		{
-			lastSlashPos = strrchr(baseURL, '/');
+			const char* baseProtocolLocation = strstr(baseURL, "://");
+			if (baseProtocolLocation)
+			{
+				lastSlashPos = strrchr(baseProtocolLocation + 3, '/');
+			}
+			else
+			{
+				lastSlashPos = strrchr(baseURL, '/');
+			}
+			if (!lastSlashPos)
+			{
+				lastSlashPos = baseURL + strlen(baseURL);
+			}
 		}
 
 			

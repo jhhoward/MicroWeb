@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <new>
 #pragma warning(disable:4996)
 
 // 8K chunk size including next chunk pointer

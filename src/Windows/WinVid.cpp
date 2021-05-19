@@ -243,6 +243,14 @@ void WindowsVideoDriver::HLine(int x, int y, int count)
 	}
 }
 
+void WindowsVideoDriver::VLine(int x, int y, int count)
+{
+	for (int n = 0; n < count; n++)
+	{
+		SetPixel(x, y + n, foregroundColour);
+	}
+}
+
 void WindowsVideoDriver::DrawScrollBar(int position, int size)
 {
 }

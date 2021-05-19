@@ -15,6 +15,16 @@ void WindowsInputDriver::Init()
 	currentMouseCursor = MouseCursor::Pointer;
 }
 
+void WindowsInputDriver::HideMouse()
+{
+
+}
+
+void WindowsInputDriver::ShowMouse()
+{
+
+}
+
 void WindowsInputDriver::SetMouseCursor(MouseCursor::Type type)
 {
 	switch (type)

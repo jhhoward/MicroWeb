@@ -16,7 +16,7 @@ void Page::Reset()
 {
 	currentLineStartWidgetIndex = -1;
 	currentWidgetIndex = -1;
-	submittedWidgetIndex = 0;
+	numFinishedWidgets = 0;
 	pageWidth = Platform::video->windowWidth;
 	pageHeight = 0;
 	numWidgets = 0;
@@ -57,7 +57,66 @@ void Page::PopStyle()
 	FinishCurrentWidget();
 }
 
-Widget* Page::CreateWidget()
+void Page::AddHorizontalRule()
+{
+	BreakLine(1);
+	Widget* widget = CreateWidget(Widget::HorizontalRule);
+	if (widget)
+	{
+		widget->width = Platform::video->windowWidth - 8;
+		widget->x = 4;
+		widget->height = 1;
+	}
+	BreakLine(1);
+}
+
+void Page::AddButton(char* text)
+{
+	Widget* widget = CreateWidget(Widget::Button);
+	if (widget)
+	{
+		widget->button = allocator.Alloc<ButtonWidgetData>();
+		if (widget->button)
+		{
+			widget->button->text = text;
+			widget->height = Platform::video->GetFont(1)->glyphHeight + 4;
+			widget->width = Platform::video->GetFont(1)->CalculateWidth(text) + 16;
+		}
+	}
+}
+
+void Page::AddTextField(char* text)
+{
+	Widget* widget = CreateWidget(Widget::TextField);
+	if (widget)
+	{
+		widget->textField = allocator.Alloc<TextFieldWidgetData>();
+		if (widget->textField)
+		{
+			widget->width = 200;
+			widget->height = Platform::video->GetFont(1)->glyphHeight + 4;
+			//widget->width = Platform::video->GetFont(1)->CalculateWidth(text) + 4;
+		}
+	}
+}
+
+Widget* Page::CreateTextWidget()
+{
+	Widget* widget = CreateWidget(Widget::Text);
+	if (widget)
+	{
+		widget->text = allocator.Alloc<TextWidgetData>();
+		if (widget->text)
+		{
+			widget->text->linkURL = widgetURL;
+			widget->height = Platform::video->GetLineHeight(widget->style.fontSize);
+			widget->text->text = NULL;
+		}
+	}
+	return widget;
+}
+
+Widget* Page::CreateWidget(Widget::Type type)
 {
 	if (currentWidgetIndex != -1)
 	{
@@ -70,13 +129,13 @@ Widget* Page::CreateWidget()
 		numWidgets++;
 
 		Widget& current = widgets[currentWidgetIndex];
-		current.style = GetStyleStackTop();
+		current.type = type;
 
 		if (needLeadingWhiteSpace)
 		{
 			if (cursorX > leftMarginPadding)
 			{
-				cursorX += Platform::video->GetGlyphWidth(' ', current.style.fontSize);
+				cursorX += Platform::video->GetGlyphWidth(' ');
 			}
 			needLeadingWhiteSpace = false;
 		}
@@ -84,12 +143,12 @@ Widget* Page::CreateWidget()
 		cursorY += pendingVerticalPadding;
 		pendingVerticalPadding = 0;
 
+		current.style = GetStyleStackTop();
 		current.x = cursorX;
 		current.y = cursorY;
 		current.width = 0;
-		current.height = Platform::video->GetLineHeight(current.style.fontSize);
+		current.height = 0;
 		current.text = NULL;
-		current.linkURL = widgetURL;
 
 		if (currentLineStartWidgetIndex == -1)
 		{
@@ -100,7 +159,6 @@ Widget* Page::CreateWidget()
 	}
 	else
 	{
-		printf(".\n");
 		currentWidgetIndex = -1;
 		return NULL;
 	}
@@ -113,7 +171,12 @@ void Page::FinishCurrentWidget()
 		Widget& current = widgets[currentWidgetIndex];
 		cursorX += current.width;
 		
-		current.text = allocator.AllocString(textBuffer, textBufferSize);
+		switch (current.type)
+		{
+		case Widget::Text:
+			current.text->text = allocator.AllocString(textBuffer, textBufferSize);
+			break;
+		}
 
 		textBufferSize = 0;
 
@@ -156,7 +219,10 @@ void Page::FinishCurrentLine()
 		cursorY += lineHeight;
 		pageHeight = cursorY;
 
-		app.renderer.OnPageWidgetsLoaded(&widgets[currentLineStartWidgetIndex], numWidgets - currentLineStartWidgetIndex);
+		numFinishedWidgets = numWidgets;
+
+		//app.renderer.RedrawScrollBar();
+		//app.renderer.OnPageWidgetsLoaded(&widgets[currentLineStartWidgetIndex], numWidgets - currentLineStartWidgetIndex);
 
 		currentLineStartWidgetIndex = -1;
 	}
@@ -166,9 +232,9 @@ void Page::FinishCurrentLine()
 
 void Page::AppendText(const char* text)
 {
-	if (currentWidgetIndex == -1)
+	if (currentWidgetIndex == -1 || widgets[currentWidgetIndex].type != Widget::Text)
 	{
-		CreateWidget();
+		CreateTextWidget();
 	}
 
 	if (currentWidgetIndex != -1)
@@ -229,7 +295,7 @@ void Page::AppendText(const char* text)
 
 						FinishCurrentLine();
 
-						current = CreateWidget();
+						current = CreateTextWidget();
 					}
 					else
 					{
@@ -249,7 +315,7 @@ void Page::AppendText(const char* text)
 				{
 					// Case where we need to make a new widget on the next line
 					FinishCurrentLine();
-					current = CreateWidget();
+					current = CreateTextWidget();
 				}
 
 				if (!current)
@@ -285,6 +351,17 @@ void Page::BreakLine(int padding)
 	if (padding > pendingVerticalPadding)
 	{
 		pendingVerticalPadding = padding;
+	}
+}
+
+void Page::BreakTextLine()
+{
+	int oldCursorY = cursorY;
+	FinishCurrentLine();
+
+	if (oldCursorY == cursorY)
+	{
+		cursorY += Platform::video->GetLineHeight(GetStyleStackTop().fontSize);
 	}
 }
 
