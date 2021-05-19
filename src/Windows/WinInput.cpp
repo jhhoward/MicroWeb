@@ -120,6 +120,8 @@ InputButtonCode WindowsInputDriver::TranslateCode(WPARAM code)
 		return KEYCODE_PAGE_UP;
 	case VK_NEXT:
 		return KEYCODE_PAGE_DOWN;
+	case VK_RETURN:
+		return KEYCODE_ENTER;
 	default:
 		return 0;
 	}

@@ -313,6 +313,10 @@ void Renderer::RenderWidget(Widget* widget, int baseY)
 		if (widget->textField)
 		{
 			DrawButtonRect(widget->x, widget->y + baseY, widget->width, widget->height);
+			if (widget->textField->buffer)
+			{
+				Platform::video->DrawString(widget->textField->buffer, widget->x + 2, widget->y + baseY + 2, widget->style.fontSize, widget->style.fontStyle);
+			}
 		}
 		break;
 	}
@@ -367,4 +371,12 @@ void Renderer::DrawButtonRect(int x, int y, int width, int height)
 	Platform::video->HLine(x + 1, y + height - 1, width - 2);
 	Platform::video->VLine(x, y + 1, height - 2);
 	Platform::video->VLine(x + width - 1, y + 1, height - 2);
+}
+
+void Renderer::RenderPageWidget(Widget* widget)
+{
+	Platform::video->SetScissorRegion(upperRenderLine, lowerRenderLine);
+	int baseY = Platform::video->windowY - scrollPosition;
+
+	RenderWidget(widget, baseY);
 }

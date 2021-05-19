@@ -128,5 +128,13 @@ public:
 	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
 };
 
+class FormTagHandler : public HTMLTagHandler
+{
+public:
+	FormTagHandler() : HTMLTagHandler("form") {}
+	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
+	virtual void Close(class HTMLParser& parser) const;
+};
+
 
 const HTMLTagHandler* DetermineTag(const char* str);

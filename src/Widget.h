@@ -38,7 +38,10 @@ struct ButtonWidgetData
 
 struct TextFieldWidgetData
 {
-
+	char* buffer;
+	char* name;
+	int bufferLength;
+	WidgetFormData* form;
 };
 
 struct Widget

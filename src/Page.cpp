@@ -27,6 +27,7 @@ void Page::Reset()
 	leftMarginPadding = 1;
 	cursorX = leftMarginPadding;
 	cursorY = TOP_MARGIN_PADDING;
+	formData = NULL;
 
 	styleStackSize = 1;
 	styleStack[0] = WidgetStyle(FontStyle::Regular, 1, false);
@@ -78,6 +79,7 @@ void Page::AddButton(char* text)
 		widget->button = allocator.Alloc<ButtonWidgetData>();
 		if (widget->button)
 		{
+			widget->button->form = formData;
 			widget->button->text = text;
 			widget->height = Platform::video->GetFont(1)->glyphHeight + 4;
 			widget->width = Platform::video->GetFont(1)->CalculateWidth(text) + 16;
@@ -85,7 +87,7 @@ void Page::AddButton(char* text)
 	}
 }
 
-void Page::AddTextField(char* text)
+void Page::AddTextField(char* text, int bufferLength, char* name)
 {
 	Widget* widget = CreateWidget(Widget::TextField);
 	if (widget)
@@ -93,6 +95,31 @@ void Page::AddTextField(char* text)
 		widget->textField = allocator.Alloc<TextFieldWidgetData>();
 		if (widget->textField)
 		{
+			widget->textField->form = formData;
+			widget->textField->name = name;
+			widget->textField->buffer = NULL;
+			if (text)
+			{
+				int textLength = strlen(text);
+				if (textLength > bufferLength)
+				{
+					bufferLength = textLength;
+				}
+			}
+			widget->textField->buffer = (char*) allocator.Alloc(bufferLength + 1);
+			if (widget->textField->buffer)
+			{
+				if (text)
+				{
+					strcpy(widget->textField->buffer, text);
+				}
+				else
+				{
+					widget->textField->buffer[0] = '\0';
+				}
+			}
+			widget->textField->bufferLength = bufferLength;
+
 			widget->width = 200;
 			widget->height = Platform::video->GetFont(1)->glyphHeight + 4;
 			//widget->width = Platform::video->GetFont(1)->CalculateWidth(text) + 4;
@@ -400,4 +427,9 @@ void Page::ClearWidgetURL()
 void Page::FinishSection()
 {
 	FinishCurrentLine();
+}
+
+void Page::SetFormData(WidgetFormData* inFormData)
+{
+	formData = inFormData;
 }

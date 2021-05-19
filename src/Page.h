@@ -19,13 +19,14 @@ public:
 
 	void AddHorizontalRule();
 	void AddButton(char* text);
-	void AddTextField(char* text);
+	void AddTextField(char* text, int bufferLength, char* name);
 	void AppendText(const char* text);
 	void BreakLine(int padding = 0);
 	void BreakTextLine();
 	void FlagLeadingWhiteSpace() { needLeadingWhiteSpace = true; }
 	void SetTitle(const char* text);
 	void FinishSection();
+	void SetFormData(WidgetFormData* formData);
 
 	void SetWidgetURL(const char* url);
 	void ClearWidgetURL();
@@ -44,6 +45,7 @@ public:
 
 private:
 	friend class Renderer;
+	friend class AppInterface;
 
 	Widget* CreateWidget(Widget::Type type);
 	Widget* CreateTextWidget();
@@ -71,6 +73,7 @@ private:
 
 	WidgetStyle styleStack[MAX_PAGE_STYLE_STACK_SIZE];
 	uint8_t styleStackSize;
+	WidgetFormData* formData;
 
 	char textBuffer[MAX_TEXT_BUFFER_SIZE];
 	int textBufferSize;

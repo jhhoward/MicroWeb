@@ -91,6 +91,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
 		winInputDriver.QueueKeyPress(wParam);
 		break;
 
+	case WM_LBUTTONDOWN:
+		winInputDriver.QueueKeyPress(VK_LBUTTON);
+		break;
+
+	case WM_RBUTTONDOWN:
+		winInputDriver.QueueKeyPress(VK_RBUTTON);
+		break;
+
 	case WM_CHAR:
 		winInputDriver.QueueCharPress((char)wParam);
 		break;

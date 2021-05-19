@@ -141,6 +141,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\App.cpp" />
     <ClCompile Include="..\..\src\Font.cpp" />
+    <ClCompile Include="..\..\src\Interface.cpp" />
     <ClCompile Include="..\..\src\Microweb.cpp" />
     <ClCompile Include="..\..\src\Page.cpp" />
     <ClCompile Include="..\..\src\Parser.cpp" />
@@ -154,6 +155,7 @@
     <ClInclude Include="..\..\src\App.h" />
     <ClInclude Include="..\..\src\Cursor.h" />
     <ClInclude Include="..\..\src\Font.h" />
+    <ClInclude Include="..\..\src\Interface.h" />
     <ClInclude Include="..\..\src\LinAlloc.h" />
     <ClInclude Include="..\..\src\Page.h" />
     <ClInclude Include="..\..\src\Parser.h" />

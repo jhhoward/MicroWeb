@@ -42,6 +42,7 @@ static const HTMLTagHandler* tagHandlers[] =
 	new DivTagHandler(),
 	new SizeTagHandler("small", 0),
 	new InputTagHandler(),
+	new FormTagHandler(),
 	NULL
 };
 
@@ -273,7 +274,9 @@ struct HTMLInputTag
 void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
 	char* value = NULL;
+	char* name = NULL;
 	HTMLInputTag::Type type = HTMLInputTag::Unknown;
+	int bufferLength = 80;
 
 	AttributeParser attributes(attributeStr);
 	while (attributes.Parse())
@@ -293,6 +296,10 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 		{
 			value = parser.page.allocator.AllocString(attributes.Value());
 		}
+		if (!strcmp(attributes.Key(), "name"))
+		{
+			name = parser.page.allocator.AllocString(attributes.Value());
+		}
 	}
 
 	switch (type)
@@ -304,7 +311,40 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 		}
 		break;
 	case HTMLInputTag::Text:
-		parser.page.AddTextField(value);
+		parser.page.AddTextField(value, bufferLength, name);
 		break;
 	}
+}
+
+void FormTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
+{
+	WidgetFormData* formData = parser.page.allocator.Alloc<WidgetFormData>();
+	if (formData)
+	{
+		formData->action = NULL;
+		formData->method = WidgetFormData::Get;
+
+		AttributeParser attributes(attributeStr);
+		while (attributes.Parse())
+		{
+			if (!strcmp(attributes.Key(), "action"))
+			{
+				formData->action = parser.page.allocator.AllocString(attributes.Value());
+			}
+			if (!strcmp(attributes.Key(), "method"))
+			{
+				if (!strcmp(attributes.Value(), "post"))
+				{
+					formData->method = WidgetFormData::Post;
+				}
+			}
+		}
+
+		parser.page.SetFormData(formData);
+	}
+}
+
+void FormTagHandler::Close(HTMLParser& parser) const
+{
+	parser.page.SetFormData(NULL);
 }

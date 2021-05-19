@@ -20,6 +20,7 @@ public:
 	void DrawStatus(const char* status);
 	void DrawAddress(const char* address);
 
+	void RenderPageWidget(Widget* widget);
 	void RenderWidget(Widget* widget, int baseY = 0);
 private:
 	void DrawButtonRect(int x, int y, int width, int height);

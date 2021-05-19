@@ -2,6 +2,7 @@
 #include <windows.h>
 #include "WinVid.h"
 #include "../DOS/CGAData.inc"
+#include "../Interface.h"
 
 #define WINDOW_TOP 24
 #define WINDOW_HEIGHT 168
@@ -10,10 +11,17 @@
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 200
 
-#define ADDRESS_BAR_X 80
+#define NAVIGATION_BUTTON_WIDTH 24
+#define NAVIGATION_BUTTON_HEIGHT 12
+
+#define BACK_BUTTON_X 4
+#define FORWARD_BUTTON_X 32
+
+#define ADDRESS_BAR_X 60
 #define ADDRESS_BAR_Y 10
-#define ADDRESS_BAR_WIDTH 480
+#define ADDRESS_BAR_WIDTH 576
 #define ADDRESS_BAR_HEIGHT 12
+
 #define TITLE_BAR_HEIGHT 8
 #define STATUS_BAR_HEIGHT 8
 #define STATUS_BAR_Y (SCREEN_HEIGHT - STATUS_BAR_HEIGHT)
@@ -30,16 +38,6 @@ WindowsVideoDriver::WindowsVideoDriver()
 	windowHeight = WINDOW_HEIGHT;
 	windowX = 0;
 	windowY = WINDOW_TOP;
-
-	addressBar.x = ADDRESS_BAR_X;
-	addressBar.y = ADDRESS_BAR_Y;
-	addressBar.width = ADDRESS_BAR_WIDTH;
-	addressBar.height = ADDRESS_BAR_HEIGHT;
-
-	scrollBar.x = SCREEN_WIDTH - SCROLL_BAR_WIDTH;
-	scrollBar.y = WINDOW_TOP;
-	scrollBar.width = SCROLL_BAR_WIDTH;
-	scrollBar.height = WINDOW_HEIGHT;
 
 	foregroundColour = RGB(0, 0, 0);
 	backgroundColour = RGB(255, 255, 255);
@@ -359,3 +357,27 @@ void WindowsVideoDriver::Paint(HWND hwnd)
 
 
 }
+
+void WindowsVideoDriver::ArrangeAppInterfaceWidgets(AppInterface& app)
+{
+	app.addressBar.x = ADDRESS_BAR_X;
+	app.addressBar.y = ADDRESS_BAR_Y;
+	app.addressBar.width = ADDRESS_BAR_WIDTH;
+	app.addressBar.height = ADDRESS_BAR_HEIGHT;
+
+	app.scrollBar.x = SCREEN_WIDTH - SCROLL_BAR_WIDTH;
+	app.scrollBar.y = WINDOW_TOP;
+	app.scrollBar.width = SCROLL_BAR_WIDTH;
+	app.scrollBar.height = WINDOW_HEIGHT;
+
+	app.backButton.x = BACK_BUTTON_X;
+	app.backButton.y = ADDRESS_BAR_Y;
+	app.backButton.width = NAVIGATION_BUTTON_WIDTH;
+	app.backButton.height = NAVIGATION_BUTTON_HEIGHT;
+
+	app.forwardButton.x = FORWARD_BUTTON_X;
+	app.forwardButton.y = ADDRESS_BAR_Y;
+	app.forwardButton.width = NAVIGATION_BUTTON_WIDTH;
+	app.forwardButton.height = NAVIGATION_BUTTON_HEIGHT;
+}
+

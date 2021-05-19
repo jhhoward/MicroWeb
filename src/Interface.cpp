@@ -10,6 +10,7 @@ AppInterface::AppInterface(App& inApp) : app(inApp)
 	hoverWidget = NULL;
 	oldMouseX = -1;
 	oldMouseY = -1;
+	activeWidget = NULL;
 }
 
 void AppInterface::DrawInterfaceWidgets()
@@ -46,6 +47,10 @@ void AppInterface::Update()
 			app.renderer.DrawStatus(URL::GenerateFromRelative(app.page.pageURL.url, hoverWidget->GetLinkURL()).url);
 			Platform::input->SetMouseCursor(MouseCursor::Hand);
 		}
+		else if (hoverWidget && hoverWidget->type == Widget::TextField)
+		{
+			Platform::input->SetMouseCursor(MouseCursor::TextSelect);
+		}
 		else
 		{
 			app.renderer.DrawStatus("");
@@ -59,21 +64,18 @@ void AppInterface::Update()
 
 	while (keyPress = Platform::input->GetKeyPress())
 	{
+		if (activeWidget)
+		{
+			if (HandleActiveWidget(keyPress))
+			{
+				continue;
+			}
+		}
+
 		switch (keyPress)
 		{
 		case KEYCODE_MOUSE_LEFT:
-			if (hoverWidget && hoverWidget->GetLinkURL())
-			{
-				app.OpenURL(URL::GenerateFromRelative(app.page.pageURL.url, hoverWidget->GetLinkURL()).url);
-			}
-			else if (hoverWidget == &backButton)
-			{
-				app.PreviousPage();
-			}
-			else if (hoverWidget == &forwardButton)
-			{
-				app.NextPage();
-			}
+			HandleClick();
 			break;
 		case KEYCODE_ESCAPE:
 			app.Close();
@@ -123,12 +125,15 @@ void AppInterface::GenerateWidgets()
 
 	addressBar.type = Widget::TextField;
 	addressBar.textField = &addressBarData;
+	addressBarData.buffer = addressBarURL.url;
+	addressBarData.bufferLength = MAX_URL_LENGTH - 1;
+	addressBar.style = WidgetStyle(FontStyle::Regular);
 
 	scrollBar.type = Widget::ScrollBar;
 
-	backButtonData.text = "<";
+	backButtonData.text = (char*) "<";
 	backButtonData.form = NULL;
-	forwardButtonData.text = ">";
+	forwardButtonData.text = (char*) ">";
 	forwardButtonData.form = NULL;
 
 	backButton.type = Widget::Button;
@@ -167,4 +172,132 @@ bool AppInterface::IsOverWidget(Widget* widget, int x, int y)
 	}
 
 	return app.renderer.IsOverPageWidget(widget, x, y);
+}
+
+void AppInterface::HandleClick()
+{
+	if (activeWidget)
+	{
+		activeWidget = NULL;
+	}
+
+	if (hoverWidget)
+	{
+		if (hoverWidget->GetLinkURL())
+		{
+			app.OpenURL(URL::GenerateFromRelative(app.page.pageURL.url, hoverWidget->GetLinkURL()).url);
+		}
+		else if (hoverWidget == &backButton)
+		{
+			app.PreviousPage();
+		}
+		else if (hoverWidget == &forwardButton)
+		{
+			app.NextPage();
+		}
+		else if (hoverWidget->type == Widget::TextField)
+		{
+			activeWidget = hoverWidget;
+		}
+		else if (hoverWidget->type == Widget::Button)
+		{
+			if (hoverWidget->button->form)
+			{
+				SubmitForm(hoverWidget->button->form);
+			}
+		}
+	}
+}
+
+bool AppInterface::HandleActiveWidget(InputButtonCode keyPress)
+{
+	switch (activeWidget->type)
+	{
+	case Widget::TextField:
+		{
+			if(activeWidget->textField && activeWidget->textField->buffer)
+			{
+				int textLength = strlen(activeWidget->textField->buffer);
+
+				if (keyPress >= 32 && keyPress < 128)
+				{
+					if (textLength < activeWidget->textField->bufferLength)
+					{
+						app.renderer.RenderPageWidget(activeWidget);
+						activeWidget->textField->buffer[textLength++] = (char)(keyPress);
+						activeWidget->textField->buffer[textLength++] = '\0';
+						app.renderer.RenderPageWidget(activeWidget);
+					}
+					return true;
+				}
+				else if (keyPress == KEYCODE_BACKSPACE)
+				{
+					if (textLength > 0)
+					{
+						app.renderer.RenderPageWidget(activeWidget);
+						activeWidget->textField->buffer[textLength - 1] = '\0';
+						app.renderer.RenderPageWidget(activeWidget);
+						return true;
+					}
+				}
+				else if (keyPress == KEYCODE_ENTER)
+				{
+					if (activeWidget->textField->form)
+					{
+						SubmitForm(activeWidget->textField->form);
+					}
+				}
+			}
+		}
+		break;
+	}
+
+	return false;
+}
+
+void AppInterface::SubmitForm(WidgetFormData* form)
+{
+	if (form->method == WidgetFormData::Get)
+	{
+		char* address = addressBarURL.url;
+		strcpy(address, form->action);
+		int numParams = 0;
+
+		for (int n = 0; n < app.page.numFinishedWidgets; n++)
+		{
+			Widget& widget = app.page.widgets[n];
+
+			switch (widget.type)
+			{
+			case Widget::TextField:
+				if (widget.textField->form == form && widget.textField->name && widget.textField->buffer)
+				{
+					if (numParams == 0)
+					{
+						strcat(address, "?");
+					}
+					else
+					{
+						strcat(address, "&");
+					}
+					strcat(address, widget.textField->name);
+					strcat(address, "=");
+					strcat(address, widget.textField->buffer);
+					numParams++;
+				}
+				break;
+			}
+		}
+
+		// Replace any spaces with +
+		for (char* p = address; *p; p++)
+		{
+			if (*p == ' ')
+			{
+				*p = '+';
+			}
+		}
+
+		app.OpenURL(URL::GenerateFromRelative(app.page.pageURL.url, address).url);
+	}
 }
