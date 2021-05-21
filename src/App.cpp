@@ -27,6 +27,8 @@ void App::Run()
 {
 	running = true;
 
+	renderer.Init();
+
 	while (running)
 	{
 		Platform::Update();
@@ -39,7 +41,8 @@ void App::Run()
 				ResetPage();
 				requestedNewPage = false;
 				page.pageURL = loadTask.url;
-				renderer.DrawAddress(page.pageURL.url);
+				ui.UpdateAddressBar(page.pageURL);
+				//renderer.DrawAddress(page.pageURL.url);
 			}
 
 			static char buffer[256];
@@ -48,6 +51,16 @@ void App::Run()
 			if (bytesRead)
 			{
 				parser.Parse(buffer, bytesRead);
+			}
+		}
+		else
+		{
+			if (requestedNewPage)
+			{
+				if (loadTask.type == LoadTask::RemoteFile && !loadTask.request)
+				{
+					ShowErrorPage("No network interface available");
+				}
 			}
 		}
 
@@ -127,13 +140,7 @@ void App::RequestNewPage(const char* url)
 {
 	StopLoad();
 	loadTask.Load(url);
-
 	requestedNewPage = true;
-
-	if (loadTask.type == LoadTask::RemoteFile && !loadTask.request)
-	{
-		ShowErrorPage("No network interface available");
-	}
 }
 
 void App::OpenURL(const char* url)
@@ -174,7 +181,8 @@ void App::ShowErrorPage(const char* message)
 	
 	page.SetTitle("Error");
 	page.pageURL = "about:error";
-	renderer.DrawAddress(page.pageURL.url);
+	ui.UpdateAddressBar(page.pageURL);
+	//renderer.DrawAddress(page.pageURL.url);
 }
 
 void App::PreviousPage()

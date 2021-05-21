@@ -15,6 +15,7 @@ public:
 	void Update();
 
 	void DrawInterfaceWidgets();
+	void UpdateAddressBar(const URL& url);
 
 	Widget scrollBar;
 	Widget addressBar;

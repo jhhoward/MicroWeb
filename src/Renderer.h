@@ -8,6 +8,7 @@ class Renderer
 public:
 	Renderer(App& inApp);
 
+	void Init();
 	void Reset();
 	void Update();
 	void Scroll(int delta);

@@ -231,6 +231,8 @@ Font* CGADriver::GetFont(int fontSize)
 	case 0:
 		return &CGA_SmallFont;
 	case 2:
+	case 3:
+	case 4:
 		return &CGA_LargeFont;
 	default:
 		return &CGA_RegularFont;
@@ -405,20 +407,20 @@ void DrawScrollBarBlock(uint8_t far* ptr, int top, int middle, int bottom);
 #pragma aux DrawScrollBarBlock = \
 	"cmp bx, 0" \
 	"je _startMiddle" \	
-	"mov ax, 0xff7f" \
+	"mov ax, 0xfe7f" \
 	"_loopTop:" \
 	"stosw" \
 	"add di, 78" \
 	"dec bx"\
 	"jnz _loopTop" \
 	"_startMiddle:" \
-	"mov ax, 0x0360" \
+	"mov ax, 0x0660" \
 	"_loopMiddle:" \
 	"stosw" \
 	"add di, 78" \
 	"dec cx"\
 	"jnz _loopMiddle" \
-	"mov ax, 0xff7f" \
+	"mov ax, 0xfe7f" \
 	"cmp dx, 0" \
 	"je _end" \
 	"_loopBottom:" \

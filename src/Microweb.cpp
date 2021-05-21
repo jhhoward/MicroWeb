@@ -6,20 +6,6 @@
 
 int main(int argc, char* argv[])
 {
-	if(argc != 2)
-	{
-		fprintf(stderr, "Usage: %s [file]\n", argv[0]);
-		return 0;
-	}
-
-	/*FILE* fs = fopen(argv[1], "r");
-	if (!fs)
-	{
-		fprintf(stderr, "Error opening %s\n", argv[1]);
-		return 0;
-	}
-	fclose(fs);*/
-
 	App* app = new App();
 
 	if (!app)
@@ -30,7 +16,11 @@ int main(int argc, char* argv[])
 
 	Platform::Init();
 
-	app->OpenURL(argv[1]);
+	if (argc >= 2)
+	{
+		app->OpenURL(argv[1]);
+	}
+
 	app->Run();
 
 	Platform::Shutdown();

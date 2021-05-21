@@ -218,15 +218,23 @@ bool AppInterface::HandleActiveWidget(InputButtonCode keyPress)
 			if(activeWidget->textField && activeWidget->textField->buffer)
 			{
 				int textLength = strlen(activeWidget->textField->buffer);
+				Platform::video->SetScissorRegion(0, Platform::video->screenHeight);
+
 
 				if (keyPress >= 32 && keyPress < 128)
 				{
 					if (textLength < activeWidget->textField->bufferLength)
 					{
-						app.renderer.RenderPageWidget(activeWidget);
+						if (activeWidget == &addressBar)
+							app.renderer.RenderWidget(activeWidget);
+						else
+							app.renderer.RenderPageWidget(activeWidget);
 						activeWidget->textField->buffer[textLength++] = (char)(keyPress);
 						activeWidget->textField->buffer[textLength++] = '\0';
-						app.renderer.RenderPageWidget(activeWidget);
+						if (activeWidget == &addressBar)
+							app.renderer.RenderWidget(activeWidget);
+						else
+							app.renderer.RenderPageWidget(activeWidget);
 					}
 					return true;
 				}
@@ -234,15 +242,25 @@ bool AppInterface::HandleActiveWidget(InputButtonCode keyPress)
 				{
 					if (textLength > 0)
 					{
-						app.renderer.RenderPageWidget(activeWidget);
+						if (activeWidget == &addressBar)
+							app.renderer.RenderWidget(activeWidget);
+						else
+							app.renderer.RenderPageWidget(activeWidget);
 						activeWidget->textField->buffer[textLength - 1] = '\0';
-						app.renderer.RenderPageWidget(activeWidget);
+						if (activeWidget == &addressBar)
+							app.renderer.RenderWidget(activeWidget);
+						else
+							app.renderer.RenderPageWidget(activeWidget);
 						return true;
 					}
 				}
 				else if (keyPress == KEYCODE_ENTER)
 				{
-					if (activeWidget->textField->form)
+					if (activeWidget == &addressBar)
+					{
+						app.OpenURL(addressBarURL.url);
+					}
+					else if (activeWidget->textField->form)
 					{
 						SubmitForm(activeWidget->textField->form);
 					}
@@ -300,4 +318,12 @@ void AppInterface::SubmitForm(WidgetFormData* form)
 
 		app.OpenURL(URL::GenerateFromRelative(app.page.pageURL.url, address).url);
 	}
+}
+
+void AppInterface::UpdateAddressBar(const URL& url)
+{
+	addressBarURL = url;
+	Platform::video->SetScissorRegion(0, Platform::video->screenHeight);
+	Platform::video->ClearRect(addressBar.x + 1, addressBar.y + 1, addressBar.width - 2, addressBar.height - 2);
+	app.renderer.RenderWidget(&addressBar);
 }

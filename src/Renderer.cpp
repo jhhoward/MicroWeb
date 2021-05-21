@@ -16,6 +16,16 @@ Renderer::Renderer(App& inApp)
 	scrollPosition = 0;
 }
 
+void Renderer::Init()
+{
+	Platform::input->HideMouse();
+	Platform::video->SetScissorRegion(0, Platform::video->screenHeight);
+	Platform::video->ClearWindow();
+	RedrawScrollBar();
+	app.ui.DrawInterfaceWidgets();
+	Platform::input->ShowMouse();
+}
+
 void Renderer::Reset()
 {
 	pageTopWidgetIndex = 0;
@@ -27,7 +37,6 @@ void Renderer::Reset()
 	Platform::input->HideMouse();
 	Platform::video->ClearWindow();
 	RedrawScrollBar();
-	app.ui.DrawInterfaceWidgets();
 	Platform::input->ShowMouse();
 }
 
