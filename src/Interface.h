@@ -36,6 +36,9 @@ public:
 	Widget backButton;
 	Widget forwardButton;
 
+	Widget titleBar;
+	Widget statusBar;
+
 private:
 	void GenerateWidgets();
 	Widget* PickWidget(int x, int y);

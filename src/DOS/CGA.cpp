@@ -53,9 +53,6 @@
 #define WINDOW_VRAM_BOTTOM_ODD (0x2000 + BYTES_PER_LINE * (WINDOW_BOTTOM / 2))
 #define BYTES_PER_LINE 80
 
-int scissorX1 = 0, scissorY1 = 0;
-int scissorX2 = SCREEN_WIDTH - SCROLL_BAR_WIDTH, scissorY2 = SCREEN_HEIGHT;
-
 CGADriver::CGADriver()
 {
 	screenWidth = 640;
@@ -64,6 +61,12 @@ CGADriver::CGADriver()
 	windowHeight = WINDOW_HEIGHT;
 	windowX = 0;
 	windowY = WINDOW_TOP;
+	scissorX1 = 0;
+	scissorY1 = 0;
+	scissorX2 = SCREEN_WIDTH - SCROLL_BAR_WIDTH;
+	scissorY2 = SCREEN_HEIGHT;
+	invertScreen = false;
+	clearMask = invertScreen ? 0 : 0xffff;
 }
 
 void CGADriver::Init()
@@ -102,27 +105,27 @@ static void FastMemSet(void far* mem, uint8_t value, unsigned int count);
 	modify [di cx] \	
 	parm[es di][al][cx];
 
+void CGADriver::InvertScreen()
+{
+	int count = 0x4000;
+	unsigned char far* VRAM = CGA_BASE_VRAM_ADDRESS;
+	while (count--)
+	{
+		*VRAM ^= 0xff;
+		VRAM++;
+	}
+
+	invertScreen = !invertScreen;
+	clearMask = invertScreen ? 0 : 0xffff;
+}
 
 void CGADriver::ClearScreen()
 {
+	uint8_t clearValue = (uint8_t)(clearMask & 0xff);
+	FastMemSet(CGA_BASE_VRAM_ADDRESS, clearValue, 0x4000);
 	// White out main page
-	FastMemSet(CGA_BASE_VRAM_ADDRESS + BYTES_PER_LINE * TITLE_BAR_HEIGHT / 2, 0xff, BYTES_PER_LINE * (SCREEN_HEIGHT - TITLE_BAR_HEIGHT - STATUS_BAR_HEIGHT) / 2);
-	FastMemSet(CGA_BASE_VRAM_ADDRESS + 0x2000 + BYTES_PER_LINE * TITLE_BAR_HEIGHT / 2, 0xff, BYTES_PER_LINE * (SCREEN_HEIGHT - TITLE_BAR_HEIGHT - STATUS_BAR_HEIGHT) / 2);
-
-	// Page top line divider
-	HLine(0, WINDOW_TOP - 1, 640);
-
-	// Scroll bar 
-	DrawScrollBar(0, WINDOW_HEIGHT);
-
-	//DrawButtonRect(addressBar.x, addressBar.y, addressBar.width, addressBar.height);
-//	DrawString("file://path/to/file", addressBar.x + 2, addressBar.y + 2, 1);
-
-	DrawTitle("MicroWeb");
-	DrawStatus("Status");
-
-	scissorY1 = WINDOW_TOP;
-	scissorY2 = WINDOW_BOTTOM;
+	//FastMemSet(CGA_BASE_VRAM_ADDRESS + BYTES_PER_LINE * TITLE_BAR_HEIGHT / 2, 0xff, BYTES_PER_LINE * (SCREEN_HEIGHT - TITLE_BAR_HEIGHT - STATUS_BAR_HEIGHT) / 2);
+	//FastMemSet(CGA_BASE_VRAM_ADDRESS + 0x2000 + BYTES_PER_LINE * TITLE_BAR_HEIGHT / 2, 0xff, BYTES_PER_LINE * (SCREEN_HEIGHT - TITLE_BAR_HEIGHT - STATUS_BAR_HEIGHT) / 2);
 }
 
 void CGADriver::DrawString(const char* text, int x, int y, int size, FontStyle::Type style)
@@ -191,7 +194,7 @@ void CGADriver::DrawString(const char* text, int x, int y, int size, FontStyle::
 		{
 			uint8_t writeOffset = (uint8_t)(x) & 0x7;
 
-			if ((style & FontStyle::Italic) && j < (glyphHeight >> 1))
+			if ((style & FontStyle::Italic) && j < (font->glyphHeight >> 1))
 			{
 				writeOffset++;
 			}
@@ -254,6 +257,18 @@ Font* CGADriver::GetFont(int fontSize)
 }
 
 void CGADriver::HLine(int x, int y, int count)
+{
+	if (invertScreen)
+	{
+		ClearHLine(x, y, count);
+	}
+	else
+	{
+		HLineInternal(x, y, count);
+	}
+}
+
+void CGADriver::HLineInternal(int x, int y, int count)
 {
 	if (y < scissorY1 || y >= scissorY2)
 		return;
@@ -330,9 +345,48 @@ void CGADriver::ClearHLine(int x, int y, int count)
 
 void CGADriver::ClearRect(int x, int y, int width, int height)
 {
-	for (int j = 0; j < height; j++)
+	if (invertScreen)
 	{
-		ClearHLine(x, y + j, width);
+		for (int j = 0; j < height; j++)
+		{
+			HLineInternal(x, y + j, width);
+		}
+	}
+	else
+	{
+		for (int j = 0; j < height; j++)
+		{
+			ClearHLine(x, y + j, width);
+		}
+	}
+}
+
+void CGADriver::FillRect(int x, int y, int width, int height)
+{
+	if (x == 0 && width == SCREEN_WIDTH && !(height & 1) && !(y & 1))
+	{
+		y >>= 1;
+		height >>= 1;
+		uint8_t fillValue = ~(clearMask & 0xff);
+		FastMemSet(CGA_BASE_VRAM_ADDRESS + BYTES_PER_LINE * y, fillValue, BYTES_PER_LINE * height);
+		FastMemSet(CGA_BASE_VRAM_ADDRESS + 0x2000 + BYTES_PER_LINE * y, fillValue, BYTES_PER_LINE * height);
+	}
+	else
+	{
+		if (invertScreen)
+		{
+			for (int j = 0; j < height; j++)
+			{
+				ClearHLine(x, y + j, width);
+			}
+		}
+		else
+		{
+			for (int j = 0; j < height; j++)
+			{
+				HLineInternal(x, y + j, width);
+			}
+		}
 	}
 }
 
@@ -368,18 +422,39 @@ void CGADriver::VLine(int x, int y, int count)
 		VRAMptr += 0x2000;
 	}
 
-	while (count--)
+	if (invertScreen)
 	{
-		*VRAMptr &= mask;
-		if (oddLine)
+		mask ^= 0xff;
+
+		while (count--)
 		{
-			VRAMptr -= (0x2000 - BYTES_PER_LINE);
+			*VRAMptr |= mask;
+			if (oddLine)
+			{
+				VRAMptr -= (0x2000 - BYTES_PER_LINE);
+			}
+			else
+			{
+				VRAMptr += 0x2000;
+			}
+			oddLine = !oddLine;
 		}
-		else
+	}
+	else
+	{
+		while (count--)
 		{
-			VRAMptr += 0x2000;
+			*VRAMptr &= mask;
+			if (oddLine)
+			{
+				VRAMptr -= (0x2000 - BYTES_PER_LINE);
+			}
+			else
+			{
+				VRAMptr += 0x2000;
+			}
+			oddLine = !oddLine;
 		}
-		oddLine = !oddLine;
 	}
 }
 
@@ -446,6 +521,35 @@ void DrawScrollBarBlock(uint8_t far* ptr, int top, int middle, int bottom);
 	modify [di ax bx cx dx] \	
 parm[es di][bx][cx][dx];
 
+void DrawScrollBarBlockInverted(uint8_t far* ptr, int top, int middle, int bottom);
+#pragma aux DrawScrollBarBlockInverted = \
+	"cmp bx, 0" \
+	"je _startMiddle" \	
+	"mov ax, 0x0180" \
+	"_loopTop:" \
+	"stosw" \
+	"add di, 78" \
+	"dec bx"\
+	"jnz _loopTop" \
+	"_startMiddle:" \
+	"mov ax, 0xf99f" \
+	"_loopMiddle:" \
+	"stosw" \
+	"add di, 78" \
+	"dec cx"\
+	"jnz _loopMiddle" \
+	"mov ax, 0x0180" \
+	"cmp dx, 0" \
+	"je _end" \
+	"_loopBottom:" \
+	"stosw" \
+	"add di, 78" \
+	"dec dx"\
+	"jnz _loopBottom" \
+	"_end:" \
+	modify [di ax bx cx dx] \	
+parm[es di][bx][cx][dx];
+
 
 void CGADriver::DrawScrollBar(int position, int size)
 {
@@ -453,39 +557,17 @@ void CGADriver::DrawScrollBar(int position, int size)
 	size >>= 1;
 
 	uint8_t* VRAM = CGA_BASE_VRAM_ADDRESS + WINDOW_TOP / 2 * BYTES_PER_LINE + (BYTES_PER_LINE - 2);
-	DrawScrollBarBlock(VRAM, position, size, (WINDOW_HEIGHT / 2) - position - size);
-	VRAM += 0x2000;
-	DrawScrollBarBlock(VRAM, position, size, (WINDOW_HEIGHT / 2) - position - size);
-}
 
-void CGADriver::DrawTitle(const char* text)
-{
-	// Black out title bar
-	FastMemSet(CGA_BASE_VRAM_ADDRESS, 0x00, BYTES_PER_LINE * TITLE_BAR_HEIGHT / 2);
-	FastMemSet(CGA_BASE_VRAM_ADDRESS + 0x2000, 0x00, BYTES_PER_LINE * TITLE_BAR_HEIGHT / 2);
-
-	int textWidth = CGA_RegularFont.CalculateWidth(text);
-
-	scissorY1 = 0;
-	scissorY2 = TITLE_BAR_HEIGHT;
-	DrawString(text, SCREEN_WIDTH / 2 - textWidth / 2, 0, 1);
-
-	scissorY1 = WINDOW_TOP;
-	scissorY2 = WINDOW_BOTTOM;
-}
-
-void CGADriver::DrawStatus(const char* text)
-{
-	// Black out status bar
-	FastMemSet(CGA_BASE_VRAM_ADDRESS + BYTES_PER_LINE * STATUS_BAR_Y / 2, 0x00, BYTES_PER_LINE * STATUS_BAR_HEIGHT / 2);
-	FastMemSet(CGA_BASE_VRAM_ADDRESS + 0x2000 + BYTES_PER_LINE * STATUS_BAR_Y / 2, 0x00, BYTES_PER_LINE * STATUS_BAR_HEIGHT / 2);
-
-	scissorY1 = SCREEN_HEIGHT - STATUS_BAR_HEIGHT;
-	scissorY2 = SCREEN_HEIGHT;
-	DrawString(text, 8, SCREEN_HEIGHT - STATUS_BAR_HEIGHT, 1);
-
-	scissorY1 = WINDOW_TOP;
-	scissorY2 = WINDOW_BOTTOM;
+	if (invertScreen)
+	{
+		DrawScrollBarBlockInverted(VRAM, position, size, (WINDOW_HEIGHT / 2) - position - size);
+		DrawScrollBarBlockInverted(VRAM + 0x2000, position, size, (WINDOW_HEIGHT / 2) - position - size);
+	}
+	else
+	{
+		DrawScrollBarBlock(VRAM, position, size, (WINDOW_HEIGHT / 2) - position - size);
+		DrawScrollBarBlock(VRAM + 0x2000, position, size, (WINDOW_HEIGHT / 2) - position - size);
+	}
 }
 
 void CGADriver::DrawRect(int x, int y, int width, int height)
@@ -542,12 +624,12 @@ void ScrollRegionDown(int dest, int src, int count);
 	modify [ax cx dx di si] \
 	parm [di][si][dx]
 
-void ClearRegion(int offset, int count);
+void ClearRegion(int offset, int count, uint16_t clearMask);
 #pragma aux ClearRegion = \
 	"push es" \
 	"mov ax, 0xb800" \
 	"mov es, ax" \
-	"mov ax, 0xffff" \
+	"mov ax, bx" \
 	"_loopLine:" \
 	"mov cx, 39" \
 	"rep stosw" \
@@ -556,7 +638,7 @@ void ClearRegion(int offset, int count);
 	"jnz _loopLine" \
 	"pop es" \
 	modify [cx di ax cx dx] \
-	parm [di] [dx]
+	parm [di] [dx] [bx]
 
 void CGADriver::ScrollWindow(int amount)
 {
@@ -572,8 +654,8 @@ void CGADriver::ScrollWindow(int amount)
 		//ClearRegion(0x1ef0 - offset, (WINDOW_HEIGHT / 2) - lines);
 		//ClearRegion(0x3ef0 - offset, (WINDOW_HEIGHT / 2) - lines);
 
-		ClearRegion(WINDOW_VRAM_BOTTOM_EVEN - offset, (WINDOW_HEIGHT / 2) - lines);
-		ClearRegion(WINDOW_VRAM_BOTTOM_ODD - offset, (WINDOW_HEIGHT / 2) - lines);
+		ClearRegion(WINDOW_VRAM_BOTTOM_EVEN - offset, (WINDOW_HEIGHT / 2) - lines, clearMask);
+		ClearRegion(WINDOW_VRAM_BOTTOM_ODD - offset, (WINDOW_HEIGHT / 2) - lines, clearMask);
 	}
 	else if (amount < 0)
 	{
@@ -582,21 +664,27 @@ void CGADriver::ScrollWindow(int amount)
 		ScrollRegionDown(WINDOW_VRAM_BOTTOM_EVEN - BYTES_PER_LINE, WINDOW_VRAM_BOTTOM_EVEN - BYTES_PER_LINE + offset, lines);
 		ScrollRegionDown(WINDOW_VRAM_BOTTOM_ODD - BYTES_PER_LINE, WINDOW_VRAM_BOTTOM_ODD - BYTES_PER_LINE + offset, lines);
 
-		ClearRegion(WINDOW_VRAM_TOP_EVEN, (WINDOW_HEIGHT / 2) - lines);
-		ClearRegion(WINDOW_VRAM_TOP_ODD, (WINDOW_HEIGHT / 2) - lines);
+		ClearRegion(WINDOW_VRAM_TOP_EVEN, (WINDOW_HEIGHT / 2) - lines, clearMask);
+		ClearRegion(WINDOW_VRAM_TOP_ODD, (WINDOW_HEIGHT / 2) - lines, clearMask);
 	}
 }
 
 void CGADriver::ClearWindow()
 {
-	ClearRegion(WINDOW_VRAM_TOP_EVEN, (WINDOW_HEIGHT / 2));
-	ClearRegion(WINDOW_VRAM_TOP_ODD, (WINDOW_HEIGHT / 2));
+	ClearRegion(WINDOW_VRAM_TOP_EVEN, (WINDOW_HEIGHT / 2), clearMask);
+	ClearRegion(WINDOW_VRAM_TOP_ODD, (WINDOW_HEIGHT / 2), clearMask);
 }
 
 void CGADriver::SetScissorRegion(int y1, int y2)
 {
 	scissorY1 = y1;
 	scissorY2 = y2;
+}
+
+void CGADriver::ClearScissorRegion()
+{
+	scissorY1 = 0;
+	scissorY2 = screenHeight;
 }
 
 void CGADriver::ArrangeAppInterfaceWidgets(AppInterface& app)
@@ -620,4 +708,14 @@ void CGADriver::ArrangeAppInterfaceWidgets(AppInterface& app)
 	app.forwardButton.y = ADDRESS_BAR_Y;
 	app.forwardButton.width = NAVIGATION_BUTTON_WIDTH;
 	app.forwardButton.height = NAVIGATION_BUTTON_HEIGHT;
+
+	app.statusBar.x = 0;
+	app.statusBar.y = SCREEN_HEIGHT - STATUS_BAR_HEIGHT;
+	app.statusBar.width = SCREEN_WIDTH;
+	app.statusBar.height = STATUS_BAR_HEIGHT;
+
+	app.titleBar.x = 0;
+	app.titleBar.y = 0;
+	app.titleBar.width = SCREEN_WIDTH;
+	app.titleBar.height = TITLE_BAR_HEIGHT;
 }

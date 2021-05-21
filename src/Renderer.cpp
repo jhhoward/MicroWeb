@@ -33,10 +33,11 @@ Renderer::Renderer(App& inApp)
 void Renderer::Init()
 {
 	Platform::input->HideMouse();
-	Platform::video->SetScissorRegion(0, Platform::video->screenHeight);
 	Platform::video->ClearWindow();
 	RedrawScrollBar();
 	app.ui.DrawInterfaceWidgets();
+	SetTitle("MicroWeb");
+	SetStatus("");
 	Platform::input->ShowMouse();
 }
 
@@ -103,6 +104,8 @@ void Renderer::Update()
 			}
 		}
 
+		Platform::video->ClearScissorRegion();
+
 		if (line != -1)
 		{
 			lowerRenderLine = line;
@@ -121,8 +124,6 @@ void Renderer::Update()
 
 	if (upperRenderLine > Platform::video->windowY)
 	{
-		Platform::video->SetScissorRegion(Platform::video->windowY, upperRenderLine);
-
 		int bestLineStartIndex = -1;
 		int currentLineIndex = -1;
 		int currentLineHeight = -1;
@@ -166,6 +167,8 @@ void Renderer::Update()
 		{
 			int currentLineHeight = -1;
 
+			Platform::video->SetScissorRegion(Platform::video->windowY, upperRenderLine);
+
 			for (int n = bestLineStartIndex; n < app.page.numFinishedWidgets; n++)
 			{
 				Widget* widget = &app.page.widgets[n];
@@ -188,6 +191,8 @@ void Renderer::Update()
 					upperRenderLine = widgetTop;
 				}
 			}
+
+			Platform::video->ClearScissorRegion();
 
 			if (upperRenderLine < Platform::video->windowY)
 			{
@@ -228,19 +233,9 @@ void Renderer::Scroll(int delta)
 	if (delta < Platform::video->windowHeight && delta > -Platform::video->windowHeight)
 	{
 		Platform::video->ScrollWindow(delta);
-
-		if (delta > 0)
-		{
-			Platform::video->SetScissorRegion(Platform::video->windowY + Platform::video->windowHeight - delta, Platform::video->windowY + Platform::video->windowHeight);
-		}
-		else
-		{
-			Platform::video->SetScissorRegion(Platform::video->windowY, Platform::video->windowY - delta);
-		}
 	}
 	else
 	{
-		Platform::video->SetScissorRegion(Platform::video->windowY, Platform::video->windowY + Platform::video->windowHeight);
 		Platform::video->ClearWindow();
 	}
 
@@ -361,13 +356,31 @@ bool Renderer::IsOverPageWidget(Widget* widget, int x, int y)
 	return (x >= widget->x && y >= widget->y + adjustY && x < widget->x + widget->width && y < widget->y + widget->height + adjustY);
 }
 
-void Renderer::DrawStatus(const char* status)
+void Renderer::SetTitle(const char* title)
+{
+	Platform::input->HideMouse();
+
+	Platform::video->FillRect(app.ui.titleBar.x, app.ui.titleBar.y, app.ui.titleBar.width, app.ui.titleBar.height);
+	if (title)
+	{
+		int textWidth = Platform::video->GetFont(1)->CalculateWidth(title);
+		Platform::video->DrawString(title, app.ui.titleBar.x + Platform::video->screenWidth / 2 - textWidth / 2, app.ui.titleBar.y, 1);
+	}
+
+	Platform::input->ShowMouse();
+}
+
+void Renderer::SetStatus(const char* status)
 {
 	if (status != oldStatus)
 	{
 		Platform::input->HideMouse();
 
-		Platform::video->DrawStatus(status ? status : "");
+		Platform::video->FillRect(app.ui.statusBar.x, app.ui.statusBar.y, app.ui.statusBar.width, app.ui.statusBar.height);
+		if (status)
+		{
+			Platform::video->DrawString(status, app.ui.statusBar.x, app.ui.statusBar.y, 1);
+		}
 
 		Platform::input->ShowMouse();
 		oldStatus = status;
@@ -378,7 +391,6 @@ void Renderer::DrawAddress(const char* address)
 {
 	Platform::input->HideMouse();
 
-	Platform::video->SetScissorRegion(0, Platform::video->windowY);
 	Widget& addressBar = app.ui.addressBar;
 
 	Platform::video->ClearRect(addressBar.x + 1, addressBar.y + 1, addressBar.width - 2, addressBar.height - 2);
@@ -402,4 +414,6 @@ void Renderer::RenderPageWidget(Widget* widget)
 	int baseY = Platform::video->windowY - scrollPosition;
 
 	RenderWidget(widget, baseY);
+
+	Platform::video->ClearScissorRegion();
 }

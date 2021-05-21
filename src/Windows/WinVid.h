@@ -30,13 +30,13 @@ public:
 
 	virtual void ClearWindow();
 	virtual void ClearRect(int x, int y, int width, int height);
+	virtual void FillRect(int x, int y, int width, int height);
 	virtual void ScrollWindow(int delta);
 	virtual void SetScissorRegion(int y1, int y2);
+	virtual void ClearScissorRegion();
 
 	virtual void DrawString(const char* text, int x, int y, int size = 1, FontStyle::Type style = FontStyle::Regular);
 	virtual void DrawScrollBar(int position, int size);
-	virtual void DrawTitle(const char* text);
-	virtual void DrawStatus(const char* text);
 
 	virtual MouseCursorData* GetCursorGraphic(MouseCursor::Type type);
 

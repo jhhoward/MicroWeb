@@ -32,7 +32,9 @@ public:
 	Widget* PickPageWidget(int x, int y);
 	bool IsOverPageWidget(Widget* widget, int x, int y);
 
-	void DrawStatus(const char* status);
+	void SetStatus(const char* status);
+	void SetTitle(const char* status);
+
 	void DrawAddress(const char* address);
 
 	void RenderPageWidget(Widget* widget);

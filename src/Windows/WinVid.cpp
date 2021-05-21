@@ -95,6 +95,11 @@ void WindowsVideoDriver::ClearScreen()
 	FillRect(0, screenHeight - STATUS_BAR_HEIGHT, screenWidth, STATUS_BAR_HEIGHT, foregroundColour);
 }
 
+void WindowsVideoDriver::FillRect(int x, int y, int width, int height)
+{
+	FillRect(x, y, width, height, foregroundColour);
+}
+
 void WindowsVideoDriver::FillRect(int x, int y, int width, int height, uint32_t colour)
 {
 	for (int j = 0; j < height; j++)
@@ -148,6 +153,12 @@ void WindowsVideoDriver::SetScissorRegion(int y1, int y2)
 {
 	scissorY1 = y1;
 	scissorY2 = y2;
+}
+
+void WindowsVideoDriver::ClearScissorRegion()
+{
+	scissorY1 = 0;
+	scissorY2 = screenHeight;
 }
 
 void WindowsVideoDriver::DrawString(const char* text, int x, int y, int size, FontStyle::Type style)
@@ -267,30 +278,6 @@ void WindowsVideoDriver::DrawScrollBar(int position, int size)
 {
 }
 
-void WindowsVideoDriver::DrawTitle(const char* text)
-{
-	FillRect(0, 0, SCREEN_WIDTH, TITLE_BAR_HEIGHT, foregroundColour);
-	int textWidth = CGA_RegularFont.CalculateWidth(text);
-
-	scissorY1 = 0;
-	scissorY2 = TITLE_BAR_HEIGHT;
-	DrawString(text, SCREEN_WIDTH / 2 - textWidth / 2, 0, 1);
-
-	scissorY1 = WINDOW_TOP;
-	scissorY2 = WINDOW_BOTTOM;
-}
-
-void WindowsVideoDriver::DrawStatus(const char* text)
-{
-	FillRect(0, SCREEN_HEIGHT - STATUS_BAR_HEIGHT, SCREEN_WIDTH, STATUS_BAR_HEIGHT, foregroundColour);
-	scissorY1 = SCREEN_HEIGHT - STATUS_BAR_HEIGHT;
-	scissorY2 = SCREEN_HEIGHT;
-	DrawString(text, 8, SCREEN_HEIGHT - STATUS_BAR_HEIGHT, 1);
-
-	scissorY1 = WINDOW_TOP;
-	scissorY2 = WINDOW_BOTTOM;
-}
-
 MouseCursorData* WindowsVideoDriver::GetCursorGraphic(MouseCursor::Type type)
 {
 	return NULL;
@@ -393,5 +380,15 @@ void WindowsVideoDriver::ArrangeAppInterfaceWidgets(AppInterface& app)
 	app.forwardButton.y = ADDRESS_BAR_Y;
 	app.forwardButton.width = NAVIGATION_BUTTON_WIDTH;
 	app.forwardButton.height = NAVIGATION_BUTTON_HEIGHT;
+
+	app.statusBar.x = 0;
+	app.statusBar.y = SCREEN_HEIGHT - STATUS_BAR_HEIGHT;
+	app.statusBar.width = SCREEN_WIDTH;
+	app.statusBar.height = STATUS_BAR_HEIGHT;
+
+	app.titleBar.x = 0;
+	app.titleBar.y = 0;
+	app.titleBar.width = SCREEN_WIDTH;
+	app.titleBar.height = TITLE_BAR_HEIGHT;
 }
 

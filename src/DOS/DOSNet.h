@@ -36,6 +36,7 @@ public:
 	virtual size_t ReadData(char* buffer, size_t count);
 	virtual void Stop();
 	void Update();
+	virtual const char* GetStatusString();
 
 private:
 	enum InternalStatus

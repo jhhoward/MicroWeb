@@ -24,19 +24,21 @@ public:
 	virtual void Init();
 	virtual void Shutdown();
 	virtual void ClearScreen();
+	virtual void InvertScreen();
 
 	virtual void ArrangeAppInterfaceWidgets(class AppInterface& app);
+	
 
 	virtual void ClearWindow();
 	virtual void ScrollWindow(int delta);
 	virtual void SetScissorRegion(int y1, int y2);
+	virtual void ClearScissorRegion();
 
 	virtual void DrawString(const char* text, int x, int y, int size = 1, FontStyle::Type style = FontStyle::Regular);
-	virtual void DrawTitle(const char* text);
-	virtual void DrawStatus(const char* text);
 	virtual void DrawRect(int x, int y, int width, int height);
 	virtual void DrawButtonRect(int x, int y, int width, int height);
 	virtual void ClearRect(int x, int y, int width, int height);
+	virtual void FillRect(int x, int y, int width, int height);
 
 	virtual void HLine(int x, int y, int count);
 	virtual void VLine(int x, int y, int count);
@@ -54,6 +56,10 @@ private:
 	void SetScreenMode(int screenMode);
 
 	void ClearHLine(int x, int y, int count);
+	void HLineInternal(int x, int y, int count);
 
+	bool invertScreen;
+	uint16_t clearMask;
 	int startingScreenMode;
+	int scissorX1, scissorY1, scissorX2, scissorY2;
 };

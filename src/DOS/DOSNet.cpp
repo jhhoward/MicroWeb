@@ -370,3 +370,46 @@ void DOSHTTPRequest::Update()
 		break;
 	}
 }
+
+const char* DOSHTTPRequest::GetStatusString()
+{
+	switch (status)
+	{
+	case HTTPRequest::Error:
+		switch (internalStatus)
+		{
+		case InvalidPort:
+			return "Invalid port";
+		case InvalidProtocol:
+			return "Invalid protocol";
+		case SocketCreationError:
+			return "Socket creation error";
+		case SocketConnectionError:
+			return "Socket connection error";
+		case HeaderSendError:
+			return "Error sending HTTP header";
+		case ContentReceiveError:
+			return "Error receiving HTTP content";
+		}
+		break;
+
+	case HTTPRequest::Connecting:
+		switch (internalStatus)
+		{
+		case QueuedDNSRequest:
+		case WaitingDNSResolve:
+			return "Resolving host name via DNS";
+		case OpeningSocket:
+			return "Connecting to server";
+		case ConnectingSocket:
+		case SendHeaders:
+			return "Sending headers";
+		case ReceiveHeaders:
+			return "Receiving headers";
+		}
+		break;
+	default:
+		break;
+	}
+	return "";
+}

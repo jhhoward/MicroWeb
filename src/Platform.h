@@ -26,18 +26,19 @@ public:
 	virtual void Shutdown() = 0;
 
 	virtual void ClearScreen() = 0;
+	virtual void InvertScreen() {}
 
 	virtual void ArrangeAppInterfaceWidgets(class AppInterface& app) = 0;
 
 	virtual void ClearWindow() = 0;
 	virtual void ClearRect(int x, int y, int width, int height) = 0;
+	virtual void FillRect(int x, int y, int width, int height) = 0;
 	virtual void ScrollWindow(int delta) = 0;
 	virtual void SetScissorRegion(int y1, int y2) = 0;
+	virtual void ClearScissorRegion() = 0;
 
 	virtual void DrawString(const char* text, int x, int y, int size = 1, FontStyle::Type style = FontStyle::Regular) = 0;
 	virtual void DrawScrollBar(int position, int size) = 0;
-	virtual void DrawTitle(const char* text) = 0;
-	virtual void DrawStatus(const char* text) = 0;
 
 	virtual void HLine(int x, int y, int count) = 0;
 	virtual void VLine(int x, int y, int count) = 0;
@@ -71,6 +72,7 @@ public:
 	virtual Status GetStatus() = 0;
 	virtual size_t ReadData(char* buffer, size_t count) = 0;
 	virtual void Stop() = 0;
+	virtual const char* GetStatusString() { return ""; }
 };
 
 class NetworkDriver

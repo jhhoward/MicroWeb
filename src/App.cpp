@@ -71,12 +71,23 @@ void App::Run()
 		{
 			if (requestedNewPage)
 			{
-				if (loadTask.type == LoadTask::RemoteFile && !loadTask.request)
+				if (loadTask.type == LoadTask::RemoteFile)
 				{
-					ShowErrorPage("No network interface available");
-				}
+					if (!loadTask.request)
+					{
+						ShowErrorPage("No network interface available");
+						requestedNewPage = false;
+					}
+					else if (loadTask.request->GetStatus() == HTTPRequest::Error)
+					{
+						ShowErrorPage(loadTask.request->GetStatusString());
+						requestedNewPage = false;
+					}
+				}				
 			}
 		}
+		if (loadTask.type == LoadTask::RemoteFile && loadTask.request && loadTask.request->GetStatus() == HTTPRequest::Connecting)
+			renderer.SetStatus(loadTask.request->GetStatusString());
 
 		ui.Update();
 	}
@@ -86,12 +97,50 @@ void LoadTask::Load(const char* targetURL)
 {
 	url = targetURL;
 
-	type = LoadTask::LocalFile;
-	fs = fopen(url.url, "r");
-
-	if (!fs)
+	// Check for protocol substring
+	if (strstr(url.url, "http://") == url.url)
 	{
 		type = LoadTask::RemoteFile;
+	}
+	else if (strstr(url.url, "file://") == url.url)
+	{
+		type = LoadTask::LocalFile;
+		fs = fopen(url.url + 7, "r");
+	}
+	/*else if (strstr(url.url, "https://") == url.url)
+	{
+		strcpy(url.url, "http://");
+		strcpy(url.url + 7, targetURL + 8);
+		type = LoadTask::RemoteFile;
+	}*/
+	else if (strstr(url.url, "://"))
+	{
+		// Will be an unsupported protocol
+		type = LoadTask::RemoteFile;
+	}
+	else
+	{
+		// User did not include protocol, first check for local file
+		type = LoadTask::LocalFile;
+		fs = fopen(targetURL, "r");
+
+		if (fs)
+		{
+			// Local file exists, prepend with file:// protocol
+			strcpy(url.url, "file://");
+			strcpy(url.url + 7, targetURL);
+		}
+		else
+		{
+			// Assume this should be http://
+			type = LoadTask::RemoteFile;
+			strcpy(url.url, "http://");
+			strcpy(url.url + 7, targetURL);
+		}
+	}
+
+	if (type == LoadTask::RemoteFile)
+	{
 		request = Platform::network->CreateRequest(url.url);
 	}
 }
@@ -155,6 +204,7 @@ void App::RequestNewPage(const char* url)
 	StopLoad();
 	loadTask.Load(url);
 	requestedNewPage = true;
+	ui.UpdateAddressBar(loadTask.url);
 }
 
 void App::OpenURL(const char* url)
@@ -171,7 +221,7 @@ void App::OpenURL(const char* url)
 		pageHistoryPos--;
 	}
 
-	pageHistory[pageHistoryPos] = url;
+	pageHistory[pageHistoryPos] = loadTask.url;
 	pageHistorySize = pageHistoryPos + 1;
 }
 

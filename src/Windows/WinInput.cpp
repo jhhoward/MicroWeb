@@ -21,11 +21,13 @@ extern HWND hWnd;
 
 static HCURSOR  hCursorHand;
 static HCURSOR  hCursorArrow;
+static HCURSOR  hCursorTextSelect;
 
 void WindowsInputDriver::Init()
 {
 	hCursorHand = LoadCursor(NULL, IDC_HAND);
 	hCursorArrow = LoadCursor(NULL, IDC_ARROW);
+	hCursorTextSelect = LoadCursor(NULL, IDC_IBEAM);
 	currentMouseCursor = MouseCursor::Pointer;
 }
 
@@ -45,6 +47,9 @@ void WindowsInputDriver::SetMouseCursor(MouseCursor::Type type)
 	{
 	case MouseCursor::Hand:
 		::SetCursor(hCursorHand);
+		break;
+	case MouseCursor::TextSelect:
+		::SetCursor(hCursorTextSelect);
 		break;
 	default:
 		::SetCursor(hCursorArrow);

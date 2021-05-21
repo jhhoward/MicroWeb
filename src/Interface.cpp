@@ -24,7 +24,7 @@ AppInterface::AppInterface(App& inApp) : app(inApp)
 	hoverWidget = NULL;
 	oldMouseX = -1;
 	oldMouseY = -1;
-	activeWidget = NULL;
+	activeWidget = &addressBar;
 }
 
 void AppInterface::DrawInterfaceWidgets()
@@ -33,6 +33,9 @@ void AppInterface::DrawInterfaceWidgets()
 	{
 		app.renderer.RenderWidget(appInterfaceWidgets[n]);
 	}
+
+	// Page top line divider
+	Platform::video->HLine(0, Platform::video->windowY - 1, Platform::video->screenWidth);
 }
 
 void AppInterface::Update()
@@ -58,7 +61,7 @@ void AppInterface::Update()
 	{
 		if (hoverWidget && hoverWidget->GetLinkURL())
 		{
-			app.renderer.DrawStatus(URL::GenerateFromRelative(app.page.pageURL.url, hoverWidget->GetLinkURL()).url);
+			app.renderer.SetStatus(URL::GenerateFromRelative(app.page.pageURL.url, hoverWidget->GetLinkURL()).url);
 			Platform::input->SetMouseCursor(MouseCursor::Hand);
 		}
 		else if (hoverWidget && hoverWidget->type == Widget::TextField)
@@ -67,7 +70,7 @@ void AppInterface::Update()
 		}
 		else
 		{
-			app.renderer.DrawStatus("");
+			app.renderer.SetStatus("");
 			Platform::input->SetMouseCursor(MouseCursor::Pointer);
 		}
 	}
@@ -115,11 +118,25 @@ void AppInterface::Update()
 		case 'n':
 			app.OpenURL("http://68k.news");
 			break;
-		case 'b':
+		//case 'b':
+		case KEYCODE_BACKSPACE:
 			app.PreviousPage();
 			break;
-		case 'f':
-			app.NextPage();
+		//case 'f':
+		//	app.NextPage();
+		//	break;
+		case KEYCODE_CTRL_I:
+		{
+			Platform::input->HideMouse();
+			Platform::video->InvertScreen();
+			Platform::input->ShowMouse();
+		}
+			break;
+		case KEYCODE_CTRL_L:
+			activeWidget = &addressBar;
+			break;
+		default:
+			//printf("%d\n", keyPress);
 			break;
 		}
 	}
@@ -232,8 +249,6 @@ bool AppInterface::HandleActiveWidget(InputButtonCode keyPress)
 			if(activeWidget->textField && activeWidget->textField->buffer)
 			{
 				int textLength = strlen(activeWidget->textField->buffer);
-				Platform::video->SetScissorRegion(0, Platform::video->screenHeight);
-
 
 				if (keyPress >= 32 && keyPress < 128)
 				{
@@ -265,8 +280,8 @@ bool AppInterface::HandleActiveWidget(InputButtonCode keyPress)
 							app.renderer.RenderWidget(activeWidget);
 						else
 							app.renderer.RenderPageWidget(activeWidget);
-						return true;
 					}
+					return true;
 				}
 				else if (keyPress == KEYCODE_ENTER)
 				{
@@ -337,7 +352,6 @@ void AppInterface::SubmitForm(WidgetFormData* form)
 void AppInterface::UpdateAddressBar(const URL& url)
 {
 	addressBarURL = url;
-	Platform::video->SetScissorRegion(0, Platform::video->screenHeight);
 	Platform::video->ClearRect(addressBar.x + 1, addressBar.y + 1, addressBar.width - 2, addressBar.height - 2);
 	app.renderer.RenderWidget(&addressBar);
 }
