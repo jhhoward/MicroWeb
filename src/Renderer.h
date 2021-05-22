@@ -26,28 +26,29 @@ public:
 	void Reset();
 	void Update();
 	void Scroll(int delta);
+	void ScrollTo(int position);
 
 	void RedrawScrollBar();
+	int GetMaxScrollPosition();
+	int GetScrollPosition() { return scrollPosition; }
 
 	Widget* PickPageWidget(int x, int y);
-	bool IsOverPageWidget(Widget* widget, int x, int y);
+	bool IsOverWidget(Widget* widget, int x, int y);
 
 	void SetStatus(const char* status);
 	void SetTitle(const char* status);
 
 	void DrawAddress(const char* address);
 
-	void RenderPageWidget(Widget* widget);
-	void RenderWidget(Widget* widget, int baseY = 0);
+	void RenderWidget(Widget* widget);
+	void InvertWidget(Widget* widget);
 private:
 	void DrawButtonRect(int x, int y, int width, int height);
-
-	int GetMaxScrollPosition();
+	void RenderWidgetInternal(Widget* widget, int baseY);
 
 	App& app;
 	int scrollPosition;
 	int pageTopWidgetIndex;
-	int oldPageHeight;
 	const char* oldStatus;
 	int upperRenderLine, lowerRenderLine;
 };

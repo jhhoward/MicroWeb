@@ -361,6 +361,64 @@ void CGADriver::ClearRect(int x, int y, int width, int height)
 	}
 }
 
+void CGADriver::InvertLine(int x, int y, int count)
+{
+	uint8_t far* VRAMptr = (uint8_t far*) CGA_BASE_VRAM_ADDRESS;
+
+	VRAMptr += (y >> 1) * BYTES_PER_LINE;
+	VRAMptr += (x >> 3);
+
+	if (y & 1)
+	{
+		VRAMptr += 0x2000;
+	}
+
+	uint8_t data = *VRAMptr;
+	uint8_t mask = (0x80 >> (x & 7));
+
+	while (count--)
+	{
+		data ^= mask;
+		x++;
+		mask >>= 1;
+		if ((x & 7) == 0)
+		{
+			*VRAMptr++ = data;
+			while (count > 8)
+			{
+				*VRAMptr++ ^= 0xff;
+				count -= 8;
+			}
+			mask = 0x80;
+			data = *VRAMptr;
+		}
+	}
+
+	*VRAMptr = data;
+}
+
+void CGADriver::InvertRect(int x, int y, int width, int height)
+{
+	if (y + height < scissorY1)
+		return;
+	if (y >= scissorY2)
+		return;
+	if (y < scissorY1)
+	{
+		height -= (scissorY1 - y);
+		y = scissorY1;
+	}
+	if (y + height >= scissorY2)
+	{
+		height = scissorY2 - y - 1;
+	}
+
+	for (int j = 0; j < height; j++)
+	{
+		InvertLine(x, y + j, width);
+	}
+}
+
 void CGADriver::FillRect(int x, int y, int width, int height)
 {
 	if (x == 0 && width == SCREEN_WIDTH && !(height & 1) && !(y & 1))

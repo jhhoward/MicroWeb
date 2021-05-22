@@ -33,6 +33,7 @@ public:
 	virtual void ClearWindow() = 0;
 	virtual void ClearRect(int x, int y, int width, int height) = 0;
 	virtual void FillRect(int x, int y, int width, int height) = 0;
+	virtual void InvertRect(int x, int y, int width, int height) = 0;
 	virtual void ScrollWindow(int delta) = 0;
 	virtual void SetScissorRegion(int y1, int y2) = 0;
 	virtual void ClearScissorRegion() = 0;
@@ -101,6 +102,7 @@ public:
 	virtual void ShowMouse() = 0;
 	virtual void SetMouseCursor(MouseCursor::Type type) = 0;
 	virtual void GetMouseStatus(int& buttons, int& x, int& y) = 0;
+	virtual void SetMousePosition(int x, int y) = 0;
 	virtual InputButtonCode GetKeyPress() { return 0; }
 };
 

@@ -59,6 +59,17 @@ void WindowsInputDriver::SetMouseCursor(MouseCursor::Type type)
 	currentMouseCursor = type;
 }
 
+void WindowsInputDriver::SetMousePosition(int x, int y)
+{
+	POINT p;
+	p.x = x;
+	p.y = y * static_cast<WindowsVideoDriver*>(Platform::video)->verticalScale;
+	if (ClientToScreen(hWnd, &p))
+	{
+		SetCursorPos(p.x, p.y);
+	}
+}
+
 void WindowsInputDriver::GetMouseStatus(int& buttons, int& x, int& y)
 {
 	x = y = 0;

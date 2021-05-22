@@ -262,9 +262,6 @@ void Page::FinishCurrentLine()
 
 		numFinishedWidgets = numWidgets;
 
-		//app.renderer.RedrawScrollBar();
-		//app.renderer.OnPageWidgetsLoaded(&widgets[currentLineStartWidgetIndex], numWidgets - currentLineStartWidgetIndex);
-
 		currentLineStartWidgetIndex = -1;
 	}
 

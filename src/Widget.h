@@ -58,6 +58,12 @@ struct TextFieldWidgetData
 	WidgetFormData* form;
 };
 
+struct ScrollBarData
+{
+	int position;
+	int size;
+};
+
 struct Widget
 {
 	enum Type
@@ -69,7 +75,10 @@ struct Widget
 		ScrollBar
 	};
 
-	Type type : 8;
+	Widget() : type(Text), isInterfaceWidget(false), x(0), y(0), width(0), height(0) {}
+
+	Type type : 7;
+	bool isInterfaceWidget : 1;
 	uint16_t x, y;
 	uint16_t width, height;
 	WidgetStyle style;
@@ -88,6 +97,7 @@ struct Widget
 		TextWidgetData* text;
 		ButtonWidgetData* button;
 		TextFieldWidgetData* textField;
+		ScrollBarData* scrollBar;
 	};
 };
 

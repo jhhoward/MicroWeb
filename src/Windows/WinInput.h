@@ -27,6 +27,8 @@ public:
 
 	virtual void SetMouseCursor(MouseCursor::Type type);
 	virtual void GetMouseStatus(int& buttons, int& x, int& y);
+	virtual void SetMousePosition(int x, int y);
+
 	void RefreshCursor();
 	virtual InputButtonCode GetKeyPress();
 

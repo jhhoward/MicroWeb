@@ -35,6 +35,7 @@ void App::ResetPage()
 	page.Reset();
 	renderer.Reset();
 	parser.Reset();
+	ui.Reset();
 }
 
 void App::Run()

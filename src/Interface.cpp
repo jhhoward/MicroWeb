@@ -17,6 +17,8 @@
 #include "App.h"
 #include "KeyCodes.h"
 
+#define MIN_SCROLL_WIDGET_SIZE 8
+
 AppInterface::AppInterface(App& inApp) : app(inApp)
 {
 	GenerateWidgets();
@@ -24,7 +26,13 @@ AppInterface::AppInterface(App& inApp) : app(inApp)
 	hoverWidget = NULL;
 	oldMouseX = -1;
 	oldMouseY = -1;
+	oldButtons = 0;
 	activeWidget = &addressBar;
+}
+
+void AppInterface::Reset()
+{
+	oldPageHeight = 0;
 }
 
 void AppInterface::DrawInterfaceWidgets()
@@ -40,12 +48,18 @@ void AppInterface::DrawInterfaceWidgets()
 
 void AppInterface::Update()
 {
+	if (app.page.GetPageHeight() != oldPageHeight)
+	{
+		oldPageHeight = app.page.GetPageHeight();
+		UpdatePageScrollBar();
+	}
+
 	int buttons, mouseX, mouseY;
 	Platform::input->GetMouseStatus(buttons, mouseX, mouseY);
 
 	Widget* oldHoverWidget = hoverWidget;
 
-	if (hoverWidget && !IsOverWidget(hoverWidget, mouseX, mouseY))
+	if (hoverWidget && !app.renderer.IsOverWidget(hoverWidget, mouseX, mouseY))
 	{
 		hoverWidget = PickWidget(mouseX, mouseY);
 	}
@@ -54,8 +68,39 @@ void AppInterface::Update()
 		hoverWidget = PickWidget(mouseX, mouseY);
 	}
 
+	if ((buttons & 1) && !(oldButtons & 1))
+	{
+		HandleClick(mouseX, mouseY);
+	}
+	else if (!(buttons & 1) && (oldButtons & 1))
+	{
+		HandleRelease();
+	}
+
+	if (activeWidget == &scrollBar)
+	{
+		if (mouseY != oldMouseY)
+		{
+			scrollBar.scrollBar->position = mouseY - scrollBar.y - scrollBarRelativeClickPositionY;
+			if (scrollBar.scrollBar->position < 0)
+			{
+				scrollBar.scrollBar->position = 0;
+			}
+			if (scrollBar.scrollBar->position + scrollBar.scrollBar->size > scrollBar.height)
+			{
+				scrollBar.scrollBar->position = scrollBar.height - scrollBar.scrollBar->size;
+			}
+
+			Platform::input->HideMouse();
+			app.renderer.RedrawScrollBar();
+			Platform::input->ShowMouse();
+			//Platform::input->SetMousePosition(scrollBar.x + scrollBarRelativeClickPositionX, scrollBar.y + scrollBar.scrollBar->position + scrollBarRelativeClickPositionY);
+		}
+	}
+
 	oldMouseX = mouseX;
 	oldMouseY = mouseY;
+	oldButtons = buttons;
 
 	if (hoverWidget != oldHoverWidget)
 	{
@@ -91,9 +136,9 @@ void AppInterface::Update()
 
 		switch (keyPress)
 		{
-		case KEYCODE_MOUSE_LEFT:
-			HandleClick();
-			break;
+//		case KEYCODE_MOUSE_LEFT:
+//			HandleClick();
+//			break;
 		case KEYCODE_ESCAPE:
 			app.Close();
 			break;
@@ -110,10 +155,10 @@ void AppInterface::Update()
 			scrollDelta += (Platform::video->windowHeight - 24);
 			break;
 		case KEYCODE_HOME:
-			app.renderer.Scroll(-app.page.GetPageHeight());
+			app.renderer.ScrollTo(0);
 			break;
 		case KEYCODE_END:
-			app.renderer.Scroll(app.page.GetPageHeight());
+			app.renderer.ScrollTo(app.renderer.GetMaxScrollPosition());
 			break;
 		case 'n':
 			app.OpenURL("http://68k.news");
@@ -159,11 +204,18 @@ void AppInterface::GenerateWidgets()
 	addressBarData.buffer = addressBarURL.url;
 	addressBarData.bufferLength = MAX_URL_LENGTH - 1;
 	addressBar.style = WidgetStyle(FontStyle::Regular);
+	addressBar.isInterfaceWidget = true;
 
 	scrollBar.type = Widget::ScrollBar;
+	scrollBar.isInterfaceWidget = true;
+	scrollBar.scrollBar = &scrollBarData;
+	scrollBarData.position = 0;
+	scrollBarData.size = Platform::video->windowHeight;
 
+	backButton.isInterfaceWidget = true;
 	backButtonData.text = (char*) "<";
 	backButtonData.form = NULL;
+	forwardButton.isInterfaceWidget = true;
 	forwardButtonData.text = (char*) ">";
 	forwardButtonData.form = NULL;
 
@@ -173,6 +225,9 @@ void AppInterface::GenerateWidgets()
 	forwardButton.type = Widget::Button;
 	forwardButton.button = &forwardButtonData;
 	forwardButton.style = WidgetStyle(FontStyle::Bold);
+
+	titleBar.isInterfaceWidget = true;
+	statusBar.isInterfaceWidget = true;
 
 	Platform::video->ArrangeAppInterfaceWidgets(*this);
 }
@@ -191,21 +246,7 @@ Widget* AppInterface::PickWidget(int x, int y)
 	return app.renderer.PickPageWidget(x, y);
 }
 
-bool AppInterface::IsOverWidget(Widget* widget, int x, int y)
-{
-	for (int n = 0; n < NUM_APP_INTERFACE_WIDGETS; n++)
-	{
-		if (widget == appInterfaceWidgets[n])
-		{
-			// This is an interface widget
-			return (x >= widget->x && y >= widget->y && x < widget->x + widget->width && y < widget->y + widget->height);
-		}
-	}
-
-	return app.renderer.IsOverPageWidget(widget, x, y);
-}
-
-void AppInterface::HandleClick()
+void AppInterface::HandleClick(int mouseX, int mouseY)
 {
 	if (activeWidget)
 	{
@@ -218,25 +259,69 @@ void AppInterface::HandleClick()
 		{
 			app.OpenURL(URL::GenerateFromRelative(app.page.pageURL.url, hoverWidget->GetLinkURL()).url);
 		}
-		else if (hoverWidget == &backButton)
-		{
-			app.PreviousPage();
-		}
-		else if (hoverWidget == &forwardButton)
-		{
-			app.NextPage();
-		}
 		else if (hoverWidget->type == Widget::TextField)
 		{
 			activeWidget = hoverWidget;
 		}
 		else if (hoverWidget->type == Widget::Button)
 		{
-			if (hoverWidget->button->form)
+			activeWidget = hoverWidget;
+			app.renderer.InvertWidget(activeWidget);
+		}
+		else if (hoverWidget->type == Widget::ScrollBar)
+		{
+			//activeWidget = hoverWidget;
+			int relPos = mouseY - hoverWidget->y;
+
+			if (relPos < hoverWidget->scrollBar->position)
 			{
-				SubmitForm(hoverWidget->button->form);
+				app.renderer.Scroll(-(Platform::video->windowHeight - 24));
+			}
+			else if (relPos > hoverWidget->scrollBar->position + hoverWidget->scrollBar->size)
+			{
+				app.renderer.Scroll(Platform::video->windowHeight - 24);
+			}
+			else
+			{
+				activeWidget = hoverWidget;
+				scrollBarRelativeClickPositionX = mouseX - hoverWidget->x;
+				scrollBarRelativeClickPositionY = relPos - hoverWidget->scrollBar->position;
 			}
 		}
+	}
+}
+
+void AppInterface::HandleRelease()
+{
+	if (activeWidget && activeWidget->type == Widget::Button)
+	{
+		app.renderer.InvertWidget(activeWidget);
+
+		if (hoverWidget == activeWidget)
+		{
+			if (activeWidget->button->form)
+			{
+				SubmitForm(activeWidget->button->form);
+			}
+			else if (activeWidget == &backButton)
+			{
+				app.PreviousPage();
+			}
+			else if (activeWidget == &forwardButton)
+			{
+				app.NextPage();
+			}
+		}
+		activeWidget = NULL;
+	}
+	else if (activeWidget == &scrollBar)
+	{
+		if (scrollBar.scrollBar->size < scrollBar.height)
+		{
+			int targetScroll = ((int32_t) app.renderer.GetMaxScrollPosition() * scrollBar.scrollBar->position) / (scrollBar.height - scrollBar.scrollBar->size);
+			app.renderer.ScrollTo(targetScroll);
+		}
+		activeWidget = NULL;
 	}
 }
 
@@ -254,16 +339,10 @@ bool AppInterface::HandleActiveWidget(InputButtonCode keyPress)
 				{
 					if (textLength < activeWidget->textField->bufferLength)
 					{
-						if (activeWidget == &addressBar)
-							app.renderer.RenderWidget(activeWidget);
-						else
-							app.renderer.RenderPageWidget(activeWidget);
+						app.renderer.RenderWidget(activeWidget);
 						activeWidget->textField->buffer[textLength++] = (char)(keyPress);
 						activeWidget->textField->buffer[textLength++] = '\0';
-						if (activeWidget == &addressBar)
-							app.renderer.RenderWidget(activeWidget);
-						else
-							app.renderer.RenderPageWidget(activeWidget);
+						app.renderer.RenderWidget(activeWidget);
 					}
 					return true;
 				}
@@ -271,15 +350,9 @@ bool AppInterface::HandleActiveWidget(InputButtonCode keyPress)
 				{
 					if (textLength > 0)
 					{
-						if (activeWidget == &addressBar)
-							app.renderer.RenderWidget(activeWidget);
-						else
-							app.renderer.RenderPageWidget(activeWidget);
+						app.renderer.RenderWidget(activeWidget);
 						activeWidget->textField->buffer[textLength - 1] = '\0';
-						if (activeWidget == &addressBar)
-							app.renderer.RenderWidget(activeWidget);
-						else
-							app.renderer.RenderPageWidget(activeWidget);
+						app.renderer.RenderWidget(activeWidget);
 					}
 					return true;
 				}
@@ -354,4 +427,26 @@ void AppInterface::UpdateAddressBar(const URL& url)
 	addressBarURL = url;
 	Platform::video->ClearRect(addressBar.x + 1, addressBar.y + 1, addressBar.width - 2, addressBar.height - 2);
 	app.renderer.RenderWidget(&addressBar);
+}
+
+void AppInterface::UpdatePageScrollBar()
+{
+	int pageHeight = app.page.GetPageHeight();
+	int windowHeight = Platform::video->windowHeight;
+	int scrollWidgetSize = pageHeight < windowHeight ? windowHeight : windowHeight * windowHeight / pageHeight;
+	if (scrollWidgetSize < MIN_SCROLL_WIDGET_SIZE)
+		scrollWidgetSize = MIN_SCROLL_WIDGET_SIZE;
+	int maxWidgetPosition = windowHeight - scrollWidgetSize;
+
+	int maxScroll = app.renderer.GetMaxScrollPosition();
+	int widgetPosition = maxScroll == 0 ? 0 : (int32_t)maxWidgetPosition * app.renderer.GetScrollPosition() / maxScroll;
+
+	scrollBar.scrollBar->size = scrollWidgetSize;
+
+	if (activeWidget != &scrollBar)
+	{
+		scrollBar.scrollBar->position = widgetPosition;
+	}
+
+	app.renderer.RedrawScrollBar();
 }

@@ -39,6 +39,7 @@ public:
 	virtual void DrawButtonRect(int x, int y, int width, int height);
 	virtual void ClearRect(int x, int y, int width, int height);
 	virtual void FillRect(int x, int y, int width, int height);
+	virtual void InvertRect(int x, int y, int width, int height);
 
 	virtual void HLine(int x, int y, int count);
 	virtual void VLine(int x, int y, int count);
@@ -57,6 +58,7 @@ private:
 
 	void ClearHLine(int x, int y, int count);
 	void HLineInternal(int x, int y, int count);
+	void InvertLine(int x, int y, int count);
 
 	bool invertScreen;
 	uint16_t clearMask;

@@ -20,8 +20,6 @@
 #include "Platform.h"
 #include "App.h"
 
-#define MIN_SCROLL_WIDGET_SIZE 8
-
 Renderer::Renderer(App& inApp) 
 	: app(inApp)
 {
@@ -48,10 +46,42 @@ void Renderer::Reset()
 	scrollPosition = 0;
 	upperRenderLine = Platform::video->windowY;
 	lowerRenderLine = Platform::video->windowY;
-	oldPageHeight = 0;
 	Platform::input->HideMouse();
 	Platform::video->ClearWindow();
-	RedrawScrollBar();
+	Platform::input->ShowMouse();
+}
+
+void Renderer::InvertWidget(Widget* widget)
+{
+	Platform::input->HideMouse();
+
+	int x = widget->x;
+	int y = widget->y;
+	int width = widget->width;
+	int height = widget->height;
+
+	if (widget->type == Widget::Button)
+	{
+		x++;
+		y++;
+		width -= 2;
+		height -= 2;
+	}
+
+	if (widget->isInterfaceWidget)
+	{
+		Platform::video->InvertRect(x, y, width, height);
+	}
+	else
+	{
+		Platform::video->SetScissorRegion(upperRenderLine, lowerRenderLine);
+		int baseY = Platform::video->windowY - scrollPosition;
+
+		Platform::video->InvertRect(x, y + baseY, width, height);
+
+		Platform::video->ClearScissorRegion();
+	}
+
 	Platform::input->ShowMouse();
 }
 
@@ -67,12 +97,6 @@ int Renderer::GetMaxScrollPosition()
 
 void Renderer::Update()
 {
-	if (app.page.GetPageHeight() != oldPageHeight)
-	{
-		oldPageHeight = app.page.GetPageHeight();
-		RedrawScrollBar();
-	}
-
 	int baseY = Platform::video->windowY - scrollPosition;
 	int lowerWindowY = Platform::video->windowY + Platform::video->windowHeight;
 	bool renderedAnything = false;
@@ -93,7 +117,7 @@ void Renderer::Update()
 				if (line == -1 || widgetLine == line)
 				{
 					Platform::input->HideMouse();
-					RenderWidget(widget, baseY);
+					RenderWidgetInternal(widget, baseY);
 					line = widgetLine;
 					renderedAnything = true;
 				}
@@ -185,7 +209,7 @@ void Renderer::Update()
 				}
 
 				Platform::input->HideMouse();
-				RenderWidget(widget, baseY);
+				RenderWidgetInternal(widget, baseY);
 				if (widgetTop < upperRenderLine)
 				{
 					upperRenderLine = widgetTop;
@@ -207,6 +231,11 @@ void Renderer::Update()
 	}
 
 	Platform::input->ShowMouse();
+}
+
+void Renderer::ScrollTo(int targetPosition)
+{
+	Scroll(targetPosition - scrollPosition);
 }
 
 void Renderer::Scroll(int delta)
@@ -241,7 +270,7 @@ void Renderer::Scroll(int delta)
 
 	scrollPosition += delta;
 
-	RedrawScrollBar();
+	app.ui.UpdatePageScrollBar();
 
 	if (delta < 0)
 	{
@@ -294,20 +323,12 @@ void Renderer::Scroll(int delta)
 
 void Renderer::RedrawScrollBar()
 {
-	int pageHeight = app.page.GetPageHeight();
-	int windowHeight = Platform::video->windowHeight;
-	int scrollWidgetSize = pageHeight < windowHeight ? windowHeight : windowHeight * windowHeight / pageHeight;
-	if (scrollWidgetSize < MIN_SCROLL_WIDGET_SIZE)
-		scrollWidgetSize = MIN_SCROLL_WIDGET_SIZE;
-	int maxWidgetPosition = windowHeight - scrollWidgetSize;
-
-	int maxScroll = GetMaxScrollPosition();
-	int widgetPosition = maxScroll == 0 ? 0 : (int32_t)maxWidgetPosition * scrollPosition / maxScroll;
-
-	Platform::video->DrawScrollBar(widgetPosition, scrollWidgetSize);
+	Platform::input->HideMouse();
+	Platform::video->DrawScrollBar(app.ui.scrollBar.scrollBar->position, app.ui.scrollBar.scrollBar->size);
+	Platform::input->ShowMouse();
 }
 
-void Renderer::RenderWidget(Widget* widget, int baseY)
+void Renderer::RenderWidgetInternal(Widget* widget, int baseY)
 {
 	switch (widget->type)
 	{
@@ -349,8 +370,13 @@ Widget* Renderer::PickPageWidget(int x, int y)
 	return app.page.GetWidget(x, y - Platform::video->windowY + scrollPosition);
 }
 
-bool Renderer::IsOverPageWidget(Widget* widget, int x, int y)
+bool Renderer::IsOverWidget(Widget* widget, int x, int y)
 {
+	if (widget->isInterfaceWidget)
+	{
+		return x >= widget->x && y >= widget->y && x < widget->x + widget->width && y < widget->y + widget->height;
+	}
+
 	int adjustY = scrollPosition - Platform::video->windowY;
 
 	return (x >= widget->x && y >= widget->y + adjustY && x < widget->x + widget->width && y < widget->y + widget->height + adjustY);
@@ -408,12 +434,24 @@ void Renderer::DrawButtonRect(int x, int y, int width, int height)
 	Platform::video->VLine(x + width - 1, y + 1, height - 2);
 }
 
-void Renderer::RenderPageWidget(Widget* widget)
+void Renderer::RenderWidget(Widget* widget)
 {
-	Platform::video->SetScissorRegion(upperRenderLine, lowerRenderLine);
-	int baseY = Platform::video->windowY - scrollPosition;
+	Platform::input->HideMouse();
 
-	RenderWidget(widget, baseY);
+	if (widget->isInterfaceWidget)
+	{
+		RenderWidgetInternal(widget, 0);
+	}
+	else
+	{
+		Platform::video->SetScissorRegion(upperRenderLine, lowerRenderLine);
+		int baseY = Platform::video->windowY - scrollPosition;
 
-	Platform::video->ClearScissorRegion();
+		RenderWidgetInternal(widget, baseY);
+
+		Platform::video->ClearScissorRegion();
+	}
+
+	Platform::input->ShowMouse();
 }
+

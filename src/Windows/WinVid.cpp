@@ -392,3 +392,27 @@ void WindowsVideoDriver::ArrangeAppInterfaceWidgets(AppInterface& app)
 	app.titleBar.height = TITLE_BAR_HEIGHT;
 }
 
+void WindowsVideoDriver::InvertRect(int x, int y, int width, int height)
+{
+	if (y + height < scissorY1)
+		return;
+	if (y >= scissorY2)
+		return;
+	if (y < scissorY1)
+	{
+		height -= (scissorY1 - y);
+		y = scissorY1;
+	}
+	if (y + height >= scissorY2)
+	{
+		height = scissorY2 - y - 1;
+	}
+
+	for (int j = 0; j < height; j++)
+	{
+		for (int i = 0; i < width; i++)
+		{
+			InvertPixel(x + i, y + j, 0xffffffff);
+		}
+	}
+}

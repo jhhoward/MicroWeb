@@ -31,6 +31,7 @@ public:
 	virtual void ClearWindow();
 	virtual void ClearRect(int x, int y, int width, int height);
 	virtual void FillRect(int x, int y, int width, int height);
+	virtual void InvertRect(int x, int y, int width, int height);
 	virtual void ScrollWindow(int delta);
 	virtual void SetScissorRegion(int y1, int y2);
 	virtual void ClearScissorRegion();

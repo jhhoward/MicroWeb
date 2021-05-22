@@ -26,10 +26,14 @@ class AppInterface
 public:
 	AppInterface(App& inApp);
 
+	void Reset();
 	void Update();
 
 	void DrawInterfaceWidgets();
 	void UpdateAddressBar(const URL& url);
+
+	void UpdatePageScrollBar();
+	Widget* GetActiveWidget() { return activeWidget; }
 
 	Widget scrollBar;
 	Widget addressBar;
@@ -42,8 +46,8 @@ public:
 private:
 	void GenerateWidgets();
 	Widget* PickWidget(int x, int y);
-	bool IsOverWidget(Widget* widget, int x, int y);
-	void HandleClick();
+	void HandleClick(int mouseX, int mouseY);
+	void HandleRelease();
 	bool HandleActiveWidget(InputButtonCode keyPress);
 	void SubmitForm(WidgetFormData* form);
 
@@ -52,10 +56,15 @@ private:
 
 	Widget* activeWidget;
 	Widget* hoverWidget;
+	int oldButtons;
 	int oldMouseX, oldMouseY;
 	URL addressBarURL;
+	int scrollBarRelativeClickPositionX;
+	int scrollBarRelativeClickPositionY;
+	int oldPageHeight;
 
 	ButtonWidgetData backButtonData;
 	ButtonWidgetData forwardButtonData;
 	TextFieldWidgetData addressBarData;
+	ScrollBarData scrollBarData;
 };

@@ -50,6 +50,15 @@ void DOSInputDriver::ShowMouse()
 	mouseVisible = true;
 }
 
+void DOSInputDriver::SetMousePosition(int x, int y)
+{
+	union REGS inreg, outreg;
+	inreg.x.ax = 4;
+	inreg.x.cx = x;
+	inreg.x.dx = y;
+	int86(0x33, &inreg, &outreg);
+}
+
 void DOSInputDriver::HideMouse()
 {
 	if (!mouseVisible)
