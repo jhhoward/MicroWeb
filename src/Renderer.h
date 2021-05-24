@@ -38,13 +38,18 @@ public:
 	void SetStatus(const char* status);
 	void SetTitle(const char* status);
 
-	void DrawAddress(const char* address);
-
 	void RenderWidget(Widget* widget);
+	void RedrawWidget(Widget* widget);
 	void InvertWidget(Widget* widget);
+
+	void RedrawModifiedTextField(Widget* widget, int position);
+	void DrawTextFieldCursor(Widget* widget, int position, bool clear = false);
 private:
 	void DrawButtonRect(int x, int y, int width, int height);
 	void RenderWidgetInternal(Widget* widget, int baseY);
+
+	void BeginWidgetDraw(Widget* widget, int& baseY);
+	void EndWidgetDraw();
 
 	App& app;
 	int scrollPosition;

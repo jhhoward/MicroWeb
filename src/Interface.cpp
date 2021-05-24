@@ -27,7 +27,7 @@ AppInterface::AppInterface(App& inApp) : app(inApp)
 	oldMouseX = -1;
 	oldMouseY = -1;
 	oldButtons = 0;
-	activeWidget = &addressBar;
+	textFieldCursorPosition = 0;
 }
 
 void AppInterface::Reset()
@@ -160,16 +160,9 @@ void AppInterface::Update()
 		case KEYCODE_END:
 			app.renderer.ScrollTo(app.renderer.GetMaxScrollPosition());
 			break;
-		case 'n':
-			app.OpenURL("http://68k.news");
-			break;
-		//case 'b':
 		case KEYCODE_BACKSPACE:
 			app.PreviousPage();
 			break;
-		//case 'f':
-		//	app.NextPage();
-		//	break;
 		case KEYCODE_CTRL_I:
 		{
 			Platform::input->HideMouse();
@@ -178,10 +171,10 @@ void AppInterface::Update()
 		}
 			break;
 		case KEYCODE_CTRL_L:
-			activeWidget = &addressBar;
+			ActivateWidget(&addressBar);
 			break;
 		default:
-			//printf("%d\n", keyPress);
+//			printf("%x\n", keyPress);
 			break;
 		}
 	}
@@ -246,11 +239,64 @@ Widget* AppInterface::PickWidget(int x, int y)
 	return app.renderer.PickPageWidget(x, y);
 }
 
-void AppInterface::HandleClick(int mouseX, int mouseY)
+void AppInterface::DeactivateWidget()
 {
 	if (activeWidget)
 	{
+		if (activeWidget->type == Widget::TextField)
+		{
+			if (textFieldCursorPosition == -1)
+			{
+				app.renderer.InvertWidget(activeWidget);
+			}
+			else
+			{
+				app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, true);
+			}
+		}
 		activeWidget = NULL;
+	}
+}
+
+void AppInterface::ActivateWidget(Widget* widget)
+{
+	if (activeWidget && activeWidget != widget)
+	{
+		DeactivateWidget();
+	}
+
+	activeWidget = widget;
+
+	if (activeWidget)
+	{
+		switch (activeWidget->type)
+		{
+		case Widget::Button:
+			activeWidget = hoverWidget;
+			app.renderer.InvertWidget(activeWidget);
+			break;
+		case Widget::TextField:
+			if (activeWidget == &addressBar && strlen(activeWidget->textField->buffer) > 0)
+			{
+				textFieldCursorPosition = -1;
+				app.renderer.InvertWidget(activeWidget);
+			}
+			else
+			{
+				textFieldCursorPosition = strlen(activeWidget->textField->buffer);
+				app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
+			}
+			break;
+		}
+	}
+
+}
+
+void AppInterface::HandleClick(int mouseX, int mouseY)
+{
+	if (activeWidget && activeWidget != hoverWidget)
+	{
+		DeactivateWidget();
 	}
 
 	if (hoverWidget)
@@ -261,12 +307,39 @@ void AppInterface::HandleClick(int mouseX, int mouseY)
 		}
 		else if (hoverWidget->type == Widget::TextField)
 		{
-			activeWidget = hoverWidget;
+			bool shouldPick = hoverWidget != &addressBar || hoverWidget == activeWidget;
+			if (hoverWidget != activeWidget)
+			{
+				ActivateWidget(hoverWidget);
+			}
+
+			if(shouldPick)
+			{
+				if (hoverWidget == activeWidget && textFieldCursorPosition == -1)
+				{
+					app.renderer.InvertWidget(activeWidget);
+				}
+				activeWidget = hoverWidget;
+
+				int pickX = activeWidget->x + 3;
+				int pickIndex = 0;
+				for (char* str = activeWidget->textField->buffer; *str; str++, pickIndex++)
+				{
+					if (mouseX < pickX)
+					{
+						break;
+					}
+					pickX += Platform::video->GetGlyphWidth(*str);
+				}
+
+				app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, true);
+				textFieldCursorPosition = pickIndex;
+				app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
+			}
 		}
 		else if (hoverWidget->type == Widget::Button)
 		{
-			activeWidget = hoverWidget;
-			app.renderer.InvertWidget(activeWidget);
+			ActivateWidget(hoverWidget);
 		}
 		else if (hoverWidget->type == Widget::ScrollBar)
 		{
@@ -333,26 +406,69 @@ bool AppInterface::HandleActiveWidget(InputButtonCode keyPress)
 		{
 			if(activeWidget->textField && activeWidget->textField->buffer)
 			{
-				int textLength = strlen(activeWidget->textField->buffer);
-
 				if (keyPress >= 32 && keyPress < 128)
 				{
-					if (textLength < activeWidget->textField->bufferLength)
+					if (textFieldCursorPosition == -1)
 					{
-						app.renderer.RenderWidget(activeWidget);
-						activeWidget->textField->buffer[textLength++] = (char)(keyPress);
-						activeWidget->textField->buffer[textLength++] = '\0';
-						app.renderer.RenderWidget(activeWidget);
+						activeWidget->textField->buffer[0] = '\0';
+						app.renderer.RedrawWidget(activeWidget);
+						textFieldCursorPosition = 0;
+					}
+
+					if (textFieldCursorPosition < activeWidget->textField->bufferLength)
+					{
+						int len = strlen(activeWidget->textField->buffer);
+						for (int n = len; n >= textFieldCursorPosition; n--)
+						{
+							activeWidget->textField->buffer[n + 1] = activeWidget->textField->buffer[n];
+						}
+						activeWidget->textField->buffer[textFieldCursorPosition++] = (char)(keyPress);
+						app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition - 1, true);
+						app.renderer.RedrawModifiedTextField(activeWidget, textFieldCursorPosition - 1);
+						app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
 					}
 					return true;
 				}
 				else if (keyPress == KEYCODE_BACKSPACE)
 				{
-					if (textLength > 0)
+					if (textFieldCursorPosition == -1)
 					{
-						app.renderer.RenderWidget(activeWidget);
-						activeWidget->textField->buffer[textLength - 1] = '\0';
-						app.renderer.RenderWidget(activeWidget);
+						activeWidget->textField->buffer[0] = '\0';
+						app.renderer.RedrawWidget(activeWidget);
+						textFieldCursorPosition = 0;
+						app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
+					}
+					else if (textFieldCursorPosition > 0)
+					{
+						int len = strlen(activeWidget->textField->buffer);
+						for (int n = textFieldCursorPosition - 1; n < len; n++)
+						{
+							activeWidget->textField->buffer[n] = activeWidget->textField->buffer[n + 1];
+						}						
+						textFieldCursorPosition--;
+						app.renderer.RedrawModifiedTextField(activeWidget, textFieldCursorPosition);
+						app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
+					}
+					return true;
+				}
+				else if (keyPress == KEYCODE_DELETE)
+				{
+					int len = strlen(activeWidget->textField->buffer);
+					if (textFieldCursorPosition == -1)
+					{
+						activeWidget->textField->buffer[0] = '\0';
+						app.renderer.RedrawWidget(activeWidget);
+						textFieldCursorPosition = 0;
+						app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
+					}
+					else if (textFieldCursorPosition < len)
+					{
+						for (int n = textFieldCursorPosition; n < len; n++)
+						{
+							activeWidget->textField->buffer[n] = activeWidget->textField->buffer[n + 1];
+						}
+						app.renderer.RedrawModifiedTextField(activeWidget, textFieldCursorPosition);
+						app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
 					}
 					return true;
 				}
@@ -366,10 +482,78 @@ bool AppInterface::HandleActiveWidget(InputButtonCode keyPress)
 					{
 						SubmitForm(activeWidget->textField->form);
 					}
+					DeactivateWidget();
+					return true;
+				}
+				else if (keyPress == KEYCODE_ARROW_LEFT)
+				{
+					if (textFieldCursorPosition == -1)
+					{
+						app.renderer.RedrawWidget(activeWidget);
+						textFieldCursorPosition = strlen(activeWidget->textField->buffer);
+						app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
+					}
+					else if (textFieldCursorPosition > 0)
+					{
+						app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, true);
+						textFieldCursorPosition--;
+						app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
+					}
+					return true;
+				}
+				else if (keyPress == KEYCODE_ARROW_RIGHT)
+				{
+					if (textFieldCursorPosition == -1)
+					{
+						app.renderer.RedrawWidget(activeWidget);
+						textFieldCursorPosition = strlen(activeWidget->textField->buffer);
+						app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
+					}
+					else if (textFieldCursorPosition < strlen(activeWidget->textField->buffer))
+					{
+						app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, true);
+						textFieldCursorPosition++;
+						app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
+					}
+					return true;
+				}
+				else if (keyPress == KEYCODE_END)
+				{
+					if (textFieldCursorPosition == -1)
+					{
+						app.renderer.RedrawWidget(activeWidget);
+						textFieldCursorPosition = strlen(activeWidget->textField->buffer);
+						app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
+					}
+					else
+					{
+						app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, true);
+						textFieldCursorPosition = strlen(activeWidget->textField->buffer);
+						app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
+					}
+					return true;
+				}
+				else if (keyPress == KEYCODE_HOME)
+				{
+					if (textFieldCursorPosition == -1)
+					{
+						app.renderer.RedrawWidget(activeWidget);
+						textFieldCursorPosition = strlen(activeWidget->textField->buffer);
+						app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
+					}
+					else
+					{
+						app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, true);
+						textFieldCursorPosition = 0;
+						app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
+					}
+					return true;
 				}
 			}
 		}
 		break;
+	case Widget::Button:
+		return true;
 	}
 
 	return false;
@@ -425,8 +609,7 @@ void AppInterface::SubmitForm(WidgetFormData* form)
 void AppInterface::UpdateAddressBar(const URL& url)
 {
 	addressBarURL = url;
-	Platform::video->ClearRect(addressBar.x + 1, addressBar.y + 1, addressBar.width - 2, addressBar.height - 2);
-	app.renderer.RenderWidget(&addressBar);
+	app.renderer.RedrawWidget(&addressBar);
 }
 
 void AppInterface::UpdatePageScrollBar()

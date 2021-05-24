@@ -59,6 +59,7 @@ private:
 	void ClearHLine(int x, int y, int count);
 	void HLineInternal(int x, int y, int count);
 	void InvertLine(int x, int y, int count);
+	bool ApplyScissor(int& y, int& height);
 
 	bool invertScreen;
 	uint16_t clearMask;

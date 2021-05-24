@@ -51,6 +51,9 @@ private:
 	bool HandleActiveWidget(InputButtonCode keyPress);
 	void SubmitForm(WidgetFormData* form);
 
+	void ActivateWidget(Widget* widget);
+	void DeactivateWidget();
+
 	Widget* appInterfaceWidgets[NUM_APP_INTERFACE_WIDGETS];
 	App& app;
 
@@ -62,6 +65,7 @@ private:
 	int scrollBarRelativeClickPositionX;
 	int scrollBarRelativeClickPositionY;
 	int oldPageHeight;
+	int textFieldCursorPosition;
 
 	ButtonWidgetData backButtonData;
 	ButtonWidgetData forwardButtonData;

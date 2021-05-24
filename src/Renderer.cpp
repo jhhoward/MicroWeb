@@ -53,10 +53,11 @@ void Renderer::Reset()
 
 void Renderer::InvertWidget(Widget* widget)
 {
-	Platform::input->HideMouse();
+	int baseY;
+	BeginWidgetDraw(widget, baseY);
 
 	int x = widget->x;
-	int y = widget->y;
+	int y = widget->y + baseY;
 	int width = widget->width;
 	int height = widget->height;
 
@@ -68,21 +69,19 @@ void Renderer::InvertWidget(Widget* widget)
 		height -= 2;
 	}
 
-	if (widget->isInterfaceWidget)
+	if (widget->type == Widget::TextField)
 	{
-		Platform::video->InvertRect(x, y, width, height);
-	}
-	else
-	{
-		Platform::video->SetScissorRegion(upperRenderLine, lowerRenderLine);
-		int baseY = Platform::video->windowY - scrollPosition;
-
-		Platform::video->InvertRect(x, y + baseY, width, height);
-
-		Platform::video->ClearScissorRegion();
+		if (widget->textField && widget->textField->buffer)
+		{
+			x += 2;
+			y += 2;
+			width = Platform::video->GetFont(1)->CalculateWidth(widget->textField->buffer);
+			height = Platform::video->GetFont(1)->glyphHeight;
+		}
 	}
 
-	Platform::input->ShowMouse();
+	Platform::video->InvertRect(x, y, width, height);
+	EndWidgetDraw();
 }
 
 int Renderer::GetMaxScrollPosition()
@@ -354,10 +353,76 @@ void Renderer::RenderWidgetInternal(Widget* widget, int baseY)
 			DrawButtonRect(widget->x, widget->y + baseY, widget->width, widget->height);
 			if (widget->textField->buffer)
 			{
-				Platform::video->DrawString(widget->textField->buffer, widget->x + 2, widget->y + baseY + 2, widget->style.fontSize, widget->style.fontStyle);
+				int textWidth = 0;
+				int maxTextWidth = widget->width - 4;
+				char* replaceChar = NULL;
+				char oldChar = 0;
+
+				for (char* p = widget->textField->buffer; *p; p++)
+				{
+					textWidth += Platform::video->GetGlyphWidth(*p);
+					if (textWidth > maxTextWidth)
+					{
+						oldChar = *p;
+						replaceChar = p;
+						*p = '\0';
+						break;
+					}
+				}
+				Platform::video->DrawString(widget->textField->buffer, widget->x + 3, widget->y + baseY + 2);
+
+				if (replaceChar)
+				{
+					*replaceChar = oldChar;
+				}
 			}
 		}
 		break;
+	}
+}
+
+void Renderer::RedrawModifiedTextField(Widget* widget, int position)
+{
+	int baseY = 0;
+
+	int x = widget->x + 3;
+	int width = widget->width - 4;
+	int maxX = widget->x + width - 1;
+	char* str = widget->textField->buffer;
+	char* lastChar = NULL;
+	char oldChar = 0;
+
+	for (int n = 0; n < position && *str; n++, str++)
+	{
+		int glyphWidth = Platform::video->GetGlyphWidth(widget->textField->buffer[n]);
+		width -= glyphWidth;
+		x += glyphWidth;
+		if (width <= 0)
+		{
+			break;
+		}
+		if (x >= maxX)
+		{
+			lastChar = str;
+			oldChar = *lastChar;
+			*lastChar = '\0';
+		}
+	}
+
+	if (width > 0)
+	{
+		BeginWidgetDraw(widget, baseY);
+		int y = widget->y + 2 + baseY;
+
+		Platform::video->ClearRect(x, y, width, Platform::video->GetFont(1)->glyphHeight);
+		Platform::video->DrawString(str, x, y);
+
+		Platform::video->ClearScissorRegion();
+	}
+
+	if (lastChar)
+	{
+		*lastChar = oldChar;
 	}
 }
 
@@ -413,19 +478,6 @@ void Renderer::SetStatus(const char* status)
 	}
 }
 
-void Renderer::DrawAddress(const char* address)
-{
-	Platform::input->HideMouse();
-
-	Widget& addressBar = app.ui.addressBar;
-
-	Platform::video->ClearRect(addressBar.x + 1, addressBar.y + 1, addressBar.width - 2, addressBar.height - 2);
-	Platform::video->DrawString(address, addressBar.x + 2, addressBar.y + 2);
-
-	Platform::input->ShowMouse();
-
-}
-
 void Renderer::DrawButtonRect(int x, int y, int width, int height)
 {
 	Platform::video->HLine(x + 1, y, width - 2);
@@ -436,22 +488,73 @@ void Renderer::DrawButtonRect(int x, int y, int width, int height)
 
 void Renderer::RenderWidget(Widget* widget)
 {
-	Platform::input->HideMouse();
+	int baseY;
+	BeginWidgetDraw(widget, baseY);
+	RenderWidgetInternal(widget, baseY);
+	EndWidgetDraw();
+}
 
-	if (widget->isInterfaceWidget)
+void Renderer::RedrawWidget(Widget* widget)
+{
+	int baseY;
+	BeginWidgetDraw(widget, baseY);
+
+	Platform::video->ClearRect(widget->x, widget->y + baseY, widget->width, widget->height);
+	RenderWidgetInternal(widget, baseY);
+
+	EndWidgetDraw();
+}
+
+void Renderer::DrawTextFieldCursor(Widget* widget, int position, bool clear)
+{
+	if (!widget || !widget->textField || !widget->textField->buffer)
+		return;
+
+
+	int x = widget->x + 2;
+	int height = Platform::video->GetFont(1)->glyphHeight;
+
+	for (int n = 0; n < position; n++)
 	{
-		RenderWidgetInternal(widget, 0);
+		if (!widget->textField->buffer[n])
+			break;
+		x += Platform::video->GetGlyphWidth(widget->textField->buffer[n]);
+	}
+
+	if (x >= widget->x + widget->width - 1)
+	{
+		return;
+	}
+
+	int baseY;
+	BeginWidgetDraw(widget, baseY);
+	int y = widget->y + 2 + baseY;
+
+	if (clear)
+	{
+		Platform::video->ClearRect(x, y, 1, height);
 	}
 	else
 	{
-		Platform::video->SetScissorRegion(upperRenderLine, lowerRenderLine);
-		int baseY = Platform::video->windowY - scrollPosition;
-
-		RenderWidgetInternal(widget, baseY);
-
-		Platform::video->ClearScissorRegion();
+		Platform::video->VLine(x, y, height);
 	}
 
-	Platform::input->ShowMouse();
+	EndWidgetDraw();
 }
 
+void Renderer::BeginWidgetDraw(Widget* widget, int& baseY)
+{
+	Platform::input->HideMouse();
+
+	if (!widget->isInterfaceWidget)
+	{
+		baseY = Platform::video->windowY - scrollPosition;
+	}
+	else baseY = 0;
+}
+
+void Renderer::EndWidgetDraw()
+{
+	Platform::video->ClearScissorRegion();
+	Platform::input->ShowMouse();
+}

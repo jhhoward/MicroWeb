@@ -205,7 +205,7 @@ void App::RequestNewPage(const char* url)
 	StopLoad();
 	loadTask.Load(url);
 	requestedNewPage = true;
-	ui.UpdateAddressBar(loadTask.url);
+	//ui.UpdateAddressBar(loadTask.url);
 }
 
 void App::OpenURL(const char* url)

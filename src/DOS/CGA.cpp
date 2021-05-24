@@ -345,6 +345,9 @@ void CGADriver::ClearHLine(int x, int y, int count)
 
 void CGADriver::ClearRect(int x, int y, int width, int height)
 {
+	if (!ApplyScissor(y, height))
+		return;
+
 	if (invertScreen)
 	{
 		for (int j = 0; j < height; j++)
@@ -397,12 +400,12 @@ void CGADriver::InvertLine(int x, int y, int count)
 	*VRAMptr = data;
 }
 
-void CGADriver::InvertRect(int x, int y, int width, int height)
+bool CGADriver::ApplyScissor(int& y, int& height)
 {
 	if (y + height < scissorY1)
-		return;
+		return false;
 	if (y >= scissorY2)
-		return;
+		return false;
 	if (y < scissorY1)
 	{
 		height -= (scissorY1 - y);
@@ -412,6 +415,13 @@ void CGADriver::InvertRect(int x, int y, int width, int height)
 	{
 		height = scissorY2 - y - 1;
 	}
+	return true;
+}
+
+void CGADriver::InvertRect(int x, int y, int width, int height)
+{
+	if (!ApplyScissor(y, height))
+		return;
 
 	for (int j = 0; j < height; j++)
 	{
