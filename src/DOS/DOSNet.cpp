@@ -39,8 +39,6 @@
 #include "udp.h"
 #include "dns.h"
 
-#define TCP_RECV_BUFFER  (16384)
-
 // Ctrl-Break and Ctrl-C handler.  Check the flag once in a while to see if
 // the user wants out.
 volatile uint8_t CtrlBreakDetected = 0;
@@ -261,7 +259,7 @@ size_t DOSHTTPRequest::ReadData(char* buffer, size_t count)
 
 void DOSHTTPRequest::Stop()
 {
-	if (sock)
+	if(sock)
 	{
 		sock->closeNonblocking();
 		TcpSocketMgr::freeSocket(sock);
@@ -314,11 +312,12 @@ void DOSHTTPRequest::Update()
 			case OpeningSocket:
 				{
 					sock = TcpSocketMgr::getSocket();
-					if (sock->setRecvBuffer(TCP_RECV_BUFFER)) 
+					if (!sock)
 					{
 						Error(SocketCreationError);
-						break;
 					}
+					sock->rcvBuffer = recvBuffer;
+					sock->rcvBufSize = TCP_RECV_BUFFER_SIZE;
 
 					uint16_t localport = 2048 + rand();
 

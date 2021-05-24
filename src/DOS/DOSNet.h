@@ -18,6 +18,7 @@
 #include "../Platform.h"
 #include "../URL.h"
 
+#define TCP_RECV_BUFFER_SIZE  (16384)
 #define MAX_CONCURRENT_HTTP_REQUESTS 3
 #define HOSTNAME_LEN        (80)
 #define PATH_LEN           (MAX_URL_LENGTH)
@@ -68,6 +69,8 @@ private:
 	IpAddr_t hostAddr;
 	uint16_t serverPort;
 	TcpSocket* sock;
+
+	uint8_t recvBuffer[TCP_RECV_BUFFER_SIZE];
 };
 
 class DOSNetworkDriver : public NetworkDriver
