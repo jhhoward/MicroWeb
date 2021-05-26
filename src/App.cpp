@@ -106,7 +106,7 @@ void LoadTask::Load(const char* targetURL)
 	else if (strstr(url.url, "file://") == url.url)
 	{
 		type = LoadTask::LocalFile;
-		fs = fopen(url.url + 7, "r");
+		fs = fopen(url.url + 7, "rb");
 	}
 	/*else if (strstr(url.url, "https://") == url.url)
 	{
@@ -123,7 +123,7 @@ void LoadTask::Load(const char* targetURL)
 	{
 		// User did not include protocol, first check for local file
 		type = LoadTask::LocalFile;
-		fs = fopen(targetURL, "r");
+		fs = fopen(targetURL, "rb");
 
 		if (fs)
 		{

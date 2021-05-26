@@ -63,6 +63,8 @@ public:
 	HTMLParseSection::Type CurrentSection() { return sectionStack[sectionStackSize]; }
 
 private:
+	void ParseChar(char c);
+
 	//HTMLNode* CreateNode(HTMLNode::NodeType nodeType, HTMLNode* parentNode);
 	void AppendTextBuffer(char c);
 	void FlushTextBuffer();
@@ -83,4 +85,6 @@ private:
 
 	HTMLParseSection::Type sectionStack[MAX_PARSE_SECTION_STACK_SIZE];
 	unsigned int sectionStackSize;
+	bool parsingUnicode;
+	struct UnicodePage* unicodePage;
 };

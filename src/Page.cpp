@@ -283,6 +283,16 @@ void Page::AppendText(const char* text)
 		int addedWidth = 0;
 		int startIndex = 0;
 
+		if (needLeadingWhiteSpace)
+		{
+			needLeadingWhiteSpace = false;
+			if (current->width > 0 && textBufferSize < MAX_TEXT_BUFFER_SIZE)
+			{
+				textBuffer[textBufferSize++] = ' ';
+				current->width += Platform::video->GetGlyphWidth(' ', current->style.fontSize, current->style.fontStyle);
+			}
+		}
+
 		for (int index = 0; text[index] != '\0'; index++)
 		{
 			if (text[index] < 32 || text[index] > 128)

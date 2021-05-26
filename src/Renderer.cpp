@@ -76,6 +76,10 @@ void Renderer::InvertWidget(Widget* widget)
 			x += 2;
 			y += 2;
 			width = Platform::video->GetFont(1)->CalculateWidth(widget->textField->buffer);
+			if (width > widget->width - 4)
+			{
+				width = widget->width - 4;
+			}
 			height = Platform::video->GetFont(1)->glyphHeight;
 		}
 	}

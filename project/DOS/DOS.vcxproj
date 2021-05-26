@@ -127,6 +127,7 @@
     <ClInclude Include="..\..\src\Widget.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\src\Unicode.inc" />
     <None Include="Makefile" />
     <None Include="TCP.CFG" />
   </ItemGroup>

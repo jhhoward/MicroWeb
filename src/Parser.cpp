@@ -20,12 +20,15 @@
 #include "Tags.h"
 #include "Renderer.h"
 #include "Page.h"
+#include "Unicode.inc"
 
 HTMLParser::HTMLParser(Page& inPage)
 : page(inPage)
 , sectionStackSize(0)
 , parseState(ParseText)
 , textBufferSize(0)
+, parsingUnicode(false)
+, unicodePage(NULL)
 {
 	sectionStack[0] = HTMLParseSection::Document;
 }
@@ -35,6 +38,8 @@ void HTMLParser::Reset()
 	parseState = ParseText;
 	textBufferSize = 0;
 	sectionStackSize = 0;
+	parsingUnicode = false;
+	unicodePage = NULL;
 }
 
 void HTMLParser::PushSection(HTMLParseSection::Type section)
@@ -210,117 +215,152 @@ bool HTMLParser::IsWhiteSpace(char c)
 
 void HTMLParser::Parse(char* buffer, size_t count)
 {
-	while(count)
+	while (count)
 	{
 		char c = *buffer++;
-		
-		switch(parseState)
+		count--;
+
+		if ((unsigned char)c > 128)
 		{
-			case ParseText:
-			if(c == '<')
+			if (!parsingUnicode)
 			{
-				parseState = ParsePossibleTag;
-			}
-			else if(c == '&')
-			{
-				FlushTextBuffer();
-				parseState = ParseAmpersandEscape;
+				parsingUnicode = true;
+				if ((unsigned char)c == 0xc2)
+				{
+					unicodePage = &Latin1Supplement;
+				}
 			}
 			else
 			{
-				if(IsWhiteSpace(c))
+				if (unicodePage)
 				{
-					c = ' ';
-					if(textBufferSize == 0)
+					for (const char* s = unicodePage->replacement[(unsigned char)c - 127]; s && *s; s++)
 					{
-						page.FlagLeadingWhiteSpace();
-						break;
-					}
-					else
-					{
-						if(IsWhiteSpace(textBuffer[textBufferSize - 1]))
-						{
-							break;
-						}
+						ParseChar(*s);
 					}
 				}
+				else
+				{
+					ParseChar('?');
+				}
 
-				AppendTextBuffer(c);
+				parsingUnicode = false;
+				unicodePage = NULL;
 			}
-			break;
+			continue;
+		}
+		
+		ParseChar(c);
+	}
+}
+
+void HTMLParser::ParseChar(char c)
+{
+	switch(parseState)
+	{
+		case ParseText:
+		if(c == '<')
+		{
+			parseState = ParsePossibleTag;
+		}
+		else if(c == '&')
+		{
+			FlushTextBuffer();
+			parseState = ParseAmpersandEscape;
+		}
+		else
+		{
+			if(IsWhiteSpace(c))
+			{
+				c = ' ';
+				if(textBufferSize == 0)
+				{
+					page.FlagLeadingWhiteSpace();
+					break;
+				}
+				else
+				{
+					if(IsWhiteSpace(textBuffer[textBufferSize - 1]))
+					{
+						break;
+					}
+				}
+			}
+
+			AppendTextBuffer(c);
+		}
+		break;
 			
-			case ParsePossibleTag:
+		case ParsePossibleTag:
+		parseState = ParseText;
+		if(IsWhiteSpace(c))
+		{
+			AppendTextBuffer('<');
+			AppendTextBuffer(' ');
+		}
+		else
+		{
+			FlushTextBuffer();
+			parseState = ParseTag;
+			AppendTextBuffer(c);
+		}
+		break;
+			
+		case ParseTag:
+		if(c == '>')
+		{
+			FlushTextBuffer();
+			parseState = ParseText;
+		}
+		else
+		{
+			AppendTextBuffer(c);
+
+			if (textBufferSize == 3 && textBuffer[0] == '!' && textBuffer[1] == '-' && textBuffer[2] == '-')
+			{
+				parseState = ParseComment;
+				textBufferSize = 0;
+			}
+		}
+			
+		break;
+			
+		case ParseAmpersandEscape:
+		if(c == ';' || IsWhiteSpace(c))
+		{
+			FlushTextBuffer();
 			parseState = ParseText;
 			if(IsWhiteSpace(c))
 			{
-				AppendTextBuffer('<');
 				AppendTextBuffer(' ');
 			}
-			else
-			{
-				FlushTextBuffer();
-				parseState = ParseTag;
-				AppendTextBuffer(c);
-			}
-			break;
-			
-			case ParseTag:
-			if(c == '>')
-			{
-				FlushTextBuffer();
-				parseState = ParseText;
-			}
-			else
-			{
-				AppendTextBuffer(c);
-
-				if (textBufferSize == 3 && textBuffer[0] == '!' && textBuffer[1] == '-' && textBuffer[2] == '-')
-				{
-					parseState = ParseComment;
-					textBufferSize = 0;
-				}
-			}
-			
-			break;
-			
-			case ParseAmpersandEscape:
-			if(c == ';' || IsWhiteSpace(c))
-			{
-				FlushTextBuffer();
-				parseState = ParseText;
-				if(IsWhiteSpace(c))
-				{
-					AppendTextBuffer(' ');
-				}
-			}
-			else
-			{
-				AppendTextBuffer(c);
-			}
-			break;
-
-			case ParseComment:
-			if (c == '-')
-			{
-				if (textBufferSize < 2)
-				{
-					textBuffer[textBufferSize++] = c;
-				}
-			}
-			else if (c == '>' && textBufferSize == 2)
-			{
-				textBufferSize = 0;
-				parseState = ParseText;
-			}
-			else
-			{
-				textBufferSize = 0;
-			}
-			break;
 		}
-		
-		count--;
+		else
+		{
+			AppendTextBuffer(c);
+		}
+		break;
+
+		case ParseComment:
+		if (c == '-')
+		{
+			if (textBufferSize < 2)
+			{
+				textBuffer[textBufferSize++] = c;
+			}
+		}
+		else if (c == '>' && textBufferSize == 2)
+		{
+			textBufferSize = 0;
+			parseState = ParseText;
+		}
+		else
+		{
+			textBufferSize = 0;
+		}
+		break;
 	}
+	
 }
 
 bool AttributeParser::Parse()
