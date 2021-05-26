@@ -413,7 +413,7 @@ bool CGADriver::ApplyScissor(int& y, int& height)
 	}
 	if (y + height >= scissorY2)
 	{
-		height = scissorY2 - y - 1;
+		height = scissorY2 - y;
 	}
 	return true;
 }

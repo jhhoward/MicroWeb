@@ -34,6 +34,7 @@ public:
 
 	void UpdatePageScrollBar();
 	Widget* GetActiveWidget() { return activeWidget; }
+	int GetTextFieldCursorPosition() {	return textFieldCursorPosition;	}
 
 	Widget scrollBar;
 	Widget addressBar;
@@ -50,6 +51,9 @@ private:
 	void HandleRelease();
 	bool HandleActiveWidget(InputButtonCode keyPress);
 	void SubmitForm(WidgetFormData* form);
+	void CycleWidgets(int direction);
+	void InvertWidgetsWithLinkURL(const char* url);
+	void HandleButtonClicked(Widget* widget);
 
 	void ActivateWidget(Widget* widget);
 	void DeactivateWidget();
@@ -66,6 +70,7 @@ private:
 	int scrollBarRelativeClickPositionY;
 	int oldPageHeight;
 	int textFieldCursorPosition;
+	bool clickingButton;
 
 	ButtonWidgetData backButtonData;
 	ButtonWidgetData forwardButtonData;

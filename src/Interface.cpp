@@ -28,11 +28,20 @@ AppInterface::AppInterface(App& inApp) : app(inApp)
 	oldMouseY = -1;
 	oldButtons = 0;
 	textFieldCursorPosition = 0;
+	clickingButton = false;
 }
 
 void AppInterface::Reset()
 {
 	oldPageHeight = 0;
+	if (activeWidget && !activeWidget->isInterfaceWidget)
+	{
+		activeWidget = NULL;
+	}
+	if (hoverWidget && !hoverWidget->isInterfaceWidget)
+	{
+		hoverWidget = NULL;
+	}
 }
 
 void AppInterface::DrawInterfaceWidgets()
@@ -163,7 +172,7 @@ void AppInterface::Update()
 		case KEYCODE_BACKSPACE:
 			app.PreviousPage();
 			break;
-		case KEYCODE_CTRL_I:
+		case KEYCODE_F2:
 		{
 			Platform::input->HideMouse();
 			Platform::video->InvertScreen();
@@ -171,8 +180,17 @@ void AppInterface::Update()
 		}
 			break;
 		case KEYCODE_CTRL_L:
+		case KEYCODE_F6:
 			ActivateWidget(&addressBar);
 			break;
+
+		case KEYCODE_TAB:
+			CycleWidgets(1);
+			break;
+		case KEYCODE_SHIFT_TAB:
+			CycleWidgets(-1);
+			break;
+
 		default:
 //			printf("%x\n", keyPress);
 			break;
@@ -243,6 +261,19 @@ void AppInterface::DeactivateWidget()
 {
 	if (activeWidget)
 	{
+		if (activeWidget->type == Widget::Button)
+		{
+			if (clickingButton)
+			{
+				app.renderer.InvertWidget(activeWidget);
+			}
+			else
+			{
+				Widget* widget = activeWidget;
+				activeWidget = NULL;
+				app.renderer.RedrawWidget(widget);
+			}
+		}
 		if (activeWidget->type == Widget::TextField)
 		{
 			if (textFieldCursorPosition == -1)
@@ -253,6 +284,10 @@ void AppInterface::DeactivateWidget()
 			{
 				app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, true);
 			}
+		}
+		else if (activeWidget->GetLinkURL())
+		{
+			InvertWidgetsWithLinkURL(activeWidget->GetLinkURL());
 		}
 		activeWidget = NULL;
 	}
@@ -272,8 +307,14 @@ void AppInterface::ActivateWidget(Widget* widget)
 		switch (activeWidget->type)
 		{
 		case Widget::Button:
-			activeWidget = hoverWidget;
-			app.renderer.InvertWidget(activeWidget);
+			if (clickingButton)
+			{
+				app.renderer.InvertWidget(activeWidget);
+			}
+			else
+			{
+				app.renderer.RedrawWidget(activeWidget);
+			}
 			break;
 		case Widget::TextField:
 			if (activeWidget == &addressBar && strlen(activeWidget->textField->buffer) > 0)
@@ -287,9 +328,31 @@ void AppInterface::ActivateWidget(Widget* widget)
 				app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
 			}
 			break;
+		default:
+			if (widget->GetLinkURL())
+			{
+				InvertWidgetsWithLinkURL(widget->GetLinkURL());
+				app.renderer.SetStatus(URL::GenerateFromRelative(app.page.pageURL.url, widget->GetLinkURL()).url);
+			}
+			break;
 		}
 	}
+}
 
+void AppInterface::InvertWidgetsWithLinkURL(const char* url)
+{
+	for (int n = app.renderer.GetPageTopWidgetIndex(); n < app.page.numFinishedWidgets; n++)
+	{
+		Widget* pageWidget = &app.page.widgets[n];
+		if (pageWidget->y > app.renderer.GetScrollPosition() + Platform::video->windowHeight)
+		{
+			break;
+		}
+		if (pageWidget->GetLinkURL() == url)
+		{
+			app.renderer.InvertWidget(pageWidget);
+		}
+	}
 }
 
 void AppInterface::HandleClick(int mouseX, int mouseY)
@@ -339,6 +402,7 @@ void AppInterface::HandleClick(int mouseX, int mouseY)
 		}
 		else if (hoverWidget->type == Widget::Button)
 		{
+			clickingButton = true;
 			ActivateWidget(hoverWidget);
 		}
 		else if (hoverWidget->type == Widget::ScrollBar)
@@ -364,28 +428,40 @@ void AppInterface::HandleClick(int mouseX, int mouseY)
 	}
 }
 
+void AppInterface::HandleButtonClicked(Widget* widget)
+{
+	if(widget->type == Widget::Button)
+	{
+		if (widget->button->form)
+		{
+			SubmitForm(widget->button->form);
+		}
+		else if (widget == &backButton)
+		{
+			app.PreviousPage();
+		}
+		else if (widget == &forwardButton)
+		{
+			app.NextPage();
+		}
+	}
+}
+
 void AppInterface::HandleRelease()
 {
 	if (activeWidget && activeWidget->type == Widget::Button)
 	{
-		app.renderer.InvertWidget(activeWidget);
-
-		if (hoverWidget == activeWidget)
+		if (clickingButton)
 		{
-			if (activeWidget->button->form)
+			if (hoverWidget == activeWidget)
 			{
-				SubmitForm(activeWidget->button->form);
+				HandleButtonClicked(activeWidget);
 			}
-			else if (activeWidget == &backButton)
-			{
-				app.PreviousPage();
-			}
-			else if (activeWidget == &forwardButton)
-			{
-				app.NextPage();
-			}
+			DeactivateWidget();
+
+			activeWidget = NULL;
+			clickingButton = false;
 		}
-		activeWidget = NULL;
 	}
 	else if (activeWidget == &scrollBar)
 	{
@@ -553,7 +629,22 @@ bool AppInterface::HandleActiveWidget(InputButtonCode keyPress)
 		}
 		break;
 	case Widget::Button:
-		return true;
+		if (clickingButton)
+		{
+			return true;
+		}
+		if (keyPress == KEYCODE_ENTER)
+		{
+			HandleButtonClicked(activeWidget);
+		}
+		break;
+	default:
+		if (keyPress == KEYCODE_ENTER && activeWidget->GetLinkURL())
+		{
+			app.OpenURL(URL::GenerateFromRelative(app.page.pageURL.url, activeWidget->GetLinkURL()).url);
+			return true;
+		}
+		break;
 	}
 
 	return false;
@@ -632,4 +723,99 @@ void AppInterface::UpdatePageScrollBar()
 	}
 
 	app.renderer.RedrawScrollBar();
+}
+
+void AppInterface::CycleWidgets(int direction)
+{
+	if (app.page.numFinishedWidgets == 0)
+	{
+		return;
+	}
+
+	int pageScrollBottom = app.renderer.GetScrollPosition() + Platform::video->windowHeight;
+
+	// If there is an active widget, find index and check if it is on screen
+	int currentPos = -1;
+	if (activeWidget && !activeWidget->isInterfaceWidget)
+	{
+		for (int n = 0; n < app.page.numFinishedWidgets; n++)
+		{
+			Widget* widget = &app.page.widgets[n];
+			if (activeWidget == widget)
+			{
+				if (app.renderer.GetScrollPosition() < widget->y + widget->height && pageScrollBottom > widget->y)
+				{
+					currentPos = n;
+				}
+				break;
+			}
+		}
+	}
+
+	// If there is no active widget or not on screen, find the first widget on screen
+	if (currentPos == -1)
+	{
+		if (direction > 0)
+		{
+			for (currentPos = app.renderer.GetPageTopWidgetIndex(); currentPos < app.page.numFinishedWidgets; currentPos++)
+			{
+				Widget* widget = &app.page.widgets[currentPos];
+				if (widget->y >= app.renderer.GetScrollPosition())
+				{
+					break;
+				}
+			}
+
+			if (currentPos == app.page.numFinishedWidgets)
+			{
+				currentPos = 0;
+			}
+		}
+		else
+		{
+			for (currentPos = app.page.numFinishedWidgets - 1; currentPos >= 0; currentPos--)
+			{
+				Widget* widget = &app.page.widgets[currentPos];
+				if (widget->y + widget->height < pageScrollBottom)
+				{
+					break;
+				}
+			}
+
+			if (currentPos < 0)
+			{
+				currentPos = app.page.numFinishedWidgets - 1;
+			}
+		}
+	}
+
+	int startPos = currentPos;
+
+	while (1)
+	{
+		Widget* widget = &app.page.widgets[currentPos];
+		if (widget != activeWidget)
+		{
+			if ((widget->type == Widget::TextField) || (widget->type == Widget::Button) || (widget->GetLinkURL() && widget->GetLinkURL() != activeWidget->GetLinkURL()))
+			{
+				ActivateWidget(widget);
+				app.renderer.ScrollTo(widget);
+				return;
+			}
+		}
+
+		currentPos += direction;
+		if (currentPos >= app.page.numFinishedWidgets)
+		{
+			currentPos = 0;
+		}
+		if (currentPos < 0)
+		{
+			currentPos = app.page.numFinishedWidgets - 1;
+		}
+		if (currentPos == startPos)
+		{
+			break;
+		}
+	}
 }

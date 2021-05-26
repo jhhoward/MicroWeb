@@ -27,6 +27,7 @@ public:
 	void Update();
 	void Scroll(int delta);
 	void ScrollTo(int position);
+	void ScrollTo(Widget* widget);
 
 	void RedrawScrollBar();
 	int GetMaxScrollPosition();
@@ -44,9 +45,12 @@ public:
 
 	void RedrawModifiedTextField(Widget* widget, int position);
 	void DrawTextFieldCursor(Widget* widget, int position, bool clear = false);
+
+	int GetPageTopWidgetIndex() { return pageTopWidgetIndex; }
 private:
-	void DrawButtonRect(int x, int y, int width, int height);
+	void DrawButtonRect(int x, int y, int width, int height, bool isSelected = false);
 	void RenderWidgetInternal(Widget* widget, int baseY);
+	void DrawTextFieldCursorInternal(Widget* widget, int position, bool clear, int baseY);
 
 	void BeginWidgetDraw(Widget* widget, int& baseY);
 	void EndWidgetDraw();

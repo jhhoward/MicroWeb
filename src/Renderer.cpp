@@ -339,6 +339,10 @@ void Renderer::RenderWidgetInternal(Widget* widget, int baseY)
 		if (widget->text->text)
 		{
 			Platform::video->DrawString(widget->text->text, widget->x, widget->y + baseY, widget->style.fontSize, widget->style.fontStyle);
+			if (app.ui.GetActiveWidget() && app.ui.GetActiveWidget()->GetLinkURL() && app.ui.GetActiveWidget()->GetLinkURL() == widget->GetLinkURL())
+			{
+				Platform::video->InvertRect(widget->x, widget->y + baseY, widget->width, widget->height);
+			}
 		}
 		break;
 	case Widget::HorizontalRule:
@@ -347,7 +351,8 @@ void Renderer::RenderWidgetInternal(Widget* widget, int baseY)
 	case Widget::Button:
 		if (widget->button)
 		{
-			DrawButtonRect(widget->x, widget->y + baseY, widget->width, widget->height);
+			bool isSelected = app.ui.GetActiveWidget() == widget;
+			DrawButtonRect(widget->x, widget->y + baseY, widget->width, widget->height, isSelected);
 			Platform::video->DrawString(widget->button->text, widget->x + 8, widget->y + baseY + 2, widget->style.fontSize, widget->style.fontStyle);
 		}
 		break;
@@ -378,6 +383,11 @@ void Renderer::RenderWidgetInternal(Widget* widget, int baseY)
 				if (replaceChar)
 				{
 					*replaceChar = oldChar;
+				}
+
+				if (app.ui.GetActiveWidget() == widget)
+				{
+					DrawTextFieldCursorInternal(widget, app.ui.GetTextFieldCursorPosition(), false, baseY);
 				}
 			}
 		}
@@ -467,7 +477,7 @@ void Renderer::SetTitle(const char* title)
 
 void Renderer::SetStatus(const char* status)
 {
-	if (status != oldStatus)
+	//if (!oldStatus || !status || strcmp(status, oldStatus))
 	{
 		Platform::input->HideMouse();
 
@@ -482,12 +492,20 @@ void Renderer::SetStatus(const char* status)
 	}
 }
 
-void Renderer::DrawButtonRect(int x, int y, int width, int height)
+void Renderer::DrawButtonRect(int x, int y, int width, int height, bool isSelected)
 {
 	Platform::video->HLine(x + 1, y, width - 2);
 	Platform::video->HLine(x + 1, y + height - 1, width - 2);
 	Platform::video->VLine(x, y + 1, height - 2);
 	Platform::video->VLine(x + width - 1, y + 1, height - 2);
+
+	if (isSelected)
+	{
+		Platform::video->HLine(x + 1, y + 1, width - 2);
+		Platform::video->HLine(x + 1, y + height - 2, width - 2);
+		Platform::video->VLine(x + 1, y + 1, height - 2);
+		Platform::video->VLine(x + width - 2, y + 1, height - 2);
+	}
 }
 
 void Renderer::RenderWidget(Widget* widget)
@@ -509,12 +527,8 @@ void Renderer::RedrawWidget(Widget* widget)
 	EndWidgetDraw();
 }
 
-void Renderer::DrawTextFieldCursor(Widget* widget, int position, bool clear)
+void Renderer::DrawTextFieldCursorInternal(Widget* widget, int position, bool clear, int baseY)
 {
-	if (!widget || !widget->textField || !widget->textField->buffer)
-		return;
-
-
 	int x = widget->x + 2;
 	int height = Platform::video->GetFont(1)->glyphHeight;
 
@@ -530,8 +544,6 @@ void Renderer::DrawTextFieldCursor(Widget* widget, int position, bool clear)
 		return;
 	}
 
-	int baseY;
-	BeginWidgetDraw(widget, baseY);
 	int y = widget->y + 2 + baseY;
 
 	if (clear)
@@ -542,6 +554,17 @@ void Renderer::DrawTextFieldCursor(Widget* widget, int position, bool clear)
 	{
 		Platform::video->VLine(x, y, height);
 	}
+}
+
+void Renderer::DrawTextFieldCursor(Widget* widget, int position, bool clear)
+{
+	if (!widget || !widget->textField || !widget->textField->buffer)
+		return;
+
+	int baseY;
+	BeginWidgetDraw(widget, baseY);
+
+	DrawTextFieldCursorInternal(widget, position, clear, baseY);
 
 	EndWidgetDraw();
 }
@@ -553,6 +576,7 @@ void Renderer::BeginWidgetDraw(Widget* widget, int& baseY)
 	if (!widget->isInterfaceWidget)
 	{
 		baseY = Platform::video->windowY - scrollPosition;
+		Platform::video->SetScissorRegion(upperRenderLine, lowerRenderLine);
 	}
 	else baseY = 0;
 }
@@ -562,3 +586,12 @@ void Renderer::EndWidgetDraw()
 	Platform::video->ClearScissorRegion();
 	Platform::input->ShowMouse();
 }
+
+void Renderer::ScrollTo(Widget* widget)
+{
+	if (widget->y < app.renderer.GetScrollPosition() || widget->y + widget->height > app.renderer.GetScrollPosition() + Platform::video->windowHeight)
+	{
+		ScrollTo(widget->y - Platform::video->windowHeight / 2);
+	}
+}
+
