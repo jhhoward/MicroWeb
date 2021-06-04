@@ -70,22 +70,7 @@ const HTMLTagHandler* DetermineTag(const char* str)
 		{
 			break;
 		}
-		const char* strPtr = str;
-		const char* tagPtr = handler->name;
-		bool match = true;
-		
-		while(*strPtr && *tagPtr)
-		{
-			if(tolower(*strPtr) != *tagPtr)
-			{
-				match = false;
-				break;
-			}
-			strPtr++;
-			tagPtr++;
-		}
-		
-		if(match && *strPtr == '\0' && *tagPtr == '\0')
+		if (!stricmp(str, handler->name))
 		{
 			return handler;
 		}
@@ -149,7 +134,7 @@ void ATagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 	AttributeParser attributes(attributeStr);
 	while(attributes.Parse())
 	{
-		if (!strcmp(attributes.Key(), "href"))
+		if (!stricmp(attributes.Key(), "href"))
 		{
 			parser.page.SetWidgetURL(attributes.Value());
 		}
@@ -232,7 +217,7 @@ void FontTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 	AttributeParser attributes(attributeStr);
 	while (attributes.Parse())
 	{
-		if (!strcmp(attributes.Key(), "size"))
+		if (!stricmp(attributes.Key(), "size"))
 		{
 			int size = atoi(attributes.Value());
 			switch (size)
@@ -295,22 +280,22 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 	AttributeParser attributes(attributeStr);
 	while (attributes.Parse())
 	{
-		if (!strcmp(attributes.Key(), "type"))
+		if (!stricmp(attributes.Key(), "type"))
 		{
-			if (!strcmp(attributes.Value(), "submit"))
+			if (!stricmp(attributes.Value(), "submit"))
 			{
 				type = HTMLInputTag::Submit;
 			}
-			else if (!strcmp(attributes.Value(), "text"))
+			else if (!stricmp(attributes.Value(), "text"))
 			{
 				type = HTMLInputTag::Text;
 			}
 		}
-		if (!strcmp(attributes.Key(), "value"))
+		if (!stricmp(attributes.Key(), "value"))
 		{
 			value = parser.page.allocator.AllocString(attributes.Value());
 		}
-		if (!strcmp(attributes.Key(), "name"))
+		if (!stricmp(attributes.Key(), "name"))
 		{
 			name = parser.page.allocator.AllocString(attributes.Value());
 		}
@@ -341,13 +326,13 @@ void FormTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 		AttributeParser attributes(attributeStr);
 		while (attributes.Parse())
 		{
-			if (!strcmp(attributes.Key(), "action"))
+			if (!stricmp(attributes.Key(), "action"))
 			{
 				formData->action = parser.page.allocator.AllocString(attributes.Value());
 			}
-			if (!strcmp(attributes.Key(), "method"))
+			if (!stricmp(attributes.Key(), "method"))
 			{
-				if (!strcmp(attributes.Value(), "post"))
+				if (!stricmp(attributes.Value(), "post"))
 				{
 					formData->method = WidgetFormData::Post;
 				}
