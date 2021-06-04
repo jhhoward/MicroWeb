@@ -17,11 +17,11 @@ To run you will need:
 * Very long pages may be truncated if there is not enough RAM available
 
 ## Keyboard shortcuts
-Escape : Exit
-F2 : Invert screen (useful for LCD displays)
-F6 / Ctrl+L : Select address bar
-Tab / Shift+Tab : Cycle through selectable page elements
-Backspace : Back in history
+* Escape : Exit
+* F2 : Invert screen (useful for LCD displays)
+* F6 / Ctrl+L : Select address bar
+* Tab / Shift+Tab : Cycle through selectable page elements
+* Backspace : Back in history
 
 The page position can be scrolled with cursor keys, Page up, Page down, Home and End
 
