@@ -33,4 +33,5 @@ private:
 	MouseCursor::Type currentCursor;
 	int lastMouseButtons;
 	bool mouseVisible;
+	bool hasMouse;
 };

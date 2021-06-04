@@ -26,6 +26,7 @@ void DOSInputDriver::Init()
 	union REGS inreg, outreg;
 	inreg.x.ax = 0;
 	int86(0x33, &inreg, &outreg);
+	hasMouse = (outreg.x.ax == 0xffff);
 
 	currentCursor = MouseCursor::Hand;
 	SetMouseCursor(MouseCursor::Pointer);
@@ -42,6 +43,8 @@ void DOSInputDriver::Shutdown()
 
 void DOSInputDriver::ShowMouse()
 {
+	if (!hasMouse)
+		return;
 	if (mouseVisible)
 		return;
 	union REGS inreg, outreg;
@@ -52,6 +55,8 @@ void DOSInputDriver::ShowMouse()
 
 void DOSInputDriver::SetMousePosition(int x, int y)
 {
+	if (!hasMouse)
+		return;
 	union REGS inreg, outreg;
 	inreg.x.ax = 4;
 	inreg.x.cx = x;
@@ -61,6 +66,8 @@ void DOSInputDriver::SetMousePosition(int x, int y)
 
 void DOSInputDriver::HideMouse()
 {
+	if (!hasMouse)
+		return;
 	if (!mouseVisible)
 		return;
 	union REGS inreg, outreg;
@@ -79,6 +86,8 @@ static void SetMouseCursorASM(unsigned short far* data, uint16_t hotSpotX, uint1
 
 void DOSInputDriver::SetMouseCursor(MouseCursor::Type type)
 {
+	if (!hasMouse)
+		return;
 	if (type == currentCursor)
 	{
 		return;
@@ -90,6 +99,11 @@ void DOSInputDriver::SetMouseCursor(MouseCursor::Type type)
 
 void DOSInputDriver::GetMouseStatus(int& buttons, int& x, int& y)
 {
+	if (!hasMouse)
+	{
+		buttons = x = y = 0;
+		return;
+	}
 	union REGS inreg, outreg;
 	inreg.x.ax = 3;
 	int86(0x33, &inreg, &outreg);
