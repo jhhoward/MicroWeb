@@ -229,6 +229,10 @@ void HTMLParser::Parse(char* buffer, size_t count)
 				{
 					unicodePage = &Latin1Supplement;
 				}
+				else if ((unsigned char)c == 0xc5)
+				{
+					unicodePage = &LatinExtendedA;
+				}
 			}
 			else
 			{
