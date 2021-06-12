@@ -22,6 +22,12 @@
 #define MAX_CONCURRENT_HTTP_REQUESTS 3
 #define HOSTNAME_LEN        (80)
 #define PATH_LEN           (MAX_URL_LENGTH)
+#define LINE_BUFFER_SIZE 512
+
+#define RESPONSE_MOVED_PERMANENTLY 301
+#define RESPONSE_MOVED_TEMPORARILY 302
+#define RESPONSE_TEMPORARY_REDIRECTION 307
+#define RESPONSE_PERMANENT_REDIRECT 308
 
 typedef uint8_t  IpAddr_t[4];   // An IPv4 address is 4 bytes
 struct TcpSocket;
@@ -38,6 +44,7 @@ public:
 	virtual void Stop();
 	void Update();
 	virtual const char* GetStatusString();
+	virtual const char* GetURL() { return url.url; }
 
 private:
 	enum InternalStatus
@@ -49,6 +56,9 @@ private:
 		SocketConnectionError,
 		HeaderSendError,
 		ContentReceiveError,
+		UnsupportedHTTPError,
+		MalformedHTTPVersionLineError,
+		WriteLineError,
 
 		// Connection states
 		QueuedDNSRequest,
@@ -56,21 +66,33 @@ private:
 		OpeningSocket,
 		ConnectingSocket,
 		SendHeaders,
-		ReceiveHeaders,
+		ReceiveHeaderResponse,
+		ReceiveHeaderContent,
+		ReceiveContent
 	};
 
 	void Error(InternalStatus statusError);
+	bool ReadLine();
+	void WriteLine(char* fmt = "", ...);
+	bool SendPendingWrites();
+
+	void Reset();
 
 	HTTPRequest::Status status;
 	InternalStatus internalStatus;
 
+	URL url;
 	char hostname[HOSTNAME_LEN];
 	char path[PATH_LEN];
 	IpAddr_t hostAddr;
 	uint16_t serverPort;
 	TcpSocket* sock;
+	uint16_t responseCode;
 
 	uint8_t recvBuffer[TCP_RECV_BUFFER_SIZE];
+	char lineBuffer[LINE_BUFFER_SIZE];
+	int lineBufferSize;
+	int lineBufferSendPos;
 };
 
 class DOSNetworkDriver : public NetworkDriver

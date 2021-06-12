@@ -67,13 +67,15 @@ public:
 		Connecting,
 		Downloading,
 		Finished,
-		Error
+		Error,
+		UnsupportedHTTPS
 	};
 
 	virtual Status GetStatus() = 0;
 	virtual size_t ReadData(char* buffer, size_t count) = 0;
 	virtual void Stop() = 0;
 	virtual const char* GetStatusString() { return ""; }
+	virtual const char* GetURL() { return ""; }
 };
 
 class NetworkDriver

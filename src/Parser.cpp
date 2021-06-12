@@ -114,7 +114,7 @@ void HTMLParser::FlushTextBuffer()
 	{
 		case ParseText:
 		{
-			if(CurrentSection() == HTMLParseSection::Body  && textBufferSize > 0)
+			if(CurrentSection() == HTMLParseSection::Body && textBufferSize > 0)
 			{
 				page.AppendText(textBuffer);
 			}

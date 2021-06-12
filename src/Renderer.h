@@ -17,6 +17,8 @@
 class App;
 struct Widget;
 
+#define MAX_STATUS_LENGTH 80
+
 class Renderer
 {
 public:
@@ -58,7 +60,7 @@ private:
 	App& app;
 	int scrollPosition;
 	int pageTopWidgetIndex;
-	const char* oldStatus;
+	char statusMessage[MAX_STATUS_LENGTH];
 	int upperRenderLine, lowerRenderLine;
 };
 

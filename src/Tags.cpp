@@ -274,7 +274,7 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
 	char* value = NULL;
 	char* name = NULL;
-	HTMLInputTag::Type type = HTMLInputTag::Unknown;
+	HTMLInputTag::Type type = HTMLInputTag::Text;
 	int bufferLength = 80;
 
 	AttributeParser attributes(attributeStr);
@@ -289,6 +289,10 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 			else if (!stricmp(attributes.Value(), "text"))
 			{
 				type = HTMLInputTag::Text;
+			}
+			else
+			{
+				type = HTMLInputTag::Unknown;
 			}
 		}
 		if (!stricmp(attributes.Key(), "value"))

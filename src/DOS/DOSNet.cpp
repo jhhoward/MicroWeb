@@ -117,67 +117,78 @@ void DOSNetworkDriver::DestroyRequest(HTTPRequest* request)
 	}
 }
 
-// sock_printf
-//
-// This will loop until it can push all of the data out.
-// Does not check the incoming data length, so don't flood it.
-// (The extra data will be ignored/truncated ...)
-//
-// Returns 0 on success, -1 on error
-
-#define SOCK_PRINTF_SIZE  (1024)
-static char spb[SOCK_PRINTF_SIZE];
-
-static int sock_printf(TcpSocket* sock, char* fmt, ...) {
-
-	va_list ap;
-	va_start(ap, fmt);
-	int vsrc = vsnprintf(spb, SOCK_PRINTF_SIZE, fmt, ap);
-	va_end(ap);
-
-	if ((vsrc < 0) || (vsrc >= SOCK_PRINTF_SIZE)) {
-		//errorMessage("Formatting error in sock_printf\n");
-		return -1;
-	}
-
-	uint16_t bytesToSend = vsrc;
-	uint16_t bytesSent = 0;
-
-	while (bytesSent < bytesToSend) {
-
-		// Process packets here in case we have tied up the outgoing buffers.
-		// This will give us a chance to push them out and free them up.
-
-		PACKET_PROCESS_MULT(5);
-		Arp::driveArp();
-		Tcp::drivePackets();
-
-		int rc = sock->send((uint8_t*)(spb + bytesSent), bytesToSend - bytesSent);
-		if (rc > 0) {
-			bytesSent += rc;
-		}
-		else if (rc == 0) {
-			// Out of send buffers maybe?  Loop around to process packets
-		}
-		else {
-			return -1;
-		}
-
-	}
-
-	return 0;
-}
-
-
 DOSHTTPRequest::DOSHTTPRequest() : status(HTTPRequest::Stopped), sock(NULL)
 {
 }
 
-void DOSHTTPRequest::Open(char* url)
+void DOSHTTPRequest::Reset()
 {
-	if (strnicmp(url, "http://", 7) == 0) {
+	lineBufferSize = 0;
+	lineBufferSendPos = -1;
+}
 
-		char* hostnameStart = url + 7;
+void DOSHTTPRequest::WriteLine(char* fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	int maxWriteSize = LINE_BUFFER_SIZE - lineBufferSize - 2;
+	int vsrc = vsnprintf(lineBuffer + lineBufferSize, maxWriteSize, fmt, ap);
+	va_end(ap);
+
+	if ((vsrc < 0) || (vsrc >= maxWriteSize)) 
+	{
+		Error(WriteLineError);
+		lineBufferSendPos = -1;
+	}
+	else
+	{
+		if (lineBufferSendPos == -1)
+		{
+			lineBufferSendPos = 0;
+		}
+		lineBufferSize += vsrc;
+		lineBuffer[lineBufferSize++] = '\r';
+		lineBuffer[lineBufferSize++] = '\n';
+	}
+}
+
+bool DOSHTTPRequest::SendPendingWrites()
+{
+	if (sock)
+	{
+		if (lineBufferSendPos < 0)
+		{
+			return false;
+		}
+
+		int rc = sock->send((uint8_t*)(lineBuffer + lineBufferSendPos), lineBufferSize - lineBufferSendPos);
+		if (rc > 0) 
+		{
+			lineBufferSendPos += rc;
+			if (lineBufferSendPos >= lineBufferSize)
+			{
+				lineBufferSendPos = -1;
+				lineBufferSize = 0;
+			}
+		}
+		else if (rc < 0) 
+		{
+			Error(WriteLineError);
+			lineBufferSendPos = -1;
+		}
+		return lineBufferSendPos >= 0;
+	}
+	return false;
+}
+
+void DOSHTTPRequest::Open(char* inURL)
+{
+	url = inURL;
+	Reset();
+
+	if (strnicmp(url.url, "http://", 7) == 0) {
+
+		char* hostnameStart = url.url + 7;
 
 		// Scan ahead for another slash; if there is none then we
 		// only have a server name and we should fetch the top
@@ -199,6 +210,7 @@ void DOSHTTPRequest::Open(char* url)
 			else {
 
 				strncpy(hostname, hostnameStart, pathStart - hostnameStart);
+				hostname[pathStart - hostnameStart] = '\0';
 				hostname[HOSTNAME_LEN - 1] = 0;
 
 				strncpy(path, pathStart, PATH_LEN);
@@ -212,7 +224,7 @@ void DOSHTTPRequest::Open(char* url)
 			strncpy(hostname, proxy, HOSTNAME_LEN);
 			hostname[HOSTNAME_LEN - 1] = 0;
 
-			strncpy(path, url, PATH_LEN);
+			strncpy(path, url.url, PATH_LEN);
 			path[PATH_LEN - 1] = 0;
 
 		}
@@ -233,6 +245,9 @@ void DOSHTTPRequest::Open(char* url)
 
 		status = HTTPRequest::Connecting;
 		internalStatus = QueuedDNSRequest;
+	}
+	else if (strnicmp(url.url, "https://", 8) == 0) {
+		status = HTTPRequest::UnsupportedHTTPS;
 	}
 	else {
 		// Need to specify a URL starting with http://
@@ -276,6 +291,11 @@ void DOSHTTPRequest::Error(InternalStatus statusError)
 
 void DOSHTTPRequest::Update()
 {
+	if (SendPendingWrites())
+	{
+		return;
+	}
+
 	switch (status)
 	{
 		case HTTPRequest::Connecting:
@@ -306,6 +326,11 @@ void DOSHTTPRequest::Update()
 						internalStatus = OpeningSocket;
 						//printf("Host %s resolved to %d.%d.%d.%d\n", hostname, hostAddr[0], hostAddr[1], hostAddr[2], hostAddr[3]);
 						//status = HTTPRequest::Stopped;
+					}
+					else
+					{
+						//printf("Resolve host \"%s\"", hostname);
+						//getchar();
 					}
 				}
 				break;
@@ -345,13 +370,70 @@ void DOSHTTPRequest::Update()
 				break;
 			case SendHeaders:
 				{
-					if(sock_printf(sock, "GET %s\r\n", path))
+					WriteLine("GET %s HTTP/1.1", path);
+					WriteLine("User-Agent: MicroWeb " __DATE__);
+					WriteLine("Host: %s", hostname);
+					WriteLine("Connection: close");
+					WriteLine();
+					internalStatus = ReceiveHeaderResponse;
+				}
+				break;
+			case ReceiveHeaderResponse:
+				{
+					if (ReadLine())
 					{
-						Error(HeaderSendError);
+						if ((strncmp(lineBuffer, "HTTP/1.0", 8) != 0) && (strncmp(lineBuffer, "HTTP/1.1", 8) != 0)) {
+							Error(UnsupportedHTTPError);
+							return;
+						}
+
+						// Skip past HTTP version number
+						char* s = lineBuffer + 8;
+						char* s2 = s;
+
+						// Skip past whitespace
+						while (*s) {
+							if (*s != ' ' && *s != '\t') break;
+							s++;
+						}
+
+						if ((s == s2) || (*s == 0) || (sscanf(s, "%3d", &responseCode) != 1)) {
+							Error(MalformedHTTPVersionLineError);
+							return;
+						}
+
+						//printf("Response code: %d", responseCode);
+						//getchar();
+						internalStatus = ReceiveHeaderContent;
 					}
-					else
+				}
+				break;
+			case ReceiveHeaderContent:
+				{
+					if (ReadLine())
 					{
-						status = HTTPRequest::Downloading;
+						if (lineBuffer[0] == '\0')
+						{
+							// Header has finished
+							status = Downloading;
+							internalStatus = ReceiveContent;
+							break;
+						}
+
+						if (!strncmp(lineBuffer, "Location: ", 10))
+						{
+							if (responseCode == RESPONSE_MOVED_PERMANENTLY || responseCode == RESPONSE_MOVED_TEMPORARILY || responseCode == RESPONSE_TEMPORARY_REDIRECTION || responseCode == RESPONSE_PERMANENT_REDIRECT)
+							{
+								//printf("Redirecting to %s", lineBuffer + 10);
+								//getchar();
+								Stop();
+								Open(lineBuffer + 10);
+								break;
+							}
+						}
+
+						//printf("Header: %s  -- ", lineBuffer);
+						//getchar();
 					}
 				}
 				break;
@@ -367,6 +449,58 @@ void DOSHTTPRequest::Update()
 			}
 		}
 		break;
+	}
+}
+
+bool DOSHTTPRequest::ReadLine()
+{
+	while (1)
+	{
+		int rc = sock->recv((unsigned char*) lineBuffer + lineBufferSize, 1);
+		if (rc == 0)
+		{
+			// Need to wait for new packets to be received, defer
+			return false;
+		}
+		else if (rc < 0)
+		{
+			printf("Receive error\n");
+			getchar();
+			Error(ContentReceiveError);
+			return false;
+		}
+
+		if (lineBufferSize >= LINE_BUFFER_SIZE)
+		{
+			// Line was too long
+			lineBuffer[LINE_BUFFER_SIZE - 1] = '\0';
+			Error(ContentReceiveError);
+			return false;
+		}
+
+		if (lineBuffer[lineBufferSize] == '\n')
+		{
+			lineBuffer[lineBufferSize] = '\0';
+			if (lineBufferSize >= 1)
+			{
+				if (lineBuffer[lineBufferSize - 1] == '\r')
+				{
+					lineBuffer[lineBufferSize - 1] = '\0';
+				}
+			}
+
+			lineBufferSize = 0;
+			return true;
+		}
+
+		if (lineBuffer[lineBufferSize] == '\0')
+		{
+			// Found terminated string
+			lineBufferSize = 0;
+			return true;
+		}
+
+		lineBufferSize++;
 	}
 }
 
@@ -389,6 +523,12 @@ const char* DOSHTTPRequest::GetStatusString()
 			return "Error sending HTTP header";
 		case ContentReceiveError:
 			return "Error receiving HTTP content";
+		case UnsupportedHTTPError:
+			return "Unsupported HTTP version";
+		case MalformedHTTPVersionLineError:
+			return "Malformed HTTP version line";
+		case WriteLineError:
+			return "Error writing headers";
 		}
 		break;
 
@@ -403,8 +543,11 @@ const char* DOSHTTPRequest::GetStatusString()
 		case ConnectingSocket:
 		case SendHeaders:
 			return "Sending headers";
-		case ReceiveHeaders:
+		case ReceiveHeaderResponse:
+		case ReceiveHeaderContent:
 			return "Receiving headers";
+		case ReceiveContent:
+			return "Receiving content";
 		}
 		break;
 	default:

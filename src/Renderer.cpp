@@ -24,7 +24,7 @@ Renderer::Renderer(App& inApp)
 	: app(inApp)
 {
 	pageTopWidgetIndex = 0;
-	oldStatus = NULL;
+	statusMessage[0] = '\0';
 	scrollPosition = 0;
 }
 
@@ -42,7 +42,7 @@ void Renderer::Init()
 void Renderer::Reset()
 {
 	pageTopWidgetIndex = 0;
-	oldStatus = NULL;
+	statusMessage[0] = '\0';
 	scrollPosition = 0;
 	upperRenderLine = Platform::video->windowY;
 	lowerRenderLine = Platform::video->windowY;
@@ -477,18 +477,24 @@ void Renderer::SetTitle(const char* title)
 
 void Renderer::SetStatus(const char* status)
 {
-	//if (!oldStatus || !status || strcmp(status, oldStatus))
+	if(!status && statusMessage[0] != '\0' || strncmp(status, statusMessage, MAX_STATUS_LENGTH))
 	{
 		Platform::input->HideMouse();
 
 		Platform::video->FillRect(app.ui.statusBar.x, app.ui.statusBar.y, app.ui.statusBar.width, app.ui.statusBar.height);
+
 		if (status)
 		{
-			Platform::video->DrawString(status, app.ui.statusBar.x, app.ui.statusBar.y, 1);
+			strncpy(statusMessage, status, MAX_STATUS_LENGTH);
+		}
+		else
+		{
+			statusMessage[0] = '\0';
 		}
 
+		Platform::video->DrawString(statusMessage, app.ui.statusBar.x, app.ui.statusBar.y, 1);
+
 		Platform::input->ShowMouse();
-		oldStatus = status;
 	}
 }
 

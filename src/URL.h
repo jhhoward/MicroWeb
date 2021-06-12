@@ -44,6 +44,21 @@ struct URL
 		return *this;
 	}
 
+	static void ProcessEscapeCodes(URL& url)
+	{
+		char* match;
+
+		while (match = strstr(url.url, "/./"))
+		{
+			memmove(match, match + 2, strlen(match) - 1);
+		}
+
+		while (match = strstr(url.url, "&amp;"))
+		{
+			memmove(match + 1, match + 5, strlen(match + 1) - 3);
+		}
+	}
+
 	static const URL& GenerateFromRelative(const char* baseURL, const char* relativeURL)
 	{
 		static URL result;
@@ -59,6 +74,22 @@ struct URL
 				result = relativeURL;
 				return result;
 			}
+		}
+
+		// Check if this is a hash link
+		if (relativeURL[0] == '#')
+		{
+			strcpy(result.url, baseURL);
+
+			// Strip any existing hash link
+			char* existing = strchr(result.url, '#');
+			if (existing)
+			{
+				*existing = '\0';
+			}
+
+			strcpy(result.url + strlen(result.url), relativeURL);
+			return result;
 		}
 
 		// find last '/' in base
@@ -127,7 +158,8 @@ struct URL
 			strcpy(result.url, "http://");
 			strcpy(result.url + 7, relativeURL);
 		}
-	
+
+		ProcessEscapeCodes(result);
 
 		return result;
 	}

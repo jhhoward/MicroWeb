@@ -33,6 +33,7 @@ struct LoadTask
 	void Stop();
 	bool HasContent();
 	size_t GetContent(char* buffer, size_t count);
+	const char* GetURL();
 
 	enum Type
 	{
@@ -77,6 +78,8 @@ public:
 private:
 	void ResetPage();
 	void RequestNewPage(const char* url);
+
+	void ShowNoHTTPSPage();
 
 	bool requestedNewPage;
 	LoadTask loadTask;
