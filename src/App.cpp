@@ -262,7 +262,7 @@ void App::ShowErrorPage(const char* message)
 	//renderer.DrawAddress(page.pageURL.url);
 }
 
-static const char* frogFindURL = "http://frogfind.com/read.php?a=";
+static const char* frogFindURL = "http://frogfind.com/?q=";
 #define FROG_FIND_URL_LENGTH 31
 
 void App::ShowNoHTTPSPage()
