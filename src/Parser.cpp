@@ -155,6 +155,15 @@ void HTMLParser::FlushTextBuffer()
 
 				const HTMLTagHandler* tagHandler = DetermineTag(tagStr);
 
+				// Special case when parsing <script> tag : just ignore all other tags until we have a closing </script>
+				if (CurrentSection() == HTMLParseSection::Script)
+				{
+					if (!isCloseTag || stricmp(tagHandler->name, "script"))
+					{
+						break;
+					}
+				}
+
 				if (isCloseTag)
 				{
 					tagHandler->Close(*this);
@@ -324,6 +333,14 @@ void HTMLParser::ParseChar(char c)
 			{
 				parseState = ParseComment;
 				textBufferSize = 0;
+			}
+
+			// Special case when parsing script tags : we just want to look for a script closing tag
+			if (CurrentSection() == HTMLParseSection::Script && textBufferSize >= 7 && strnicmp(textBuffer, "/script", 7))
+			{
+				textBufferSize = 0;
+				textBuffer[0] = '\0';
+				parseState = ParseText;
 			}
 		}
 			
