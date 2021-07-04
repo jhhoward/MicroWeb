@@ -356,6 +356,16 @@ void Renderer::RenderWidgetInternal(Widget* widget, int baseY)
 			Platform::video->DrawString(widget->button->text, widget->x + 8, widget->y + baseY + 2, widget->style.fontSize, widget->style.fontStyle);
 		}
 		break;
+	case Widget::Image:
+		if (widget->image && widget->width > 0)
+		{
+			DrawRect(widget->x, widget->y + baseY, widget->width, widget->height);
+			if (widget->image->altText)
+			{
+				Platform::video->DrawString(widget->image->altText, widget->x + 2, widget->y + baseY + 2, widget->style.fontSize, widget->style.fontStyle);
+			}
+		}
+		break;
 	case Widget::TextField:
 		if (widget->textField)
 		{
@@ -512,6 +522,14 @@ void Renderer::DrawButtonRect(int x, int y, int width, int height, bool isSelect
 		Platform::video->VLine(x + 1, y + 1, height - 2);
 		Platform::video->VLine(x + width - 2, y + 1, height - 2);
 	}
+}
+
+void Renderer::DrawRect(int x, int y, int width, int height)
+{
+	Platform::video->HLine(x, y, width);
+	Platform::video->HLine(x, y + height - 1, width);
+	Platform::video->VLine(x, y + 1, height - 2);
+	Platform::video->VLine(x + width - 1, y + 1, height - 2);
 }
 
 void Renderer::RenderWidget(Widget* widget)

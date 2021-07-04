@@ -28,7 +28,6 @@ HTMLParser::HTMLParser(Page& inPage)
 , parseState(ParseText)
 , textBufferSize(0)
 , parsingUnicode(false)
-, unicodePage(NULL)
 {
 	sectionStack[0] = HTMLParseSection::Document;
 }
@@ -38,8 +37,7 @@ void HTMLParser::Reset()
 	parseState = ParseText;
 	textBufferSize = 0;
 	sectionStackSize = 0;
-	parsingUnicode = false;
-	unicodePage = NULL;
+	SetTextEncoding(TextEncoding::UTF8);
 }
 
 void HTMLParser::PushSection(HTMLParseSection::Type section)
@@ -231,40 +229,111 @@ void HTMLParser::Parse(char* buffer, size_t count)
 
 		if ((unsigned char)c > 128)
 		{
-			if (!parsingUnicode)
+			switch (textEncoding)
 			{
-				parsingUnicode = true;
-				if ((unsigned char)c == 0xc2)
+			case TextEncoding::UTF8:
+				if (!parsingUnicode)
 				{
-					unicodePage = &Latin1Supplement;
-				}
-				else if ((unsigned char)c == 0xc5)
-				{
-					unicodePage = &LatinExtendedA;
-				}
-			}
-			else
-			{
-				if (unicodePage)
-				{
-					for (const char* s = unicodePage->replacement[(unsigned char)c - 127]; s && *s; s++)
+					parsingUnicode = true;
+					unicodePoint = 0;
+
+					unsigned char code = (unsigned char)(c);
+					if ((code & 0xe0) == 0xc0)		// Starts with 110
 					{
-						ParseChar(*s);
+						unicodeByteCount = 2;
+						unicodePoint = (code & 0x1f);
+					}
+					else if ((code & 0xf0) == 0xe0)		// Starts with 1110
+					{
+						unicodeByteCount = 3;
+						unicodePoint = (code & 0xf);
+					}
+					else if ((code & 0xf8) == 0xf0)		// Starts with 11110
+					{
+						unicodeByteCount = 4;
+						unicodePoint = (code & 0x7);
+					}
+					else
+					{
+						// Invalid
+						parsingUnicode = false;
+					}
+
+					if (parsingUnicode)
+					{
+						unicodeByteCount--;
+						unicodePoint <<= 6;
 					}
 				}
 				else
 				{
-					ParseChar('?');
-				}
+					unsigned char code = (unsigned char)(c);
 
-				parsingUnicode = false;
-				unicodePage = NULL;
+					unicodePoint |= (code & 0x3f);
+					unicodeByteCount--;
+
+					if (unicodeByteCount)
+					{
+						unicodePoint <<= 6;
+					}
+					else
+					{
+						// Unicode point is complete
+						parsingUnicode = false;
+						TextEncodingPage* encodingPage = NULL;
+
+						if (unicodePoint >= 0x80 && unicodePoint <= 0xff)
+						{
+							encodingPage = &UTF8_Latin1Supplement;
+							unicodePoint -= 0x80;
+						}
+						else if (unicodePoint >= 0x100 && unicodePoint <= 0x17f)
+						{
+							encodingPage = &UTF8_LatinExtendedA;
+							unicodePoint -= 0x100;
+						}
+						if (encodingPage)
+						{
+							for (const char* s = encodingPage->replacement[unicodePoint]; s && *s; s++)
+							{
+								ParseChar(*s);
+							}
+						}
+						else
+						{
+							ParseChar('?');
+						}
+					}
+				}
+				break;
+
+			case TextEncoding::ISO_8859_1:
+				for (const char* s = ISO_8859_1_Encoding.replacement[(unsigned char)c - 128]; s && *s; s++)
+				{
+					ParseChar(*s);
+				}
+				break;
+
+			case TextEncoding::ISO_8859_2:
+				for (const char* s = ISO_8859_2_Encoding.replacement[(unsigned char)c - 128]; s && *s; s++)
+				{
+					ParseChar(*s);
+				}
+				break;
 			}
-			continue;
 		}
-		
-		ParseChar(c);
+		else
+		{
+			parsingUnicode = false;
+			ParseChar(c);
+		}
 	}
+}
+
+void HTMLParser::SetTextEncoding(TextEncoding::Type newType)
+{
+	textEncoding = newType;
+	parsingUnicode = false;
 }
 
 void HTMLParser::ParseChar(char c)

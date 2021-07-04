@@ -150,5 +150,18 @@ public:
 	virtual void Close(class HTMLParser& parser) const;
 };
 
+class ImgTagHandler : public HTMLTagHandler
+{
+public:
+	ImgTagHandler() : HTMLTagHandler("img") {}
+	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
+};
+
+class MetaTagHandler : public HTMLTagHandler
+{
+public:
+	MetaTagHandler() : HTMLTagHandler("meta") {}
+	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
+};
 
 const HTMLTagHandler* DetermineTag(const char* str);

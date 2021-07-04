@@ -1,9 +1,9 @@
-struct UnicodePage
+struct TextEncodingPage
 {
 	const char* replacement[128];
 };
 
-UnicodePage Latin1Supplement = 
+TextEncodingPage UTF8_Latin1Supplement = 
 {
 	{
 		"",		// U+0080		Padding Character	PAD
@@ -38,11 +38,11 @@ UnicodePage Latin1Supplement =
 		"",		// U+009D		Operating System Command	OSC
 		"",		// U+009E		Private Message	PM
 		"",		// U+009F		Application Program Command	APC
-		"",		// Latin-1 Punctuation and Symbols
+		// Latin-1 Punctuation and Symbols
 		" ",	// U+00A0	 	Non-breaking space	NBSP
 		"",		// U+00A1	¡	Inverted exclamation mark	
 		"c",	// U+00A2	¢	Cent sign	
-		"£",	// U+00A3	£	Pound sign	
+		"$",	// U+00A3	£	Pound sign	
 		"",		// U+00A4	¤	Currency sign	
 		"Y",	// U+00A5	¥	Yen sign	
 		"|",	// U+00A6	¦	Broken bar	
@@ -63,7 +63,7 @@ UnicodePage Latin1Supplement =
 		"",		// U+00B5	µ	Micro sign	
 		"",		// U+00B6	¶	Pilcrow sign	
 		"",		// U+00B7	·	Middle dot	
-		"."		// U+00B8	¸	Cedilla	
+		".",		// U+00B8	¸	Cedilla	
 		"",		// U+00B9	¹	Superscript one	
 		"",		// U+00BA	º	Masculine ordinal indicator	
 		">>",	// U+00BB	»	Right-pointing double-angle quotation mark	
@@ -143,7 +143,7 @@ UnicodePage Latin1Supplement =
 	}
 };
 
-UnicodePage LatinExtendedA =
+TextEncodingPage UTF8_LatinExtendedA =
 {
 	{
 		// European Latin
@@ -276,5 +276,275 @@ UnicodePage LatinExtendedA =
 		"Z",				// U+017D	Ž	Latin Capital letter Z with caron
 		"z",				// U+017E	ž	Latin Small letter Z with caron
 		"s",				// U+017F	ſ	Latin Small letter long S
+	}
+};
+
+// Windows-1250 / ISO-8869-2
+TextEncodingPage ISO_8859_2_Encoding = 
+{
+	{
+		"E",						//	€	EURO SIGN (U+20AC)
+		"",							//		UNUSED
+		",",						//	‚	SINGLE LOW-9 QUOTATION MARK (U+201A)
+		"",							//		UNUSED
+		",,",						//	„	DOUBLE LOW-9 QUOTATION MARK (U+201E)
+		"...",						//	…	HORIZONTAL ELLIPSIS (U+2026)
+		"+",						//	†	DAGGER (U+2020)
+		"+",						//	‡	DOUBLE DAGGER (U+2021)
+		"",							//		UNUSED
+		"%",						//	‰	PER MILLE SIGN (U+2030)
+		"S",						//	Š	LATIN CAPITAL LETTER S WITH CARON (U+0160)
+		"<",						//	‹	SINGLE LEFT-POINTING ANGLE QUOTATION MARK (U+2039)
+		"S",						//	Ś	LATIN CAPITAL LETTER S WITH ACUTE (U+015A)
+		"T",						//	Ť	LATIN CAPITAL LETTER T WITH CARON (U+0164)
+		"Z",						//	Ž	LATIN CAPITAL LETTER Z WITH CARON (U+017D)
+		"Z",						//	Ź	LATIN CAPITAL LETTER Z WITH ACUTE (U+0179)
+		"",							//		UNUSED
+		"'",						//	‘	LEFT SINGLE QUOTATION MARK (U+2018)
+		"'",						//	’	RIGHT SINGLE QUOTATION MARK (U+2019)
+		"\"",						//	“	LEFT DOUBLE QUOTATION MARK (U+201C)
+		"\"",						//	”	RIGHT DOUBLE QUOTATION MARK (U+201D)
+		"*",						//	•	BULLET (U+2022)
+		"-",						//	–	EN DASH (U+2013)
+		"-",						//	—	EM DASH (U+2014)
+		"",							//		UNUSED
+		"TM",						//	™	TRADE MARK SIGN (U+2122)
+		"s",						//	š	LATIN SMALL LETTER S WITH CARON (U+0161)
+		">",						//	›	SINGLE RIGHT-POINTING ANGLE QUOTATION MARK (U+203A)
+		"s",						//	ś	LATIN SMALL LETTER S WITH ACUTE (U+015B)
+		"t",						//	ť	LATIN SMALL LETTER T WITH CARON (U+0165)
+		"z",						//	ž	LATIN SMALL LETTER Z WITH CARON (U+017E)
+		"z",						//	ź	LATIN SMALL LETTER Z WITH ACUTE (U+017A)
+		" ",						//	 	NO-BREAK SPACE (U+00A0)
+		"^",						//	ˇ	CARON (U+02C7)
+		"^",						//	˘	BREVE (U+02D8)
+		"L",						//	Ł	LATIN CAPITAL LETTER L WITH STROKE (U+0141)
+		"$",						//	¤	CURRENCY SIGN (U+00A4)
+		"A",						//	Ą	LATIN CAPITAL LETTER A WITH OGONEK (U+0104)
+		"|",						//	¦	BROKEN BAR (U+00A6)
+		"S",						//	§	SECTION SIGN (U+00A7)
+		"\"",						//	¨	DIAERESIS (U+00A8)
+		"(C)",						//	©	COPYRIGHT SIGN (U+00A9)
+		"S",						//	Ş	LATIN CAPITAL LETTER S WITH CEDILLA (U+015E)
+		"<<",						//	«	LEFT-POINTING DOUBLE ANGLE QUOTATION MARK (U+00AB)
+		"¬",						//	¬	NOT SIGN (U+00AC)
+		"",							//		SOFT HYPHEN (U+00AD)
+		"(R)",						//	®	REGISTERED SIGN (U+00AE)
+		"Z",						//	Ż	LATIN CAPITAL LETTER Z WITH DOT ABOVE (U+017B)
+		"",							//	°	DEGREE SIGN (U+00B0)
+		"+-",						//	±	PLUS-MINUS SIGN (U+00B1)
+		",",						//	˛	OGONEK (U+02DB)
+		"L",						//	ł	LATIN SMALL LETTER L WITH STROKE (U+0142)
+		"`",						//	´	ACUTE ACCENT (U+00B4)
+		"u",						//	µ	MICRO SIGN (U+00B5)
+		"",						//	¶	PILCROW SIGN (U+00B6)
+		".",						//	·	MIDDLE DOT (U+00B7)
+		".",						//	¸	CEDILLA (U+00B8)
+		"a",						//	ą	LATIN SMALL LETTER A WITH OGONEK (U+0105)
+		"s",						//	ş	LATIN SMALL LETTER S WITH CEDILLA (U+015F)
+		">>",						//	»	RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK (U+00BB)
+		"L",						//	Ľ	LATIN CAPITAL LETTER L WITH CARON (U+013D)
+		"\"",						//	˝	DOUBLE ACUTE ACCENT (U+02DD)
+		"l",						//	ľ	LATIN SMALL LETTER L WITH CARON (U+013E)
+		"z",						//	ż	LATIN SMALL LETTER Z WITH DOT ABOVE (U+017C)
+		"R",						//	Ŕ	LATIN CAPITAL LETTER R WITH ACUTE (U+0154)
+		"A",						//	Á	LATIN CAPITAL LETTER A WITH ACUTE (U+00C1)
+		"A",						//	Â	LATIN CAPITAL LETTER A WITH CIRCUMFLEX (U+00C2)
+		"A",						//	Ă	LATIN CAPITAL LETTER A WITH BREVE (U+0102)
+		"A",						//	Ä	LATIN CAPITAL LETTER A WITH DIAERESIS (U+00C4)
+		"L",						//	Ĺ	LATIN CAPITAL LETTER L WITH ACUTE (U+0139)
+		"C",						//	Ć	LATIN CAPITAL LETTER C WITH ACUTE (U+0106)
+		"C",						//	Ç	LATIN CAPITAL LETTER C WITH CEDILLA (U+00C7)
+		"C",						//	Č	LATIN CAPITAL LETTER C WITH CARON (U+010C)
+		"E",						//	É	LATIN CAPITAL LETTER E WITH ACUTE (U+00C9)
+		"E",						//	Ę	LATIN CAPITAL LETTER E WITH OGONEK (U+0118)
+		"E",						//	Ë	LATIN CAPITAL LETTER E WITH DIAERESIS (U+00CB)
+		"E",						//	Ě	LATIN CAPITAL LETTER E WITH CARON (U+011A)
+		"I",						//	Í	LATIN CAPITAL LETTER I WITH ACUTE (U+00CD)
+		"I",						//	Î	LATIN CAPITAL LETTER I WITH CIRCUMFLEX (U+00CE)
+		"D",						//	Ď	LATIN CAPITAL LETTER D WITH CARON (U+010E)
+		"D",						//	Đ	LATIN CAPITAL LETTER D WITH STROKE (U+0110)
+		"N",						//	Ń	LATIN CAPITAL LETTER N WITH ACUTE (U+0143)
+		"N",						//	Ň	LATIN CAPITAL LETTER N WITH CARON (U+0147)
+		"O",						//	Ó	LATIN CAPITAL LETTER O WITH ACUTE (U+00D3)
+		"O",						//	Ô	LATIN CAPITAL LETTER O WITH CIRCUMFLEX (U+00D4)
+		"O",						//	Ő	LATIN CAPITAL LETTER O WITH DOUBLE ACUTE (U+0150)
+		"O",						//	Ö	LATIN CAPITAL LETTER O WITH DIAERESIS (U+00D6)
+		"x",						//	×	MULTIPLICATION SIGN (U+00D7)
+		"R",						//	Ř	LATIN CAPITAL LETTER R WITH CARON (U+0158)
+		"U",						//	Ů	LATIN CAPITAL LETTER U WITH RING ABOVE (U+016E)
+		"U",						//	Ú	LATIN CAPITAL LETTER U WITH ACUTE (U+00DA)
+		"U",						//	Ű	LATIN CAPITAL LETTER U WITH DOUBLE ACUTE (U+0170)
+		"U",						//	Ü	LATIN CAPITAL LETTER U WITH DIAERESIS (U+00DC)
+		"Y",						//	Ý	LATIN CAPITAL LETTER Y WITH ACUTE (U+00DD)
+		"T",						//	Ţ	LATIN CAPITAL LETTER T WITH CEDILLA (U+0162)
+		"B",						//	ß	LATIN SMALL LETTER SHARP S (U+00DF)
+		"r",						//	ŕ	LATIN SMALL LETTER R WITH ACUTE (U+0155)
+		"a",						//	á	LATIN SMALL LETTER A WITH ACUTE (U+00E1)
+		"a",						//	â	LATIN SMALL LETTER A WITH CIRCUMFLEX (U+00E2)
+		"a",						//	ă	LATIN SMALL LETTER A WITH BREVE (U+0103)
+		"a",						//	ä	LATIN SMALL LETTER A WITH DIAERESIS (U+00E4)
+		"l",						//	ĺ	LATIN SMALL LETTER L WITH ACUTE (U+013A)
+		"c",						//	ć	LATIN SMALL LETTER C WITH ACUTE (U+0107)
+		"c",						//	ç	LATIN SMALL LETTER C WITH CEDILLA (U+00E7)
+		"c",						//	č	LATIN SMALL LETTER C WITH CARON (U+010D)
+		"e",						//	é	LATIN SMALL LETTER E WITH ACUTE (U+00E9)
+		"e",						//	ę	LATIN SMALL LETTER E WITH OGONEK (U+0119)
+		"e",						//	ë	LATIN SMALL LETTER E WITH DIAERESIS (U+00EB)
+		"e",						//	ě	LATIN SMALL LETTER E WITH CARON (U+011B)
+		"i",						//	í	LATIN SMALL LETTER I WITH ACUTE (U+00ED)
+		"i",						//	î	LATIN SMALL LETTER I WITH CIRCUMFLEX (U+00EE)
+		"d",						//	ď	LATIN SMALL LETTER D WITH CARON (U+010F)
+		"d",						//	đ	LATIN SMALL LETTER D WITH STROKE (U+0111)
+		"n",						//	ń	LATIN SMALL LETTER N WITH ACUTE (U+0144)
+		"n",						//	ň	LATIN SMALL LETTER N WITH CARON (U+0148)
+		"o",						//	ó	LATIN SMALL LETTER O WITH ACUTE (U+00F3)
+		"o",						//	ô	LATIN SMALL LETTER O WITH CIRCUMFLEX (U+00F4)
+		"o",						//	ő	LATIN SMALL LETTER O WITH DOUBLE ACUTE (U+0151)
+		"o",						//	ö	LATIN SMALL LETTER O WITH DIAERESIS (U+00F6)
+		"/",						//	÷	DIVISION SIGN (U+00F7)
+		"r",						//	ř	LATIN SMALL LETTER R WITH CARON (U+0159)
+		"u",						//	ů	LATIN SMALL LETTER U WITH RING ABOVE (U+016F)
+		"u",						//	ú	LATIN SMALL LETTER U WITH ACUTE (U+00FA)
+		"u",						//	ű	LATIN SMALL LETTER U WITH DOUBLE ACUTE (U+0171)
+		"u",						//	ü	LATIN SMALL LETTER U WITH DIAERESIS (U+00FC)
+		"y",						//	ý	LATIN SMALL LETTER Y WITH ACUTE (U+00FD)
+		"t",						//	ţ	LATIN SMALL LETTER T WITH CEDILLA (U+0163)
+		"'" 						//	˙	DOT ABOVE (U+02D9)
+	}
+};
+
+// Windows-1252 / ISO-8859-1
+TextEncodingPage ISO_8859_1_Encoding = 
+{
+	{
+		"E",					//	€	128	&euro;	euro sign
+		"",						//	 	129	 	NOT USED
+		",",					//	‚	130	&sbquo;	single low-9 quotation mark
+		"f",					//	ƒ	131	&fnof;	Latin small letter f with hook
+		",,",					//	„	132	&bdquo;	double low-9 quotation mark
+		"...",					//	…	133	&hellip;	horizontal ellipsis
+		"+",					//	†	134	&dagger;	dagger
+		"+",					//	‡	135	&Dagger;	double dagger
+		"^",					//	ˆ	136	&circ;	modifier letter circumflex accent
+		"%",					//	‰	137	&permil;	per mille sign
+		"S",					//	Š	138	&Scaron;	Latin capital letter S with caron
+		"<",					//	‹	139	&lsaquo;	single left-pointing angle quotation mark
+		"OE",					//	Œ	140	&OElig;	Latin capital ligature OE
+		"",						//	 	141	 	NOT USED
+		"Z",					//	Ž	142	&Zcaron;	Latin capital letter Z with caron
+		"",						//	 	143	 	NOT USED
+		"",						//	 	144	 	NOT USED
+		"'",					//	‘	145	&lsquo;	left single quotation mark
+		"'",					//	’	146	&rsquo;	right single quotation mark
+		"\"",					//	“	147	&ldquo;	left double quotation mark
+		"\"",					//	”	148	&rdquo;	right double quotation mark
+		"*",					//	•	149	&bull;	bullet
+		"-",					//	–	150	&ndash;	en dash
+		"-",					//	—	151	&mdash;	em dash
+		"~",					//	˜	152	&tilde;	small tilde
+		"TM",					//	™	153	&trade;	trade mark sign
+		"s",					//	š	154	&scaron;	Latin small letter s with caron
+		">",					//	›	155	&rsaquo;	single right-pointing angle quotation mark
+		"oe",					//	œ	156	&oelig;	Latin small ligature oe
+		"",						//	 	157	 	NOT USED
+		"z",					//	ž	158	&zcaron;	Latin small letter z with caron
+		"Y",					//	Ÿ	159	&Yuml;	Latin capital letter Y with diaeresis
+		"",						//	 	160	&nbsp;	no-break space
+		"!",					//	¡	161	&iexcl;	inverted exclamation mark
+		"c",					//	¢	162	&cent;	cent sign
+		"£",					//	£	163	&pound;	pound sign
+		"$",					//	¤	164	&curren;	currency sign
+		"Y",					//	¥	165	&yen;	yen sign
+		"|",					//	¦	166	&brvbar;	broken bar
+		"S",					//	§	167	&sect;	section sign
+		"\"",					//	¨	168	&uml;	diaeresis
+		"(C)",					//	©	169	&copy;	copyright sign
+		"a",					//	ª	170	&ordf;	feminine ordinal indicator
+		"<<",					//	«	171	&laquo;	left-pointing double angle quotation mark
+		"¬",					//	¬	172	&not;	not sign
+		"",						//	�­	173	&shy;	soft hyphen
+		"(R)",					//	®	174	&reg;	registered sign
+		"'",					//	¯	175	&macr;	macron
+		"o",					//	°	176	&deg;	degree sign
+		"+-",					//	±	177	&plusmn;	plus-minus sign
+		"2",					//	²	178	&sup2;	superscript two
+		"3",					//	³	179	&sup3;	superscript three
+		"'",					//	´	180	&acute;	acute accent
+		"u",					//	µ	181	&micro;	micro sign
+		"",						//	¶	182	&para;	pilcrow sign
+		".",					//	·	183	&middot;	middle dot
+		".",					//	¸	184	&cedil;	cedilla
+		"1",					//	¹	185	&sup1;	superscript one
+		"",						//	º	186	&ordm;	masculine ordinal indicator
+		">>",					//	»	187	&raquo;	right-pointing double angle quotation mark
+		"1/4",					//	¼	188	&frac14;	vulgar fraction one quarter
+		"1/2",					//	½	189	&frac12;	vulgar fraction one half
+		"3/4",					//	¾	190	&frac34;	vulgar fraction three quarters
+		"?",					//	¿	191	&iquest;	inverted question mark
+		"A",					//	À	192	&Agrave;	Latin capital letter A with grave
+		"A",					//	Á	193	&Aacute;	Latin capital letter A with acute
+		"A",					//	Â	194	&Acirc;	Latin capital letter A with circumflex
+		"A",					//	Ã	195	&Atilde;	Latin capital letter A with tilde
+		"A",					//	Ä	196	&Auml;	Latin capital letter A with diaeresis
+		"A",					//	Å	197	&Aring;	Latin capital letter A with ring above
+		"AE",					//	Æ	198	&AElig;	Latin capital letter AE
+		"C",					//	Ç	199	&Ccedil;	Latin capital letter C with cedilla
+		"E",					//	È	200	&Egrave;	Latin capital letter E with grave
+		"E",					//	É	201	&Eacute;	Latin capital letter E with acute
+		"E",					//	Ê	202	&Ecirc;	Latin capital letter E with circumflex
+		"E",					//	Ë	203	&Euml;	Latin capital letter E with diaeresis
+		"I",					//	Ì	204	&Igrave;	Latin capital letter I with grave
+		"I",					//	Í	205	&Iacute;	Latin capital letter I with acute
+		"I",					//	Î	206	&Icirc;	Latin capital letter I with circumflex
+		"I",					//	Ï	207	&Iuml;	Latin capital letter I with diaeresis
+		"D",					//	Ð	208	&ETH;	Latin capital letter Eth
+		"N",					//	Ñ	209	&Ntilde;	Latin capital letter N with tilde
+		"O",					//	Ò	210	&Ograve;	Latin capital letter O with grave
+		"O",					//	Ó	211	&Oacute;	Latin capital letter O with acute
+		"O",					//	Ô	212	&Ocirc;	Latin capital letter O with circumflex
+		"O",					//	Õ	213	&Otilde;	Latin capital letter O with tilde
+		"O",					//	Ö	214	&Ouml;	Latin capital letter O with diaeresis
+		"x",					//	×	215	&times;	multiplication sign
+		"0",					//	Ø	216	&Oslash;	Latin capital letter O with stroke
+		"U",					//	Ù	217	&Ugrave;	Latin capital letter U with grave
+		"U",					//	Ú	218	&Uacute;	Latin capital letter U with acute
+		"U",					//	Û	219	&Ucirc;	Latin capital letter U with circumflex
+		"U",					//	Ü	220	&Uuml;	Latin capital letter U with diaeresis
+		"Y",					//	Ý	221	&Yacute;	Latin capital letter Y with acute
+		"P",					//	Þ	222	&THORN;	Latin capital letter Thorn
+		"B",					//	ß	223	&szlig;	Latin small letter sharp s
+		"a",					//	à	224	&agrave;	Latin small letter a with grave
+		"a",					//	á	225	&aacute;	Latin small letter a with acute
+		"a",					//	â	226	&acirc;	Latin small letter a with circumflex
+		"a",					//	ã	227	&atilde;	Latin small letter a with tilde
+		"a",					//	ä	228	&auml;	Latin small letter a with diaeresis
+		"a",					//	å	229	&aring;	Latin small letter a with ring above
+		"ae",					//	æ	230	&aelig;	Latin small letter ae
+		"c",					//	ç	231	&ccedil;	Latin small letter c with cedilla
+		"e",					//	è	232	&egrave;	Latin small letter e with grave
+		"e",					//	é	233	&eacute;	Latin small letter e with acute
+		"e",					//	ê	234	&ecirc;	Latin small letter e with circumflex
+		"e",					//	ë	235	&euml;	Latin small letter e with diaeresis
+		"i",					//	ì	236	&igrave;	Latin small letter i with grave
+		"i",					//	í	237	&iacute;	Latin small letter i with acute
+		"i",					//	î	238	&icirc;	Latin small letter i with circumflex
+		"i",					//	ï	239	&iuml;	Latin small letter i with diaeresis
+		"o",					//	ð	240	&eth;	Latin small letter eth
+		"n",					//	ñ	241	&ntilde;	Latin small letter n with tilde
+		"o",					//	ò	242	&ograve;	Latin small letter o with grave
+		"o",					//	ó	243	&oacute;	Latin small letter o with acute
+		"o",					//	ô	244	&ocirc;	Latin small letter o with circumflex
+		"o",					//	õ	245	&otilde;	Latin small letter o with tilde
+		"o",					//	ö	246	&ouml;	Latin small letter o with diaeresis
+		"/",					//	÷	247	&divide;	division sign
+		"o",					//	ø	248	&oslash;	Latin small letter o with stroke
+		"u",					//	ù	249	&ugrave;	Latin small letter u with grave
+		"u",					//	ú	250	&uacute;	Latin small letter u with acute
+		"u",					//	û	251	&ucirc;	Latin small letter u with circumflex
+		"u",					//	ü	252	&uuml;	Latin small letter u with diaeresis
+		"y",					//	ý	253	&yacute;	Latin small letter y with acute
+		"b",					//	þ	254	&thorn;	Latin small letter thorn
+		"y"						//	ÿ	255	&yuml;	Latin small letter y with diaeresis
 	}
 };

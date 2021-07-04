@@ -64,6 +64,12 @@ struct ScrollBarData
 	int size;
 };
 
+struct ImageWidgetData
+{
+	char* altText;
+	char* linkURL;
+};
+
 struct Widget
 {
 	enum Type
@@ -72,7 +78,8 @@ struct Widget
 		HorizontalRule,
 		Button,
 		TextField,
-		ScrollBar
+		ScrollBar,
+		Image
 	};
 
 	Widget() : type(Text), isInterfaceWidget(false), x(0), y(0), width(0), height(0) {}
@@ -85,9 +92,13 @@ struct Widget
 
 	char* GetLinkURL()
 	{
-		if (type == Text)
+		if (type == Text && text)
 		{
 			return text->linkURL;
+		}
+		if (type == Image && image)
+		{
+			return image->linkURL;
 		}
 		return NULL;
 	}
@@ -98,6 +109,7 @@ struct Widget
 		ButtonWidgetData* button;
 		TextFieldWidgetData* textField;
 		ScrollBarData* scrollBar;
+		ImageWidgetData* image;
 	};
 };
 

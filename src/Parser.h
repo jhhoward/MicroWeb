@@ -14,7 +14,18 @@
 
 #pragma once
 
+#include <stdint.h>
 class Page;
+
+struct TextEncoding
+{
+	enum Type
+	{
+		UTF8,
+		ISO_8859_1,
+		ISO_8859_2
+	};
+};
 
 struct HTMLParseSection
 {
@@ -62,6 +73,8 @@ public:
 	void PopSection(HTMLParseSection::Type section);
 	HTMLParseSection::Type CurrentSection() { return sectionStack[sectionStackSize]; }
 
+	void SetTextEncoding(TextEncoding::Type newType);
+
 private:
 	void ParseChar(char c);
 
@@ -85,6 +98,10 @@ private:
 
 	HTMLParseSection::Type sectionStack[MAX_PARSE_SECTION_STACK_SIZE];
 	unsigned int sectionStackSize;
+
 	bool parsingUnicode;
-	struct UnicodePage* unicodePage;
+	int unicodeByteCount;
+	uint32_t unicodePoint;
+
+	TextEncoding::Type textEncoding;
 };

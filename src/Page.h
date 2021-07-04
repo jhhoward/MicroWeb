@@ -35,6 +35,7 @@ public:
 	void AddButton(char* text);
 	void AddTextField(char* text, int bufferLength, char* name);
 	void AppendText(const char* text);
+	void AddImage(char* altText, int width, int height);
 	void BreakLine(int padding = 0);
 	void BreakTextLine();
 	void FlagLeadingWhiteSpace() { needLeadingWhiteSpace = true; }

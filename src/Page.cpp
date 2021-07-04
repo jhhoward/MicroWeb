@@ -268,6 +268,40 @@ void Page::FinishCurrentLine()
 	cursorX = leftMarginPadding;
 }
 
+void Page::AddImage(char* altText, int width, int height)
+{
+	Widget* widget = CreateWidget(Widget::Image);
+	if (widget)
+	{
+		if (widget->image = allocator.Alloc<ImageWidgetData>())
+		{
+			widget->style = WidgetStyle(widgetURL ? FontStyle::Underline : FontStyle::Regular, 1, widget->style.center);
+
+			if (altText)
+			{
+				widget->image->altText = allocator.AllocString(altText);
+				int textWidth = Platform::video->GetFont(widget->style.fontSize)->CalculateWidth(altText, widget->style.fontStyle);
+				int textHeight = Platform::video->GetFont(widget->style.fontSize)->glyphHeight;
+				if (textWidth > 0 && width < textWidth + 4)
+				{
+					width = textWidth + 4;
+				}
+				if (textWidth > 0 && height < textHeight + 4)
+				{
+					height = textHeight + 4;
+				}
+			}
+			else
+			{
+				widget->image->altText = NULL;
+			}
+			widget->image->linkURL = widgetURL;
+		}
+		widget->width = width;
+		widget->height = height;
+	}
+}
+
 void Page::AppendText(const char* text)
 {
 	if (currentWidgetIndex == -1 || widgets[currentWidgetIndex].type != Widget::Text)

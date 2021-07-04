@@ -51,6 +51,8 @@ public:
 	int GetPageTopWidgetIndex() { return pageTopWidgetIndex; }
 private:
 	void DrawButtonRect(int x, int y, int width, int height, bool isSelected = false);
+	void DrawRect(int x, int y, int width, int height);
+
 	void RenderWidgetInternal(Widget* widget, int baseY);
 	void DrawTextFieldCursorInternal(Widget* widget, int position, bool clear, int baseY);
 

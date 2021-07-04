@@ -47,7 +47,6 @@ static const HTMLTagHandler* tagHandlers[] =
 	new StyleTagHandler("var", FontStyle::Italic),
 	new StyleTagHandler("u", FontStyle::Underline),
 	new ATagHandler(),
-	new HTMLTagHandler("img"),
 	new ListTagHandler("ul"),
 	new ListTagHandler("ol"),
 	new ListTagHandler("menu"),
@@ -57,6 +56,8 @@ static const HTMLTagHandler* tagHandlers[] =
 	new SizeTagHandler("small", 0),
 	new InputTagHandler(),
 	new FormTagHandler(),
+	new ImgTagHandler(),
+	new MetaTagHandler(),
 	NULL
 };
 
@@ -220,22 +221,38 @@ void FontTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 		if (!stricmp(attributes.Key(), "size"))
 		{
 			int size = atoi(attributes.Value());
-			switch (size)
+
+			if (size < 0)
 			{
-			case 1:
-			case 2:
-				currentStyle.fontSize = 0;
-				break;
-			case 0:
-				// Probably invalid
-			case 3:
-			case 4:
-				currentStyle.fontSize = 1;
-				break;
-			default:
-				// Anything bigger
-				currentStyle.fontSize = 2;
-				break;
+				// Relative sizing
+				if (currentStyle.fontSize + size < 0)
+				{
+					currentStyle.fontSize = 0;
+				}
+				else
+				{
+					currentStyle.fontSize += size;
+				}
+			}
+			else
+			{
+				switch (size)
+				{
+				case 1:
+				case 2:
+					currentStyle.fontSize = 0;
+					break;
+				case 0:
+					// Probably invalid
+				case 3:
+				case 4:
+					currentStyle.fontSize = 1;
+					break;
+				default:
+					// Anything bigger
+					currentStyle.fontSize = 2;
+					break;
+				}
 			}
 		}
 	}
@@ -350,4 +367,71 @@ void FormTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 void FormTagHandler::Close(HTMLParser& parser) const
 {
 	parser.page.SetFormData(NULL);
+}
+
+void ImgTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
+{
+	AttributeParser attributes(attributeStr);
+	int width = 0;
+	int height = 0;
+	char* altText = NULL;
+
+	while (attributes.Parse())
+	{
+		if (!stricmp(attributes.Key(), "alt"))
+		{
+			altText = (char*) attributes.Value();
+		}
+		if (!stricmp(attributes.Key(), "width"))
+		{
+			width = atoi(attributes.Value());
+		}
+		if (!stricmp(attributes.Key(), "height"))
+		{
+			height = atoi(attributes.Value());
+		}
+	}
+
+	height /= 2;
+
+	parser.page.AddImage(altText, width, height);
+}
+
+void MetaTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
+{
+	AttributeParser attributes(attributeStr);
+
+	while (attributes.Parse())
+	{
+		if (!stricmp(attributes.Key(), "charset"))
+		{
+			if (!stricmp(attributes.Value(), "utf-8"))
+			{
+				parser.SetTextEncoding(TextEncoding::UTF8);
+			}
+			else if (!stricmp(attributes.Value(), "ISO-8859-1") || !stricmp(attributes.Value(), "windows-1252"))
+			{
+				parser.SetTextEncoding(TextEncoding::ISO_8859_1);
+			}
+			else if (!stricmp(attributes.Value(), "ISO-8859-2") || !stricmp(attributes.Value(), "windows-1250"))
+			{
+				parser.SetTextEncoding(TextEncoding::ISO_8859_2);
+			}
+		}
+		else if (!stricmp(attributes.Key(), "content"))
+		{
+			if (strstr(attributes.Value(), "charset=utf-8"))
+			{
+				parser.SetTextEncoding(TextEncoding::UTF8);
+			}
+			else if (strstr(attributes.Value(), "charset=ISO-8859-1") || strstr(attributes.Value(), "charset=windows-1252"))
+			{
+				parser.SetTextEncoding(TextEncoding::ISO_8859_1);
+			}
+			else if (strstr(attributes.Value(), "charset=ISO-8859-2") || strstr(attributes.Value(), "charset=windows-1250"))
+			{
+				parser.SetTextEncoding(TextEncoding::ISO_8859_2);
+			}
+		}
+	}
 }
