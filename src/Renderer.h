@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include "Font.h"
 class App;
 struct Widget;
 
@@ -50,6 +51,7 @@ public:
 
 	int GetPageTopWidgetIndex() { return pageTopWidgetIndex; }
 private:
+	void DrawTruncatedString(char* message, int x, int y, int maxTextWidth, int size = 1, FontStyle::Type style = FontStyle::Regular);
 	void DrawButtonRect(int x, int y, int width, int height, bool isSelected = false);
 	void DrawRect(int x, int y, int width, int height);
 

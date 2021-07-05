@@ -45,8 +45,8 @@ public:
 	virtual void VLine(int x, int y, int count);
 
 	virtual int GetGlyphWidth(char c, int fontSize = 1, FontStyle::Type style = FontStyle::Regular);
-	virtual int GetLineHeight(int fontSize = 1);
-	virtual Font* GetFont(int fontSize);
+	virtual int GetLineHeight(int fontSize = 1, FontStyle::Type style = FontStyle::Regular);
+	virtual Font* GetFont(int fontSize, FontStyle::Type style = FontStyle::Regular);
 
 	virtual void DrawScrollBar(int position, int size);
 

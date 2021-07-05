@@ -22,7 +22,7 @@ struct WidgetStyle
 	WidgetStyle(FontStyle::Type inFontStyle, uint8_t inFontSize = 1, bool inCenter = false) :
 		fontStyle(inFontStyle), fontSize(inFontSize), center(inCenter) {}
 
-	FontStyle::Type fontStyle : 3;
+	FontStyle::Type fontStyle : 4;
 	uint8_t fontSize : 2;
 	bool center : 1;
 };

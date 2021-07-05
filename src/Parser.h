@@ -75,6 +75,9 @@ public:
 
 	void SetTextEncoding(TextEncoding::Type newType);
 
+	void PushPreFormatted();
+	void PopPreFormatted();
+
 private:
 	void ParseChar(char c);
 
@@ -104,4 +107,6 @@ private:
 	uint32_t unicodePoint;
 
 	TextEncoding::Type textEncoding;
+
+	unsigned int preformatted;
 };

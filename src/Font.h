@@ -24,6 +24,7 @@ struct FontStyle
 		Bold = 1,
 		Italic = 2,
 		Underline = 4,
+		Monospace = 8
 	};
 };
 

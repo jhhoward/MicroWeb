@@ -58,6 +58,8 @@ static const HTMLTagHandler* tagHandlers[] =
 	new FormTagHandler(),
 	new ImgTagHandler(),
 	new MetaTagHandler(),
+	new PreformattedTagHandler("pre"),
+	new PreformattedTagHandler("code"),
 	NULL
 };
 
@@ -81,6 +83,25 @@ const HTMLTagHandler* DetermineTag(const char* str)
 	return &genericTag;
 }
 
+void HTMLTagHandler::ApplyStyleAttributes(WidgetStyle& style, char* attributeStr) const
+{
+	AttributeParser attributes(attributeStr);
+
+	while (attributes.Parse())
+	{
+		if (!stricmp(attributes.Key(), "align"))
+		{
+			if (!stricmp(attributes.Value(), "center"))
+			{
+				style.center = true;
+			}
+			else if (!stricmp(attributes.Value(), "left"))
+			{
+				style.center = false;
+			}
+		}
+	}
+}
 
 void HrTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
@@ -97,6 +118,7 @@ void HTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
 	currentStyle.fontSize = size >= 3 ? 1 : 2;
 	currentStyle.fontStyle = (FontStyle::Type)(currentStyle.fontStyle | FontStyle::Bold);
+	ApplyStyleAttributes(currentStyle, attributeStr);
 	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize) >> 1);
 	parser.page.PushStyle(currentStyle);
 }
@@ -156,23 +178,29 @@ void PTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
 	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
 	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize) >> 1);
+	ApplyStyleAttributes(currentStyle, attributeStr);
+	parser.page.PushStyle(currentStyle);
 }
 void PTagHandler::Close(class HTMLParser& parser) const
 {
 	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
 	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize) >> 1);
+	parser.page.PopStyle();
 }
 
 void DivTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
 	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
 	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize) >> 1);
+	ApplyStyleAttributes(currentStyle, attributeStr);
+	parser.page.PushStyle(currentStyle);
 }
 
 void DivTagHandler::Close(class HTMLParser& parser) const
 {
 	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
 	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize) >> 1);
+	parser.page.PopStyle();
 }
 
 void SectionTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
@@ -372,8 +400,8 @@ void FormTagHandler::Close(HTMLParser& parser) const
 void ImgTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
 	AttributeParser attributes(attributeStr);
-	int width = 0;
-	int height = 0;
+	int width = -1;
+	int height = -1;
 	char* altText = NULL;
 
 	while (attributes.Parse())
@@ -392,9 +420,36 @@ void ImgTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 		}
 	}
 
-	height /= 2;
+	if (width == -1)
+	{
+		if (height != -1)
+		{
+			width = height;
+		}
+	}
+	if (height == -1)
+	{
+		if (width != -1)
+		{
+			height = width;
+		}
+	}
 
-	parser.page.AddImage(altText, width, height);
+	if (width == -1 && height == -1)
+	{
+		int defaultImageWidth = 24;
+		int defaultImageHeight = 12;
+		parser.page.AddImage(NULL, defaultImageWidth, defaultImageHeight);
+		if (altText)
+		{
+			parser.page.AppendText(altText);
+		}
+	}
+	else
+	{
+		height /= 2;
+		parser.page.AddImage(altText, width, height);
+	}
 }
 
 void MetaTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
@@ -434,4 +489,24 @@ void MetaTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 			}
 		}
 	}
+}
+
+void PreformattedTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
+{
+	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
+	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize, currentStyle.fontStyle) >> 1);
+
+	currentStyle.fontStyle = (FontStyle::Type)(currentStyle.fontStyle | FontStyle::Monospace);
+	parser.page.PushStyle(currentStyle);
+	parser.PushPreFormatted();
+	parser.page.BreakTextLine();
+}
+
+void PreformattedTagHandler::Close(class HTMLParser& parser) const
+{
+	parser.page.PopStyle();
+	parser.PopPreFormatted();
+
+	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
+	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize, currentStyle.fontStyle) >> 1);
 }

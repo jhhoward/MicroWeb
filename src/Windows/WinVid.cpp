@@ -164,7 +164,7 @@ void WindowsVideoDriver::ClearScissorRegion()
 void WindowsVideoDriver::DrawString(const char* text, int x, int y, int size, FontStyle::Type style)
 {
 //	printf("%s\n", text);
-	Font* font = GetFont(size);
+	Font* font = GetFont(size, style);
 
 	int startX = x;
 	uint8_t glyphHeight = font->glyphHeight;
@@ -283,8 +283,23 @@ MouseCursorData* WindowsVideoDriver::GetCursorGraphic(MouseCursor::Type type)
 	return NULL;
 }
 
-Font* WindowsVideoDriver::GetFont(int fontSize)
+Font* WindowsVideoDriver::GetFont(int fontSize, FontStyle::Type style)
 {
+	if (style & FontStyle::Monospace)
+	{
+		switch (fontSize)
+		{
+		case 0:
+			return &CGA_SmallFont_Monospace;
+		case 2:
+		case 3:
+		case 4:
+			return &CGA_LargeFont_Monospace;
+		default:
+			return &CGA_RegularFont_Monospace;
+		}
+	}
+
 	switch (fontSize)
 	{
 	case 0:
@@ -298,7 +313,7 @@ Font* WindowsVideoDriver::GetFont(int fontSize)
 }
 int WindowsVideoDriver::GetGlyphWidth(char c, int fontSize, FontStyle::Type style)
 {
-	Font* font = GetFont(fontSize);
+	Font* font = GetFont(fontSize, style);
 	if (c >= 32 && c < 128)
 	{
 		int width = font->glyphWidth[c - 32];
@@ -310,9 +325,9 @@ int WindowsVideoDriver::GetGlyphWidth(char c, int fontSize, FontStyle::Type styl
 	}
 	return 0;
 }
-int WindowsVideoDriver::GetLineHeight(int fontSize)
+int WindowsVideoDriver::GetLineHeight(int fontSize, FontStyle::Type style)
 {
-	return GetFont(fontSize)->glyphHeight + 1;
+	return GetFont(fontSize, style)->glyphHeight + 1;
 }
 
 void WindowsVideoDriver::Paint(HWND hwnd)

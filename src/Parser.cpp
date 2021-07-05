@@ -217,7 +217,7 @@ void HTMLParser::FlushTextBuffer()
 
 bool HTMLParser::IsWhiteSpace(char c)
 {
-	return c == ' ' || c == '\n' || c == '\t';
+	return c == ' ' || c == '\n' || c == '\t' || c == '\r';
 }
 
 void HTMLParser::Parse(char* buffer, size_t count)
@@ -336,6 +336,19 @@ void HTMLParser::SetTextEncoding(TextEncoding::Type newType)
 	parsingUnicode = false;
 }
 
+void HTMLParser::PushPreFormatted()
+{
+	preformatted++;
+}
+
+void HTMLParser::PopPreFormatted()
+{
+	if (preformatted > 0)
+	{
+		preformatted--;
+	}
+}
+
 void HTMLParser::ParseChar(char c)
 {
 	switch(parseState)
@@ -352,20 +365,36 @@ void HTMLParser::ParseChar(char c)
 		}
 		else
 		{
-			if(IsWhiteSpace(c))
+			if (!preformatted)
 			{
-				c = ' ';
-				if(textBufferSize == 0)
+				if (IsWhiteSpace(c))
 				{
-					page.FlagLeadingWhiteSpace();
-					break;
-				}
-				else
-				{
-					if(IsWhiteSpace(textBuffer[textBufferSize - 1]))
+					c = ' ';
+					if (textBufferSize == 0)
 					{
+						page.FlagLeadingWhiteSpace();
 						break;
 					}
+					else
+					{
+						if (IsWhiteSpace(textBuffer[textBufferSize - 1]))
+						{
+							break;
+						}
+					}
+				}
+			}
+			else 
+			{
+				if (c == '\n')
+				{
+					FlushTextBuffer();
+					page.BreakTextLine();
+					break;
+				}
+				else if (c == '\r')
+				{
+					break;
 				}
 			}
 

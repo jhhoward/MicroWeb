@@ -41,9 +41,9 @@ public:
 
 	virtual MouseCursorData* GetCursorGraphic(MouseCursor::Type type);
 
-	virtual Font* GetFont(int fontSize);
+	virtual Font* GetFont(int fontSize, FontStyle::Type style = FontStyle::Regular);
 	virtual int GetGlyphWidth(char c, int fontSize = 1, FontStyle::Type style = FontStyle::Regular);
-	virtual int GetLineHeight(int fontSize = 1);
+	virtual int GetLineHeight(int fontSize = 1, FontStyle::Type style = FontStyle::Regular);
 
 	virtual void HLine(int x, int y, int count);
 	virtual void VLine(int x, int y, int count);

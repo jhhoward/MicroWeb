@@ -362,7 +362,7 @@ void Renderer::RenderWidgetInternal(Widget* widget, int baseY)
 			DrawRect(widget->x, widget->y + baseY, widget->width, widget->height);
 			if (widget->image->altText)
 			{
-				Platform::video->DrawString(widget->image->altText, widget->x + 2, widget->y + baseY + 2, widget->style.fontSize, widget->style.fontStyle);
+				DrawTruncatedString(widget->image->altText, widget->x + 2, widget->y + baseY + 2, widget->width - 4, widget->style.fontSize, widget->style.fontStyle);
 			}
 		}
 		break;
@@ -372,29 +372,9 @@ void Renderer::RenderWidgetInternal(Widget* widget, int baseY)
 			DrawButtonRect(widget->x, widget->y + baseY, widget->width, widget->height);
 			if (widget->textField->buffer)
 			{
-				int textWidth = 0;
-				int maxTextWidth = widget->width - 4;
-				char* replaceChar = NULL;
-				char oldChar = 0;
+				int maxWidth = widget->width - 4;
 
-				for (char* p = widget->textField->buffer; *p; p++)
-				{
-					textWidth += Platform::video->GetGlyphWidth(*p);
-					if (textWidth > maxTextWidth)
-					{
-						oldChar = *p;
-						replaceChar = p;
-						*p = '\0';
-						break;
-					}
-				}
-				Platform::video->DrawString(widget->textField->buffer, widget->x + 3, widget->y + baseY + 2);
-
-				if (replaceChar)
-				{
-					*replaceChar = oldChar;
-				}
-
+				DrawTruncatedString(widget->textField->buffer, widget->x + 3, widget->y + baseY + 2, maxWidth);
 				if (app.ui.GetActiveWidget() == widget)
 				{
 					DrawTextFieldCursorInternal(widget, app.ui.GetTextFieldCursorPosition(), false, baseY);
@@ -402,6 +382,31 @@ void Renderer::RenderWidgetInternal(Widget* widget, int baseY)
 			}
 		}
 		break;
+	}
+}
+
+void Renderer::DrawTruncatedString(char* message, int x, int y, int maxTextWidth, int size, FontStyle::Type style)
+{
+	int textWidth = 0;
+	char* replaceChar = NULL;
+	char oldChar = 0;
+
+	for (char* p = message; *p; p++)
+	{
+		textWidth += Platform::video->GetGlyphWidth(*p);
+		if (textWidth > maxTextWidth)
+		{
+			oldChar = *p;
+			replaceChar = p;
+			*p = '\0';
+			break;
+		}
+	}
+	Platform::video->DrawString(message, x, y);
+
+	if (replaceChar)
+	{
+		*replaceChar = oldChar;
 	}
 }
 

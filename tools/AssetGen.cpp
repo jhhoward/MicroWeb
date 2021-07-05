@@ -34,6 +34,10 @@ int main(int argc, char* argv)
 		EncodeFont("assets/CGA/font-small.png", outputFile, "CGA_SmallFont");
 		EncodeFont("assets/CGA/font-large.png", outputFile, "CGA_LargeFont");
 
+		EncodeFont("assets/CGA/font-mono.png", outputFile, "CGA_RegularFont_Monospace");
+		EncodeFont("assets/CGA/font-mono-small.png", outputFile, "CGA_SmallFont_Monospace");
+		EncodeFont("assets/CGA/font-mono-large.png", outputFile, "CGA_LargeFont_Monospace");
+
 		outputFile << endl;
 		outputFile << "// Mouse cursors:" << endl;
 

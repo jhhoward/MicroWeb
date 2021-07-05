@@ -270,6 +270,12 @@ void Page::FinishCurrentLine()
 
 void Page::AddImage(char* altText, int width, int height)
 {
+	if (width > Platform::video->windowWidth)
+	{
+		height = (height * Platform::video->windowWidth) / width;
+		width = Platform::video->windowWidth;
+	}
+
 	Widget* widget = CreateWidget(Widget::Image);
 	if (widget)
 	{
@@ -280,16 +286,16 @@ void Page::AddImage(char* altText, int width, int height)
 			if (altText)
 			{
 				widget->image->altText = allocator.AllocString(altText);
-				int textWidth = Platform::video->GetFont(widget->style.fontSize)->CalculateWidth(altText, widget->style.fontStyle);
-				int textHeight = Platform::video->GetFont(widget->style.fontSize)->glyphHeight;
-				if (textWidth > 0 && width < textWidth + 4)
-				{
-					width = textWidth + 4;
-				}
-				if (textWidth > 0 && height < textHeight + 4)
-				{
-					height = textHeight + 4;
-				}
+				//int textWidth = Platform::video->GetFont(widget->style.fontSize)->CalculateWidth(altText, widget->style.fontStyle);
+				//int textHeight = Platform::video->GetFont(widget->style.fontSize)->glyphHeight;
+				//if (textWidth > 0 && width < textWidth + 4)
+				//{
+				//	width = textWidth + 4;
+				//}
+				//if (textWidth > 0 && height < textHeight + 4)
+				//{
+				//	height = textHeight + 4;
+				//}
 			}
 			else
 			{
@@ -299,6 +305,23 @@ void Page::AddImage(char* altText, int width, int height)
 		}
 		widget->width = width;
 		widget->height = height;
+
+		if (width > Platform::video->windowWidth)
+		{
+			width = Platform::video->windowWidth;
+		}
+
+		if (widget->x + widget->width > Platform::video->windowWidth)
+		{
+			// Move to new line
+			int oldCurrentWidgetIndex = currentWidgetIndex;
+			currentWidgetIndex = -1;
+			FinishCurrentLine();
+			currentWidgetIndex = oldCurrentWidgetIndex;
+			currentLineStartWidgetIndex = currentWidgetIndex;
+			widget->x = cursorX;
+			widget->y = cursorY;
+		}
 	}
 }
 
@@ -312,7 +335,7 @@ void Page::AppendText(const char* text)
 	if (currentWidgetIndex != -1)
 	{
 		Widget* current = &widgets[currentWidgetIndex];
-		Font* font = Platform::video->GetFont(current->style.fontSize);
+		Font* font = Platform::video->GetFont(current->style.fontSize, current->style.fontStyle);
 
 		int addedWidth = 0;
 		int startIndex = 0;

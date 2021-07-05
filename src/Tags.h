@@ -27,6 +27,9 @@ public:
 	virtual void Close(class HTMLParser& parser) const {}
 	
 	const char* name;
+
+protected:
+	void ApplyStyleAttributes(struct WidgetStyle& style, char* attributeStr) const;
 };
 
 class SectionTagHandler : public HTMLTagHandler
@@ -42,6 +45,14 @@ class CenterTagHandler : public HTMLTagHandler
 {
 public:
 	CenterTagHandler() : HTMLTagHandler("center") {}
+	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
+	virtual void Close(class HTMLParser& parser) const;
+};
+
+class PreformattedTagHandler : public HTMLTagHandler
+{
+public:
+	PreformattedTagHandler(const char* inName) : HTMLTagHandler(inName) {}
 	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
 	virtual void Close(class HTMLParser& parser) const;
 };
