@@ -345,6 +345,9 @@ void Renderer::RenderWidgetInternal(Widget* widget, int baseY)
 			}
 		}
 		break;
+	case Widget::BulletPoint:
+		Platform::video->DrawString("*", widget->x, widget->y + baseY, widget->style.fontSize, widget->style.fontStyle);
+		break;
 	case Widget::HorizontalRule:
 		Platform::video->HLine(widget->x, widget->y + baseY, widget->width);
 		break;

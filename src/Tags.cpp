@@ -35,7 +35,13 @@ static const HTMLTagHandler* tagHandlers[] =
 	new HTagHandler("h4", 4),
 	new HTagHandler("h5", 5),
 	new HTagHandler("h6", 6),
-	new PTagHandler(),
+	new BlockTagHandler("blockquote"),
+	new BlockTagHandler("section"),
+	new BlockTagHandler("p"),
+	new BlockTagHandler("div"),
+	new BlockTagHandler("dt", false),
+	new BlockTagHandler("dd", false, 16),
+	new BlockTagHandler("tr", false),			// Table rows shouldn't really be a block but we don't have table support yet
 	new BrTagHandler(),
 	new CenterTagHandler(),
 	new FontTagHandler(),
@@ -52,9 +58,9 @@ static const HTMLTagHandler* tagHandlers[] =
 	new ListTagHandler("menu"),
 	new LiTagHandler(),
 	new HrTagHandler(),
-	new DivTagHandler(),
 	new SizeTagHandler("small", 0),
 	new InputTagHandler(),
+	new ButtonTagHandler(),
 	new FormTagHandler(),
 	new ImgTagHandler(),
 	new MetaTagHandler(),
@@ -144,11 +150,19 @@ void SizeTagHandler::Close(class HTMLParser& parser) const
 
 void LiTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
+	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
+	int bulletPointWidth = Platform::video->GetFont(currentStyle.fontSize, currentStyle.fontStyle)->CalculateWidth(" * ", currentStyle.fontStyle);
+
 	parser.page.BreakLine();
-	parser.page.AppendText(" * ");
+	parser.page.AddBulletPoint();
+	parser.page.AdjustLeftMargin(bulletPointWidth);
 }
 void LiTagHandler::Close(class HTMLParser& parser) const
 {
+	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
+	int bulletPointWidth = Platform::video->GetFont(currentStyle.fontSize, currentStyle.fontStyle)->CalculateWidth(" * ", currentStyle.fontStyle);
+
+	parser.page.AdjustLeftMargin(-bulletPointWidth);
 	parser.page.BreakLine();
 }
 
@@ -174,32 +188,19 @@ void ATagHandler::Close(class HTMLParser& parser) const
 	parser.page.PopStyle();
 }
 
-void PTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
+void BlockTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
 	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
-	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize) >> 1);
+	parser.page.AdjustLeftMargin(leftMarginPadding);
+	parser.page.BreakLine(useVerticalPadding ? Platform::video->GetLineHeight(currentStyle.fontSize) >> 1 : 0);
 	ApplyStyleAttributes(currentStyle, attributeStr);
 	parser.page.PushStyle(currentStyle);
 }
-void PTagHandler::Close(class HTMLParser& parser) const
+void BlockTagHandler::Close(class HTMLParser& parser) const
 {
 	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
-	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize) >> 1);
-	parser.page.PopStyle();
-}
-
-void DivTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
-{
-	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
-	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize) >> 1);
-	ApplyStyleAttributes(currentStyle, attributeStr);
-	parser.page.PushStyle(currentStyle);
-}
-
-void DivTagHandler::Close(class HTMLParser& parser) const
-{
-	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
-	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize) >> 1);
+	parser.page.AdjustLeftMargin(-leftMarginPadding);
+	parser.page.BreakLine(useVerticalPadding ? Platform::video->GetLineHeight(currentStyle.fontSize) >> 1 : 0);
 	parser.page.PopStyle();
 }
 
@@ -315,6 +316,25 @@ struct HTMLInputTag
 	};
 };
 
+void ButtonTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
+{
+	char* title = NULL;
+
+	AttributeParser attributes(attributeStr);
+	while (attributes.Parse())
+	{
+		if (!stricmp(attributes.Key(), "title"))
+		{
+			title = parser.page.allocator.AllocString(attributes.Value());
+		}
+	}
+
+	if (title)
+	{
+		parser.page.AddButton(title);
+	}
+}
+
 void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
 	char* value = NULL;
@@ -331,7 +351,7 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 			{
 				type = HTMLInputTag::Submit;
 			}
-			else if (!stricmp(attributes.Value(), "text"))
+			else if (!stricmp(attributes.Value(), "text") || !stricmp(attributes.Value(), "search"))
 			{
 				type = HTMLInputTag::Text;
 			}

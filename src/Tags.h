@@ -130,20 +130,15 @@ public:
 	virtual void Close(class HTMLParser& parser) const;
 };
 
-class PTagHandler : public HTMLTagHandler
+class BlockTagHandler : public HTMLTagHandler
 {
 public:
-	PTagHandler() : HTMLTagHandler("p") {}
+	BlockTagHandler(const char* inName, bool inUseVerticalPadding = true, int inLeftMarginPadding = 0) : HTMLTagHandler(inName), useVerticalPadding(inUseVerticalPadding), leftMarginPadding(inLeftMarginPadding) {}
 	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
 	virtual void Close(class HTMLParser& parser) const;
-};
-
-class DivTagHandler : public HTMLTagHandler
-{
-public:
-	DivTagHandler() : HTMLTagHandler("div") {}
-	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
-	virtual void Close(class HTMLParser& parser) const;
+private:
+	bool useVerticalPadding;
+	int leftMarginPadding;
 };
 
 class InputTagHandler : public HTMLTagHandler
@@ -172,6 +167,13 @@ class MetaTagHandler : public HTMLTagHandler
 {
 public:
 	MetaTagHandler() : HTMLTagHandler("meta") {}
+	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
+};
+
+class ButtonTagHandler : public HTMLTagHandler
+{
+public:
+	ButtonTagHandler() : HTMLTagHandler("button") {}
 	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
 };
 

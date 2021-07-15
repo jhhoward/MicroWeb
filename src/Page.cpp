@@ -53,6 +53,26 @@ WidgetStyle& Page::GetStyleStackTop()
 	return styleStack[styleStackSize - 1];
 }
 
+void Page::AdjustLeftMargin(int delta)
+{
+	bool adjustCursor = cursorX == leftMarginPadding;
+
+	leftMarginPadding += delta;
+	if (leftMarginPadding < 1)
+	{
+		leftMarginPadding = 1;
+	}
+	else if (leftMarginPadding > Platform::video->windowWidth / 2)
+	{
+		leftMarginPadding = Platform::video->windowHeight / 2;
+	}
+
+	if (adjustCursor)
+	{
+		cursorX = leftMarginPadding;
+	}
+}
+
 void Page::PushStyle(const WidgetStyle& style)
 {
 	if (styleStackSize < MAX_PAGE_STYLE_STACK_SIZE)
@@ -225,16 +245,25 @@ void Page::FinishCurrentWidget()
 	}
 }
 
-void Page::FinishCurrentLine()
+void Page::FinishCurrentLine(bool includeCurrentWidget)
 {
-	FinishCurrentWidget();
+	if (includeCurrentWidget)
+	{
+		FinishCurrentWidget();
+	}
 
 	if (currentLineStartWidgetIndex != -1)
 	{
 		int lineWidth = 0;
 		int lineHeight = 0;
+		int lineEndWidget = numWidgets;
 
-		for (int n = currentLineStartWidgetIndex; n < numWidgets; n++)
+		if (!includeCurrentWidget && currentWidgetIndex != -1)
+		{
+			lineEndWidget = numWidgets - 1;
+		}
+
+		for (int n = currentLineStartWidgetIndex; n < lineEndWidget; n++)
 		{
 			if (widgets[n].height > lineHeight)
 			{
@@ -248,7 +277,7 @@ void Page::FinishCurrentLine()
 
 		int centerAdjust = (Platform::video->windowWidth - lineWidth) >> 1;
 
-		for (int n = currentLineStartWidgetIndex; n < numWidgets; n++)
+		for (int n = currentLineStartWidgetIndex; n < lineEndWidget; n++)
 		{
 			widgets[n].y += lineHeight - widgets[n].height;
 			if (widgets[n].style.center)
@@ -260,9 +289,9 @@ void Page::FinishCurrentLine()
 		cursorY += lineHeight;
 		pageHeight = cursorY;
 
-		numFinishedWidgets = numWidgets;
+		numFinishedWidgets = lineEndWidget;
 
-		currentLineStartWidgetIndex = -1;
+		currentLineStartWidgetIndex = currentWidgetIndex;
 	}
 
 	cursorX = leftMarginPadding;
@@ -270,10 +299,12 @@ void Page::FinishCurrentLine()
 
 void Page::AddImage(char* altText, int width, int height)
 {
-	if (width > Platform::video->windowWidth)
+	const int maxImageWidth = Platform::video->windowWidth - leftMarginPadding - 2;
+
+	while (width > maxImageWidth)
 	{
-		height = (height * Platform::video->windowWidth) / width;
-		width = Platform::video->windowWidth;
+		width /= 2;
+		height /= 2;
 	}
 
 	Widget* widget = CreateWidget(Widget::Image);
@@ -306,22 +337,32 @@ void Page::AddImage(char* altText, int width, int height)
 		widget->width = width;
 		widget->height = height;
 
-		if (width > Platform::video->windowWidth)
+		if (width > maxImageWidth)
 		{
-			width = Platform::video->windowWidth;
+			width = maxImageWidth;
 		}
 
 		if (widget->x + widget->width > Platform::video->windowWidth)
 		{
 			// Move to new line
-			int oldCurrentWidgetIndex = currentWidgetIndex;
-			currentWidgetIndex = -1;
-			FinishCurrentLine();
-			currentWidgetIndex = oldCurrentWidgetIndex;
-			currentLineStartWidgetIndex = currentWidgetIndex;
+			FinishCurrentLine(false);
 			widget->x = cursorX;
 			widget->y = cursorY;
 		}
+	}
+}
+
+void Page::AddBulletPoint()
+{
+	Widget* widget = CreateWidget(Widget::BulletPoint);
+	if (widget)
+	{
+		FinishCurrentWidget();
+		widget->width = Platform::video->GetFont(widget->style.fontSize, widget->style.fontStyle)->CalculateWidth(" * ", widget->style.fontStyle);
+		widget->height = Platform::video->GetLineHeight(widget->style.fontSize, widget->style.fontStyle);
+		numFinishedWidgets = numWidgets;
+		currentLineStartWidgetIndex = -1;
+		currentWidgetIndex = -1;
 	}
 }
 
@@ -384,7 +425,7 @@ void Page::AppendText(const char* text)
 			{
 				if (current->width == 0)
 				{
-					if (current->x == leftMarginPadding)
+					if (current->x <= leftMarginPadding)
 					{
 						// Case with lots of text without spaces, so just break in middle of the word
 						for (int n = startIndex; n < index; n++)
@@ -407,11 +448,7 @@ void Page::AppendText(const char* text)
 						// Case where widget is empty and needs to move to the next line
 
 						// Move to new line
-						int oldCurrentWidgetIndex = currentWidgetIndex;
-						currentWidgetIndex = -1;
-						FinishCurrentLine();
-						currentWidgetIndex = oldCurrentWidgetIndex;
-						currentLineStartWidgetIndex = currentWidgetIndex;
+						FinishCurrentLine(false);
 						current->x = cursorX;
 						current->y = cursorY;
 					}

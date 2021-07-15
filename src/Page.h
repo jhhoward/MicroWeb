@@ -36,12 +36,14 @@ public:
 	void AddTextField(char* text, int bufferLength, char* name);
 	void AppendText(const char* text);
 	void AddImage(char* altText, int width, int height);
+	void AddBulletPoint();
 	void BreakLine(int padding = 0);
 	void BreakTextLine();
 	void FlagLeadingWhiteSpace() { needLeadingWhiteSpace = true; }
 	void SetTitle(const char* text);
 	void FinishSection();
 	void SetFormData(WidgetFormData* formData);
+	void AdjustLeftMargin(int delta);
 
 	void SetWidgetURL(const char* url);
 	void ClearWidgetURL();
@@ -65,7 +67,7 @@ private:
 	Widget* CreateWidget(Widget::Type type);
 	Widget* CreateTextWidget();
 	void FinishCurrentWidget();
-	void FinishCurrentLine();
+	void FinishCurrentLine(bool includeCurrentWidget = true);
 
 	App& app;
 
