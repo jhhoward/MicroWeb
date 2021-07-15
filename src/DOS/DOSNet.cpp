@@ -370,7 +370,7 @@ void DOSHTTPRequest::Update()
 				break;
 			case SendHeaders:
 				{
-					WriteLine("GET %s HTTP/1.1", path);
+					WriteLine("GET %s HTTP/1.0", path);
 					WriteLine("User-Agent: MicroWeb " __DATE__);
 					WriteLine("Host: %s", hostname);
 					WriteLine("Connection: close");
