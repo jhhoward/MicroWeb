@@ -141,6 +141,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\tools\AssetGen.cpp" />
     <ClCompile Include="..\..\tools\FontGen.cpp" />
+    <ClCompile Include="..\..\tools\ImageGen.cpp" />
     <ClCompile Include="..\..\tools\lodepng.cpp" />
     <ClCompile Include="..\..\tools\MouseGen.cpp" />
   </ItemGroup>

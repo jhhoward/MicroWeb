@@ -14,14 +14,17 @@
 
 #include "../Platform.h"
 #include "CGA.h"
+#include "Hercules.h"
 #include "DOSInput.h"
 #include "DOSNet.h"
 
 static CGADriver cga;
+//static HerculesDriver hercules;
 static DOSInputDriver DOSinput;
 static DOSNetworkDriver DOSNet;
 
-VideoDriver* Platform::video = &cga;
+//VideoDriver* Platform::video = &cga;
+VideoDriver* Platform::video = &hercules;
 InputDriver* Platform::input = &DOSinput;
 NetworkDriver* Platform::network = &DOSNet;
 

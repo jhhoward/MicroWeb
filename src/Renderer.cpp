@@ -19,6 +19,7 @@
 #include "Widget.h"
 #include "Platform.h"
 #include "App.h"
+#include "Image.h"
 
 Renderer::Renderer(App& inApp) 
 	: app(inApp)
@@ -362,10 +363,26 @@ void Renderer::RenderWidgetInternal(Widget* widget, int baseY)
 	case Widget::Image:
 		if (widget->image && widget->width > 0)
 		{
+			int altTextOffset = 0;
+
+			if (Image* imageIcon = Platform::video->imageIcon)
+			{
+				if (widget->width == imageIcon->width && widget->height == imageIcon->height)
+				{
+					Platform::video->DrawImage(Platform::video->imageIcon, widget->x, widget->y + baseY);
+					break;
+				}
+				else if (widget->height >= Platform::video->imageIcon->height + 4)
+				{
+					Platform::video->DrawImage(Platform::video->imageIcon, widget->x + 2, widget->y + baseY + 2);
+					altTextOffset += Platform::video->imageIcon->width + 2;
+				}
+			}
+
 			DrawRect(widget->x, widget->y + baseY, widget->width, widget->height);
 			if (widget->image->altText)
 			{
-				DrawTruncatedString(widget->image->altText, widget->x + 2, widget->y + baseY + 2, widget->width - 4, widget->style.fontSize, widget->style.fontStyle);
+				DrawTruncatedString(widget->image->altText, widget->x + 2 + altTextOffset, widget->y + baseY + 2, widget->width - 4 - altTextOffset, widget->style.fontSize, widget->style.fontStyle);
 			}
 		}
 		break;

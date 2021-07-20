@@ -18,10 +18,10 @@
 
 struct Image;
 
-class CGADriver : public VideoDriver
+class HerculesDriver : public VideoDriver
 {
 public:
-	CGADriver();
+	HerculesDriver();
 
 	virtual void Init();
 	virtual void Shutdown();
@@ -56,8 +56,8 @@ public:
 	virtual MouseCursorData* GetCursorGraphic(MouseCursor::Type type);
 
 private:
-	int GetScreenMode();
-	void SetScreenMode(int screenMode);
+	void SetGraphicsMode();
+	void SetTextMode();
 
 	void ClearHLine(int x, int y, int count);
 	void HLineInternal(int x, int y, int count);
@@ -66,6 +66,5 @@ private:
 
 	bool invertScreen;
 	uint16_t clearMask;
-	int startingScreenMode;
 	int scissorX1, scissorY1, scissorX2, scissorY2;
 };

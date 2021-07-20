@@ -17,6 +17,7 @@
 
 using namespace std;
 
+void EncodeImage(const char* imageFilename, ofstream& outputFile, const char* varName);
 void EncodeFont(const char* imageFilename, ofstream& outputFile, const char* varName);
 void EncodeCursor(const char* imageFilename, ofstream& outputFile, const char* varName, int hotSpotX, int hotSpotY);
 
@@ -44,6 +45,42 @@ int main(int argc, char* argv)
 		EncodeCursor("assets/CGA/mouse.png", outputFile, "CGA_MouseCursor", 0, 0);
 		EncodeCursor("assets/CGA/mouse-link.png", outputFile, "CGA_MouseCursorHand", 6, 1);
 		EncodeCursor("assets/CGA/mouse-select.png", outputFile, "CGA_MouseCursorTextSelect", 8, 6);
+
+		outputFile << endl;
+		outputFile << "// Images:" << endl;
+
+		EncodeImage("assets/CGA/image-icon.png", outputFile, "CGA_ImageIcon");
+
+		outputFile.close();
+	}
+
+	// Hercules resources
+	{
+		ofstream outputFile("src/DOS/HercData.inc");
+
+		outputFile << "// Hercules resources" << endl;
+		outputFile << "// This file is auto generated" << endl << endl;
+		outputFile << "// Fonts:" << endl;
+
+		EncodeFont("assets/Default/font.png", outputFile, "Herc_RegularFont");
+		EncodeFont("assets/Default/font-small.png", outputFile, "Herc_SmallFont");
+		EncodeFont("assets/CGA/font-large.png", outputFile, "CGA_LargeFont");
+
+		EncodeFont("assets/CGA/font-mono.png", outputFile, "CGA_RegularFont_Monospace");
+		EncodeFont("assets/CGA/font-mono-small.png", outputFile, "CGA_SmallFont_Monospace");
+		EncodeFont("assets/CGA/font-mono-large.png", outputFile, "CGA_LargeFont_Monospace");
+
+		outputFile << endl;
+		outputFile << "// Mouse cursors:" << endl;
+
+		EncodeCursor("assets/Default/mouse.png", outputFile, "Herc_MouseCursor", 0, 0);
+		EncodeCursor("assets/Default/mouse-link.png", outputFile, "Herc_MouseCursorHand", 6, 1);
+		EncodeCursor("assets/Default/mouse-select.png", outputFile, "Herc_MouseCursorTextSelect", 8, 6);
+
+		outputFile << endl;
+		outputFile << "// Images:" << endl;
+
+		EncodeImage("assets/Default/image-icon.png", outputFile, "Herc_ImageIcon");
 
 		outputFile.close();
 	}

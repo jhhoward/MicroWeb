@@ -99,6 +99,7 @@
     <ClCompile Include="..\..\src\DOS\CGA.cpp" />
     <ClCompile Include="..\..\src\DOS\DOSInput.cpp" />
     <ClCompile Include="..\..\src\DOS\DOSNet.cpp" />
+    <ClCompile Include="..\..\src\DOS\Hercules.cpp" />
     <ClCompile Include="..\..\src\DOS\Platform.cpp" />
     <ClCompile Include="..\..\src\Font.cpp" />
     <ClCompile Include="..\..\src\Interface.cpp" />
@@ -111,6 +112,8 @@
   <ItemGroup>
     <ClInclude Include="..\..\src\App.h" />
     <ClInclude Include="..\..\src\DOS\DOSNet.h" />
+    <ClInclude Include="..\..\src\DOS\Hercules.h" />
+    <ClInclude Include="..\..\src\Image.h" />
     <ClInclude Include="..\..\src\Interface.h" />
     <ClInclude Include="..\..\src\KeyCodes.h" />
     <ClInclude Include="..\..\src\LinAlloc.h" />

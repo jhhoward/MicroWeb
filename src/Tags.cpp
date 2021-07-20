@@ -19,6 +19,7 @@
 #include "Parser.h"
 #include "Page.h"
 #include "Platform.h"
+#include "Image.h"
 
 static const HTMLTagHandler* tagHandlers[] =
 {
@@ -457,9 +458,12 @@ void ImgTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 
 	if (width == -1 && height == -1)
 	{
-		int defaultImageWidth = 24;
-		int defaultImageHeight = 12;
-		parser.page.AddImage(NULL, defaultImageWidth, defaultImageHeight);
+		Image* imageIcon = Platform::video->imageIcon;
+		if (imageIcon)
+		{
+			parser.page.AddImage(NULL, imageIcon->width, imageIcon->height);
+		}
+
 		if (altText)
 		{
 			parser.page.AppendText(altText);

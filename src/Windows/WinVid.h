@@ -38,6 +38,7 @@ public:
 
 	virtual void DrawString(const char* text, int x, int y, int size = 1, FontStyle::Type style = FontStyle::Regular);
 	virtual void DrawScrollBar(int position, int size);
+	virtual void DrawImage(struct Image* image, int x, int y) {}
 
 	virtual MouseCursorData* GetCursorGraphic(MouseCursor::Type type);
 

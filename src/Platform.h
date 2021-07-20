@@ -19,6 +19,8 @@
 #include "Cursor.h"
 #include "Widget.h"
 
+struct Image;
+
 class VideoDriver
 {
 public:
@@ -40,6 +42,7 @@ public:
 
 	virtual void DrawString(const char* text, int x, int y, int size = 1, FontStyle::Type style = FontStyle::Regular) = 0;
 	virtual void DrawScrollBar(int position, int size) = 0;
+	virtual void DrawImage(Image* image, int x, int y) = 0;
 
 	virtual void HLine(int x, int y, int count) = 0;
 	virtual void VLine(int x, int y, int count) = 0;
@@ -56,6 +59,8 @@ public:
 	int windowWidth;
 	int windowHeight;
 	int windowX, windowY;
+
+	Image* imageIcon;
 };
 
 class HTTPRequest
