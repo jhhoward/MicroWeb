@@ -106,3 +106,80 @@ void EncodeCursor(const char* imageFilename, ofstream& outputFile, const char* v
 	outputFile << "};" << endl << endl;
 }
 
+void EncodeCursor(vector<unsigned char>& outputData, const char* imageFilename, int hotSpotX, int hotSpotY)
+{
+	vector<unsigned char> data;
+	unsigned width, height;
+	unsigned error = lodepng::decode(data, width, height, imageFilename);
+
+	if (error)
+	{
+		cerr << "Error loading " << imageFilename << endl;
+		return;
+	}
+
+	if (width != 16 || height != 16)
+	{
+		cerr << "Cursor must be 16x16" << endl;
+		return;
+	}
+
+	vector<uint8_t> maskData;
+	vector<uint8_t> colourData;
+
+	for (int y = 0; y < 16; y++)
+	{
+		for (int x = 0; x < 16; x++)
+		{
+			int index = (y * width + x) * 4;
+			unsigned col = data[index] | (data[index + 1] << 8) | (data[index + 2] << 16);
+
+			if (data[index + 3] == 0)
+			{
+				maskData.push_back(1);
+				colourData.push_back(0);
+			}
+			else
+			{
+				maskData.push_back(0);
+				colourData.push_back(col == 0 ? 0 : 1);
+			}
+
+		}
+	}
+
+	uint16_t output = 0;
+	for (int n = 0; n < 256; n++)
+	{
+		if (maskData[n] != 0)
+		{
+			output |= (0x8000 >> (n % 16));
+		}
+		if ((n % 16) == 15)
+		{
+			outputData.push_back((uint8_t)(output & 0xff));
+			outputData.push_back((uint8_t)(output >> 8));
+			output = 0;
+		}
+	}
+
+	output = 0;
+	for (int n = 0; n < 256; n++)
+	{
+		if (colourData[n] != 0)
+		{
+			output |= (0x8000 >> (n % 16));
+		}
+		if ((n % 16) == 15)
+		{
+			outputData.push_back((uint8_t)(output & 0xff));
+			outputData.push_back((uint8_t)(output >> 8));
+			output = 0;
+		}
+	}
+
+	outputData.push_back((uint8_t)(hotSpotX & 0xff));
+	outputData.push_back((uint8_t)(hotSpotX >> 8));
+	outputData.push_back((uint8_t)(hotSpotY & 0xff));
+	outputData.push_back((uint8_t)(hotSpotX >> 8));
+}

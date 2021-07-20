@@ -156,7 +156,7 @@ void EncodeFont(const char* imageFilename, ofstream& outputFile, const char* var
 	outputFile << "};" << endl;
 	outputFile << endl;
 	
-	outputFile << "static Font " << varName << " = {" << endl;
+	outputFile << "Font " << varName << " = {" << endl;
 	outputFile << "\t// Glyph widths" << endl;
 	outputFile << "\t{ ";
 	

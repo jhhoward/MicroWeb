@@ -195,7 +195,7 @@ static unsigned char CGA_RegularFont_Data[] = {
 	0x00, 0x00, 0x00, 0x00, 0x76, 0x00, 0xdc, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
 };
 
-static Font CGA_RegularFont = {
+Font CGA_RegularFont = {
 	// Glyph widths
 	{ 3,3,6,9,7,12,11,3,4,4,9,9,3,4,3,5,7,5,7,7,7,7,7,7,7,7,3,3,7,8,7,7,13,9,9,9,9,8,8,10,10,3,7,9,7,11,10,10,9,10,9,9,7,9,9,13,8,9,8,5,5,5,6,8,5,7,8,7,8,7,5,8,7,3,4,7,3,9,7,8,8,8,5,6,5,7,7,9,7,7,7,6,3,6,8}, 
 	2, 	// Byte width
@@ -399,7 +399,7 @@ static unsigned char CGA_SmallFont_Data[] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
 };
 
-static Font CGA_SmallFont = {
+Font CGA_SmallFont = {
 	// Glyph widths
 	{ 2,2,4,6,5,6,9,2,4,3,6,7,3,3,2,4,5,5,5,5,5,5,6,6,6,6,1,3,7,8,7,6,8,7,7,8,7,6,6,8,8,2,6,7,5,10,8,8,7,8,7,7,6,8,8,12,6,6,6,4,4,4,4,6,5,6,6,5,6,6,3,6,6,2,3,6,2,10,6,6,6,6,4,5,3,6,6,8,5,6,5,6,2,6,5,1}, 
 	2, 	// Byte width
@@ -601,7 +601,7 @@ static unsigned char CGA_LargeFont_Data[] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x78, 0x10, 0x00, 0xce, 0x30, 0x00, 0x83, 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
 };
 
-static Font CGA_LargeFont = {
+Font CGA_LargeFont = {
 	// Glyph widths
 	{ 7,4,8,17,13,20,16,4,6,6,10,14,4,7,4,9,13,8,13,12,14,12,13,13,13,13,4,4,14,14,14,12,24,15,14,17,16,14,13,17,15,4,12,14,13,18,15,18,14,18,15,15,16,15,15,22,14,16,15,5,8,5,12,13,4,12,13,12,13,12,7,13,11,3,5,11,3,17,11,13,13,13,7,10,7,11,12,18,10,11,12,7,4,7,13}, 
 	3, 	// Byte width
@@ -803,7 +803,7 @@ static unsigned char CGA_RegularFont_Monospace_Data[] = {
 	0x00, 0x00, 0x7b, 0x00, 0xde, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
 };
 
-static Font CGA_RegularFont_Monospace = {
+Font CGA_RegularFont_Monospace = {
 	// Glyph widths
 	{ 9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9}, 
 	2, 	// Byte width
@@ -1005,7 +1005,7 @@ static unsigned char CGA_SmallFont_Monospace_Data[] = {
 	0x76, 0xdc, 0x00, 0x00, 0x00, 0x00, 
 };
 
-static Font CGA_SmallFont_Monospace = {
+Font CGA_SmallFont_Monospace = {
 	// Glyph widths
 	{ 8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8}, 
 	1, 	// Byte width
@@ -1207,7 +1207,7 @@ static unsigned char CGA_LargeFont_Monospace_Data[] = {
 	0x00, 0x00, 0x1e, 0xc0, 0x37, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
 };
 
-static Font CGA_LargeFont_Monospace = {
+Font CGA_LargeFont_Monospace = {
 	// Glyph widths
 	{ 12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12}, 
 	2, 	// Byte width
@@ -1251,7 +1251,7 @@ static unsigned char CGA_ImageIcon_Data[] = {
 	0xff, 0xe0, 0x80, 0x50, 0x98, 0x78, 0x81, 0x88, 0x9b, 0xc8, 0xbf, 0xe8, 0x80, 0x08, 0xff, 0xf8, 
 };
 
-static Image CGA_ImageIcon = {
+Image CGA_ImageIcon = {
 	// Dimensions
 	13, 8,
 	CGA_ImageIcon_Data

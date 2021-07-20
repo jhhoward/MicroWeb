@@ -20,7 +20,7 @@
 #include <stdint.h>
 #include "../Image.h"
 #include "Hercules.h"
-#include "HercData.inc"
+#include "DefData.h"
 #include "../Interface.h"
 
 #define BASE_VRAM_ADDRESS (uint8_t*) MK_FP(0xB000, 0)
@@ -78,7 +78,7 @@ HerculesDriver::HerculesDriver()
 	scissorY2 = SCREEN_HEIGHT;
 	invertScreen = false;
 	clearMask = invertScreen ? 0 : 0xffff;
-	imageIcon = &Herc_ImageIcon;
+	imageIcon = &Default_ImageIcon;
 }
 
 // graphics mode CRTC register values
@@ -344,26 +344,26 @@ Font* HerculesDriver::GetFont(int fontSize, FontStyle::Type style)
 		switch (fontSize)
 		{
 		case 0:
-			return &CGA_SmallFont_Monospace;
+			return &Default_SmallFont_Monospace;
 		case 2:
 		case 3:
 		case 4:
-			return &CGA_LargeFont_Monospace;
+			return &Default_LargeFont_Monospace;
 		default:
-			return &CGA_RegularFont_Monospace;
+			return &Default_RegularFont_Monospace;
 		}
 	}
 
 	switch (fontSize)
 	{
 	case 0:
-		return &Herc_SmallFont;
+		return &Default_SmallFont;
 	case 2:
 	case 3:
 	case 4:
-		return &Herc_LargeFont;
+		return &Default_LargeFont;
 	default:
-		return &Herc_RegularFont;
+		return &Default_RegularFont;
 	}
 }
 
@@ -627,11 +627,11 @@ MouseCursorData* HerculesDriver::GetCursorGraphic(MouseCursor::Type type)
 	{
 	default:
 	case MouseCursor::Pointer:
-		return &Herc_MouseCursor;
+		return &Default_MouseCursor;
 	case MouseCursor::Hand:
-		return &Herc_MouseCursorHand;
+		return &Default_MouseCursorHand;
 	case MouseCursor::TextSelect:
-		return &Herc_MouseCursorTextSelect;
+		return &Default_MouseCursorTextSelect;
 	}
 }
 

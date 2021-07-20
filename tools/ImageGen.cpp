@@ -83,7 +83,7 @@ void EncodeImage(const char* imageFilename, ofstream& outputFile, const char* va
 	outputFile << "};" << endl;
 	outputFile << endl;
 
-	outputFile << "static Image " << varName << " = {" << endl;
+	outputFile << "Image " << varName << " = {" << endl;
 	outputFile << "\t// Dimensions" << endl;
 	outputFile << "\t" << width << ", " << height << "," << endl;
 	outputFile << "\t" << varName << "_Data" << endl;

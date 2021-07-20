@@ -20,7 +20,7 @@
 #include <stdint.h>
 #include "../Image.h"
 #include "EGA.h"
-#include "EGAData.inc"
+#include "DefData.h"
 #include "../Interface.h"
 
 #define EGA_BASE_VRAM_ADDRESS (uint8_t*) MK_FP(0xA000, 0)
@@ -72,7 +72,7 @@ void EGADriver::SetupVars(int inScreenMode, int inScreenHeight)
 	scissorY2 = SCREEN_HEIGHT;
 	invertScreen = false;
 	clearMask = invertScreen ? 0 : 0xffff;
-	imageIcon = &EGA_ImageIcon;
+	imageIcon = &Default_ImageIcon;
 }
 
 void EGADriver::Init()
@@ -295,26 +295,26 @@ Font* EGADriver::GetFont(int fontSize, FontStyle::Type style)
 		switch (fontSize)
 		{
 		case 0:
-			return &EGA_SmallFont_Monospace;
+			return &Default_SmallFont_Monospace;
 		case 2:
 		case 3:
 		case 4:
-			return &EGA_LargeFont_Monospace;
+			return &Default_LargeFont_Monospace;
 		default:
-			return &EGA_RegularFont_Monospace;
+			return &Default_RegularFont_Monospace;
 		}
 	}
 
 	switch (fontSize)
 	{
 	case 0:
-		return &EGA_SmallFont;
+		return &Default_SmallFont;
 	case 2:
 	case 3:
 	case 4:
-		return &EGA_LargeFont;
+		return &Default_LargeFont;
 	default:
-		return &EGA_RegularFont;
+		return &Default_RegularFont;
 	}
 }
 
@@ -546,11 +546,11 @@ MouseCursorData* EGADriver::GetCursorGraphic(MouseCursor::Type type)
 	{
 	default:
 	case MouseCursor::Pointer:
-		return &EGA_MouseCursor;
+		return &Default_MouseCursor;
 	case MouseCursor::Hand:
-		return &EGA_MouseCursorHand;
+		return &Default_MouseCursorHand;
 	case MouseCursor::TextSelect:
-		return &EGA_MouseCursorTextSelect;
+		return &Default_MouseCursorTextSelect;
 	}
 }
 
