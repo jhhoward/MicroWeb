@@ -19,45 +19,49 @@
 #include <memory.h>
 #include <stdint.h>
 #include "../Image.h"
-#include "CGA.h"
-#include "CGAData.inc"
+#include "EGA.h"
+#include "EGAData.inc"
 #include "../Interface.h"
 
-#define CGA_BASE_VRAM_ADDRESS (uint8_t*) MK_FP(0xB800, 0)
+#define EGA_BASE_VRAM_ADDRESS (uint8_t*) MK_FP(0xA000, 0)
 
 #define SCREEN_WIDTH 640
-#define SCREEN_HEIGHT 200
-
-#define NAVIGATION_BUTTON_WIDTH 24
-#define NAVIGATION_BUTTON_HEIGHT 12
+#define SCREEN_HEIGHT (screenHeight)
 
 #define BACK_BUTTON_X 4
 #define FORWARD_BUTTON_X 32
 
-#define ADDRESS_BAR_X 60
-#define ADDRESS_BAR_Y 10
 #define ADDRESS_BAR_WIDTH (SCREEN_WIDTH - 64)
-#define ADDRESS_BAR_HEIGHT 12
-#define TITLE_BAR_HEIGHT 8
-#define STATUS_BAR_HEIGHT 8
+#define ADDRESS_BAR_HEIGHT 15
+#define TITLE_BAR_HEIGHT 12
+#define STATUS_BAR_HEIGHT 12
 #define STATUS_BAR_Y (SCREEN_HEIGHT - STATUS_BAR_HEIGHT)
+#define ADDRESS_BAR_X 60
+#define ADDRESS_BAR_Y (TITLE_BAR_HEIGHT + 1)
 
-#define WINDOW_TOP 24
+#define NAVIGATION_BUTTON_WIDTH 24
+#define NAVIGATION_BUTTON_HEIGHT ADDRESS_BAR_HEIGHT
+
+#define WINDOW_TOP (TITLE_BAR_HEIGHT + ADDRESS_BAR_HEIGHT + 3)
 #define WINDOW_HEIGHT (SCREEN_HEIGHT - WINDOW_TOP - STATUS_BAR_HEIGHT)
 #define WINDOW_BOTTOM (WINDOW_TOP + WINDOW_HEIGHT)
 
 #define SCROLL_BAR_WIDTH 16
 
-#define WINDOW_VRAM_TOP_EVEN (BYTES_PER_LINE * (WINDOW_TOP / 2))
-#define WINDOW_VRAM_TOP_ODD (0x2000 + BYTES_PER_LINE * (WINDOW_TOP / 2))
-#define WINDOW_VRAM_BOTTOM_EVEN (BYTES_PER_LINE * (WINDOW_BOTTOM / 2))
-#define WINDOW_VRAM_BOTTOM_ODD (0x2000 + BYTES_PER_LINE * (WINDOW_BOTTOM / 2))
+#define WINDOW_VRAM_TOP (BYTES_PER_LINE * (WINDOW_TOP))
+#define WINDOW_VRAM_BOTTOM (BYTES_PER_LINE * (WINDOW_BOTTOM))
 #define BYTES_PER_LINE 80
 
-CGADriver::CGADriver()
+EGADriver::EGADriver()
 {
+	SetupVars(0x10, 350);
+}
+
+void EGADriver::SetupVars(int inScreenMode, int inScreenHeight)
+{
+	screenModeToUse = inScreenMode;
 	screenWidth = SCREEN_WIDTH;
-	screenHeight = SCREEN_HEIGHT;
+	screenHeight = inScreenHeight;
 	windowWidth = screenWidth - 16;
 	windowHeight = WINDOW_HEIGHT;
 	windowX = 0;
@@ -68,21 +72,21 @@ CGADriver::CGADriver()
 	scissorY2 = SCREEN_HEIGHT;
 	invertScreen = false;
 	clearMask = invertScreen ? 0 : 0xffff;
-	imageIcon = &CGA_ImageIcon;
+	imageIcon = &EGA_ImageIcon;
 }
 
-void CGADriver::Init()
+void EGADriver::Init()
 {
 	startingScreenMode = GetScreenMode();
-	SetScreenMode(6);
+	SetScreenMode(screenModeToUse);
 }
 
-void CGADriver::Shutdown()
+void EGADriver::Shutdown()
 {
 	SetScreenMode(startingScreenMode);
 }
 
-int CGADriver::GetScreenMode()
+int EGADriver::GetScreenMode()
 {
 	union REGS inreg, outreg;
 	inreg.h.ah = 0xf;
@@ -92,7 +96,7 @@ int CGADriver::GetScreenMode()
 	return (int)outreg.h.al;
 }
 
-void CGADriver::SetScreenMode(int screenMode)
+void EGADriver::SetScreenMode(int screenMode)
 {
 	union REGS inreg, outreg;
 	inreg.h.ah = 0;
@@ -107,10 +111,10 @@ static void FastMemSet(void far* mem, uint8_t value, unsigned int count);
 	modify [di cx] \	
 	parm[es di][al][cx];
 
-void CGADriver::InvertScreen()
+void EGADriver::InvertScreen()
 {
-	int count = 0x4000;
-	unsigned char far* VRAM = CGA_BASE_VRAM_ADDRESS;
+	int count = (SCREEN_HEIGHT * BYTES_PER_LINE);
+	unsigned char far* VRAM = EGA_BASE_VRAM_ADDRESS;
 	while (count--)
 	{
 		*VRAM ^= 0xff;
@@ -121,16 +125,13 @@ void CGADriver::InvertScreen()
 	clearMask = invertScreen ? 0 : 0xffff;
 }
 
-void CGADriver::ClearScreen()
+void EGADriver::ClearScreen()
 {
 	uint8_t clearValue = (uint8_t)(clearMask & 0xff);
-	FastMemSet(CGA_BASE_VRAM_ADDRESS, clearValue, 0x4000);
-	// White out main page
-	//FastMemSet(CGA_BASE_VRAM_ADDRESS + BYTES_PER_LINE * TITLE_BAR_HEIGHT / 2, 0xff, BYTES_PER_LINE * (SCREEN_HEIGHT - TITLE_BAR_HEIGHT - STATUS_BAR_HEIGHT) / 2);
-	//FastMemSet(CGA_BASE_VRAM_ADDRESS + 0x2000 + BYTES_PER_LINE * TITLE_BAR_HEIGHT / 2, 0xff, BYTES_PER_LINE * (SCREEN_HEIGHT - TITLE_BAR_HEIGHT - STATUS_BAR_HEIGHT) / 2);
+	FastMemSet(EGA_BASE_VRAM_ADDRESS, clearValue, (SCREEN_HEIGHT * BYTES_PER_LINE));
 }
 
-void CGADriver::DrawImage(Image* image, int x, int y)
+void EGADriver::DrawImage(Image* image, int x, int y)
 {
 	int imageHeight = image->height;
 
@@ -158,13 +159,8 @@ void CGADriver::DrawImage(Image* image, int x, int y)
 		y += firstLine;
 	}
 
-	uint8_t far* VRAM = (uint8_t far*) CGA_BASE_VRAM_ADDRESS;
-	VRAM += (y >> 1) * BYTES_PER_LINE;
-
-	if (y & 1)
-	{
-		VRAM += 0x2000;
-	}
+	uint8_t far* VRAM = (uint8_t far*) EGA_BASE_VRAM_ADDRESS;
+	VRAM += y  * BYTES_PER_LINE;
 
 	uint16_t imageWidthBytes = image->width >> 3;
 
@@ -176,7 +172,6 @@ void CGADriver::DrawImage(Image* image, int x, int y)
 
 	uint8_t* imageData = image->data + firstLine * imageWidthBytes;
 	uint8_t far* VRAMptr = VRAM + (x >> 3);
-	bool oddLine = (y & 1);
 
 	for (uint8_t j = firstLine; j < imageHeight; j++)
 	{
@@ -190,19 +185,11 @@ void CGADriver::DrawImage(Image* image, int x, int y)
 			VRAMptr[i + 1] ^= (glyphPixels << (8 - writeOffset));
 		}
 
-		if (oddLine)
-		{
-			VRAMptr -= (0x2000 - BYTES_PER_LINE);
-		}
-		else
-		{
-			VRAMptr += 0x2000;
-		}
-		oddLine = !oddLine;
+		VRAMptr += BYTES_PER_LINE;
 	}
 }
 
-void CGADriver::DrawString(const char* text, int x, int y, int size, FontStyle::Type style)
+void EGADriver::DrawString(const char* text, int x, int y, int size, FontStyle::Type style)
 {
 	Font* font = GetFont(size, style);
 
@@ -232,14 +219,9 @@ void CGADriver::DrawString(const char* text, int x, int y, int size, FontStyle::
 		y += firstLine;
 	}
 
-	uint8_t far* VRAM = (uint8_t far*) CGA_BASE_VRAM_ADDRESS;
+	uint8_t far* VRAM = (uint8_t far*) EGA_BASE_VRAM_ADDRESS;
 
-	VRAM += (y >> 1) * BYTES_PER_LINE;
-
-	if (y & 1)
-	{
-		VRAM += 0x2000;
-	}
+	VRAM += y * BYTES_PER_LINE;
 
 	while (*text)
 	{
@@ -261,7 +243,6 @@ void CGADriver::DrawString(const char* text, int x, int y, int size, FontStyle::
 		
 		glyphData += (firstLine * font->glyphWidthBytes);
 
-		bool oddLine = (y & 1);
 		uint8_t far* VRAMptr = VRAM + (x >> 3);
 
 		for (uint8_t j = firstLine; j < glyphHeight; j++)
@@ -286,15 +267,7 @@ void CGADriver::DrawString(const char* text, int x, int y, int size, FontStyle::
 				VRAMptr[i + 1] ^= (glyphPixels << (8 - writeOffset));
 			}
 
-			if (oddLine)
-			{
-				VRAMptr -= (0x2000 - BYTES_PER_LINE);
-			}
-			else
-			{
-				VRAMptr += 0x2000;
-			}
-			oddLine = !oddLine;
+			VRAMptr += BYTES_PER_LINE;
 		}
 
 		x += glyphWidth;
@@ -315,37 +288,37 @@ void CGADriver::DrawString(const char* text, int x, int y, int size, FontStyle::
 	}
 }
 
-Font* CGADriver::GetFont(int fontSize, FontStyle::Type style)
+Font* EGADriver::GetFont(int fontSize, FontStyle::Type style)
 {
 	if (style & FontStyle::Monospace)
 	{
 		switch (fontSize)
 		{
 		case 0:
-			return &CGA_SmallFont_Monospace;
+			return &EGA_SmallFont_Monospace;
 		case 2:
 		case 3:
 		case 4:
-			return &CGA_LargeFont_Monospace;
+			return &EGA_LargeFont_Monospace;
 		default:
-			return &CGA_RegularFont_Monospace;
+			return &EGA_RegularFont_Monospace;
 		}
 	}
 
 	switch (fontSize)
 	{
 	case 0:
-		return &CGA_SmallFont;
+		return &EGA_SmallFont;
 	case 2:
 	case 3:
 	case 4:
-		return &CGA_LargeFont;
+		return &EGA_LargeFont;
 	default:
-		return &CGA_RegularFont;
+		return &EGA_RegularFont;
 	}
 }
 
-void CGADriver::HLine(int x, int y, int count)
+void EGADriver::HLine(int x, int y, int count)
 {
 	if (invertScreen)
 	{
@@ -357,20 +330,15 @@ void CGADriver::HLine(int x, int y, int count)
 	}
 }
 
-void CGADriver::HLineInternal(int x, int y, int count)
+void EGADriver::HLineInternal(int x, int y, int count)
 {
 	if (y < scissorY1 || y >= scissorY2)
 		return;
 
-	uint8_t far* VRAMptr = (uint8_t far*) CGA_BASE_VRAM_ADDRESS;
+	uint8_t far* VRAMptr = (uint8_t far*) EGA_BASE_VRAM_ADDRESS;
 
-	VRAMptr += (y >> 1) * BYTES_PER_LINE;
+	VRAMptr += y * BYTES_PER_LINE;
 	VRAMptr += (x >> 3);
-
-	if (y & 1)
-	{
-		VRAMptr += 0x2000;
-	}
 
 	uint8_t data = *VRAMptr;
 	uint8_t mask = ~(0x80 >> (x & 7));
@@ -396,17 +364,12 @@ void CGADriver::HLineInternal(int x, int y, int count)
 	*VRAMptr = data;
 }
 
-void CGADriver::ClearHLine(int x, int y, int count)
+void EGADriver::ClearHLine(int x, int y, int count)
 {
-	uint8_t far* VRAMptr = (uint8_t far*) CGA_BASE_VRAM_ADDRESS;
+	uint8_t far* VRAMptr = (uint8_t far*) EGA_BASE_VRAM_ADDRESS;
 
-	VRAMptr += (y >> 1) * BYTES_PER_LINE;
+	VRAMptr += y * BYTES_PER_LINE;
 	VRAMptr += (x >> 3);
-
-	if (y & 1)
-	{
-		VRAMptr += 0x2000;
-	}
 
 	uint8_t data = *VRAMptr;
 	uint8_t mask = (0x80 >> (x & 7));
@@ -432,7 +395,7 @@ void CGADriver::ClearHLine(int x, int y, int count)
 	*VRAMptr = data;
 }
 
-void CGADriver::ClearRect(int x, int y, int width, int height)
+void EGADriver::ClearRect(int x, int y, int width, int height)
 {
 	if (!ApplyScissor(y, height))
 		return;
@@ -453,17 +416,12 @@ void CGADriver::ClearRect(int x, int y, int width, int height)
 	}
 }
 
-void CGADriver::InvertLine(int x, int y, int count)
+void EGADriver::InvertLine(int x, int y, int count)
 {
-	uint8_t far* VRAMptr = (uint8_t far*) CGA_BASE_VRAM_ADDRESS;
+	uint8_t far* VRAMptr = (uint8_t far*) EGA_BASE_VRAM_ADDRESS;
 
-	VRAMptr += (y >> 1) * BYTES_PER_LINE;
+	VRAMptr += y * BYTES_PER_LINE;
 	VRAMptr += (x >> 3);
-
-	if (y & 1)
-	{
-		VRAMptr += 0x2000;
-	}
 
 	uint8_t data = *VRAMptr;
 	uint8_t mask = (0x80 >> (x & 7));
@@ -489,7 +447,7 @@ void CGADriver::InvertLine(int x, int y, int count)
 	*VRAMptr = data;
 }
 
-bool CGADriver::ApplyScissor(int& y, int& height)
+bool EGADriver::ApplyScissor(int& y, int& height)
 {
 	if (y + height < scissorY1)
 		return false;
@@ -507,7 +465,7 @@ bool CGADriver::ApplyScissor(int& y, int& height)
 	return true;
 }
 
-void CGADriver::InvertRect(int x, int y, int width, int height)
+void EGADriver::InvertRect(int x, int y, int width, int height)
 {
 	if (!ApplyScissor(y, height))
 		return;
@@ -518,36 +476,25 @@ void CGADriver::InvertRect(int x, int y, int width, int height)
 	}
 }
 
-void CGADriver::FillRect(int x, int y, int width, int height)
+void EGADriver::FillRect(int x, int y, int width, int height)
 {
-	if (x == 0 && width == SCREEN_WIDTH && !(height & 1) && !(y & 1))
+	if (invertScreen)
 	{
-		y >>= 1;
-		height >>= 1;
-		uint8_t fillValue = ~(clearMask & 0xff);
-		FastMemSet(CGA_BASE_VRAM_ADDRESS + BYTES_PER_LINE * y, fillValue, BYTES_PER_LINE * height);
-		FastMemSet(CGA_BASE_VRAM_ADDRESS + 0x2000 + BYTES_PER_LINE * y, fillValue, BYTES_PER_LINE * height);
+		for (int j = 0; j < height; j++)
+		{
+			ClearHLine(x, y + j, width);
+		}
 	}
 	else
 	{
-		if (invertScreen)
+		for (int j = 0; j < height; j++)
 		{
-			for (int j = 0; j < height; j++)
-			{
-				ClearHLine(x, y + j, width);
-			}
-		}
-		else
-		{
-			for (int j = 0; j < height; j++)
-			{
-				HLineInternal(x, y + j, width);
-			}
+			HLineInternal(x, y + j, width);
 		}
 	}
 }
 
-void CGADriver::VLine(int x, int y, int count)
+void EGADriver::VLine(int x, int y, int count)
 {
 	if (y < scissorY1)
 	{
@@ -567,17 +514,11 @@ void CGADriver::VLine(int x, int y, int count)
 		return;
 	}
 
-	uint8_t far* VRAMptr = (uint8_t far*) CGA_BASE_VRAM_ADDRESS;
+	uint8_t far* VRAMptr = (uint8_t far*) EGA_BASE_VRAM_ADDRESS;
 	uint8_t mask = ~(0x80 >> (x & 7));
 
-	VRAMptr += (y >> 1) * BYTES_PER_LINE;
+	VRAMptr += y * BYTES_PER_LINE;
 	VRAMptr += (x >> 3);
-
-	bool oddLine = (y & 1);
-	if (oddLine)
-	{
-		VRAMptr += 0x2000;
-	}
 
 	if (invertScreen)
 	{
@@ -586,15 +527,7 @@ void CGADriver::VLine(int x, int y, int count)
 		while (count--)
 		{
 			*VRAMptr |= mask;
-			if (oddLine)
-			{
-				VRAMptr -= (0x2000 - BYTES_PER_LINE);
-			}
-			else
-			{
-				VRAMptr += 0x2000;
-			}
-			oddLine = !oddLine;
+			VRAMptr += BYTES_PER_LINE;
 		}
 	}
 	else
@@ -602,34 +535,26 @@ void CGADriver::VLine(int x, int y, int count)
 		while (count--)
 		{
 			*VRAMptr &= mask;
-			if (oddLine)
-			{
-				VRAMptr -= (0x2000 - BYTES_PER_LINE);
-			}
-			else
-			{
-				VRAMptr += 0x2000;
-			}
-			oddLine = !oddLine;
+			VRAMptr += BYTES_PER_LINE;
 		}
 	}
 }
 
-MouseCursorData* CGADriver::GetCursorGraphic(MouseCursor::Type type)
+MouseCursorData* EGADriver::GetCursorGraphic(MouseCursor::Type type)
 {
 	switch (type)
 	{
 	default:
 	case MouseCursor::Pointer:
-		return &CGA_MouseCursor;
+		return &EGA_MouseCursor;
 	case MouseCursor::Hand:
-		return &CGA_MouseCursorHand;
+		return &EGA_MouseCursorHand;
 	case MouseCursor::TextSelect:
-		return &CGA_MouseCursorTextSelect;
+		return &EGA_MouseCursorTextSelect;
 	}
 }
 
-int CGADriver::GetGlyphWidth(char c, int fontSize, FontStyle::Type style)
+int EGADriver::GetGlyphWidth(char c, int fontSize, FontStyle::Type style)
 {
 	Font* font = GetFont(fontSize, style);
 	if (c >= 32 && c < 128)
@@ -644,7 +569,7 @@ int CGADriver::GetGlyphWidth(char c, int fontSize, FontStyle::Type style)
 	return 0;
 }
 
-int CGADriver::GetLineHeight(int fontSize, FontStyle::Type style)
+int EGADriver::GetLineHeight(int fontSize, FontStyle::Type style)
 {
 	return GetFont(fontSize, style)->glyphHeight + 1;
 }
@@ -708,26 +633,21 @@ void DrawScrollBarBlockInverted(uint8_t far* ptr, int top, int middle, int botto
 parm[es di][bx][cx][dx];
 
 
-void CGADriver::DrawScrollBar(int position, int size)
+void EGADriver::DrawScrollBar(int position, int size)
 {
-	position >>= 1;
-	size >>= 1;
-
-	uint8_t* VRAM = CGA_BASE_VRAM_ADDRESS + WINDOW_TOP / 2 * BYTES_PER_LINE + (BYTES_PER_LINE - 2);
+	uint8_t* VRAM = EGA_BASE_VRAM_ADDRESS + WINDOW_TOP * BYTES_PER_LINE + (BYTES_PER_LINE - 2);
 
 	if (invertScreen)
 	{
-		DrawScrollBarBlockInverted(VRAM, position, size, (WINDOW_HEIGHT / 2) - position - size);
-		DrawScrollBarBlockInverted(VRAM + 0x2000, position, size, (WINDOW_HEIGHT / 2) - position - size);
+		DrawScrollBarBlockInverted(VRAM, position, size, WINDOW_HEIGHT - position - size);
 	}
 	else
 	{
-		DrawScrollBarBlock(VRAM, position, size, (WINDOW_HEIGHT / 2) - position - size);
-		DrawScrollBarBlock(VRAM + 0x2000, position, size, (WINDOW_HEIGHT / 2) - position - size);
+		DrawScrollBarBlock(VRAM, position, size, WINDOW_HEIGHT - position - size);
 	}
 }
 
-void CGADriver::DrawRect(int x, int y, int width, int height)
+void EGADriver::DrawRect(int x, int y, int width, int height)
 {
 	HLine(x, y, width);
 	HLine(x, y + height - 1, width);
@@ -735,7 +655,7 @@ void CGADriver::DrawRect(int x, int y, int width, int height)
 	VLine(x + width - 1, y + 1, height - 2);
 }
 
-void CGADriver::DrawButtonRect(int x, int y, int width, int height)
+void EGADriver::DrawButtonRect(int x, int y, int width, int height)
 {
 	HLine(x + 1, y, width - 2);
 	HLine(x + 1, y + height - 1, width - 2);
@@ -747,7 +667,7 @@ void ScrollRegionUp(int dest, int src, int count);
 #pragma aux ScrollRegionUp = \
 	"push ds" \
 	"push es" \
-	"mov ax, 0xb800" \
+	"mov ax, 0xa000" \
 	"mov ds, ax" \
 	"mov es, ax" \
 	"_loopLine:" \
@@ -766,7 +686,7 @@ void ScrollRegionDown(int dest, int src, int count);
 #pragma aux ScrollRegionDown = \
 	"push ds" \
 	"push es" \
-	"mov ax, 0xb800" \
+	"mov ax, 0xa000" \
 	"mov ds, ax" \
 	"mov es, ax" \
 	"_loopLine:" \
@@ -784,7 +704,7 @@ void ScrollRegionDown(int dest, int src, int count);
 void ClearRegion(int offset, int count, uint16_t clearMask);
 #pragma aux ClearRegion = \
 	"push es" \
-	"mov ax, 0xb800" \
+	"mov ax, 0xa000" \
 	"mov es, ax" \
 	"mov ax, bx" \
 	"_loopLine:" \
@@ -797,54 +717,44 @@ void ClearRegion(int offset, int count, uint16_t clearMask);
 	modify [cx di ax cx dx] \
 	parm [di] [dx] [bx]
 
-void CGADriver::ScrollWindow(int amount)
+void EGADriver::ScrollWindow(int amount)
 {
-	amount &= ~1;
-
 	if (amount > 0)
 	{
-		int lines = (WINDOW_HEIGHT - amount) >> 1;
-		int offset = amount * (BYTES_PER_LINE >> 1);
-		ScrollRegionUp(WINDOW_VRAM_TOP_EVEN, WINDOW_VRAM_TOP_EVEN + offset, lines);
-		ScrollRegionUp(WINDOW_VRAM_TOP_ODD, WINDOW_VRAM_TOP_ODD + offset, lines);
+		int lines = (WINDOW_HEIGHT - amount);
+		int offset = amount * BYTES_PER_LINE;
+		ScrollRegionUp(WINDOW_VRAM_TOP, WINDOW_VRAM_TOP + offset, lines);
 
-		//ClearRegion(0x1ef0 - offset, (WINDOW_HEIGHT / 2) - lines);
-		//ClearRegion(0x3ef0 - offset, (WINDOW_HEIGHT / 2) - lines);
-
-		ClearRegion(WINDOW_VRAM_BOTTOM_EVEN - offset, (WINDOW_HEIGHT / 2) - lines, clearMask);
-		ClearRegion(WINDOW_VRAM_BOTTOM_ODD - offset, (WINDOW_HEIGHT / 2) - lines, clearMask);
+		ClearRegion(WINDOW_VRAM_BOTTOM - offset, (WINDOW_HEIGHT) - lines, clearMask);
 	}
 	else if (amount < 0)
 	{
-		int lines = (WINDOW_HEIGHT + amount) >> 1;
-		int offset = amount * (BYTES_PER_LINE >> 1);
-		ScrollRegionDown(WINDOW_VRAM_BOTTOM_EVEN - BYTES_PER_LINE, WINDOW_VRAM_BOTTOM_EVEN - BYTES_PER_LINE + offset, lines);
-		ScrollRegionDown(WINDOW_VRAM_BOTTOM_ODD - BYTES_PER_LINE, WINDOW_VRAM_BOTTOM_ODD - BYTES_PER_LINE + offset, lines);
+		int lines = (WINDOW_HEIGHT + amount);
+		int offset = amount * BYTES_PER_LINE;
+		ScrollRegionDown(WINDOW_VRAM_BOTTOM - BYTES_PER_LINE, WINDOW_VRAM_BOTTOM - BYTES_PER_LINE + offset, lines);
 
-		ClearRegion(WINDOW_VRAM_TOP_EVEN, (WINDOW_HEIGHT / 2) - lines, clearMask);
-		ClearRegion(WINDOW_VRAM_TOP_ODD, (WINDOW_HEIGHT / 2) - lines, clearMask);
+		ClearRegion(WINDOW_VRAM_TOP, WINDOW_HEIGHT - lines, clearMask);
 	}
 }
 
-void CGADriver::ClearWindow()
+void EGADriver::ClearWindow()
 {
-	ClearRegion(WINDOW_VRAM_TOP_EVEN, (WINDOW_HEIGHT / 2), clearMask);
-	ClearRegion(WINDOW_VRAM_TOP_ODD, (WINDOW_HEIGHT / 2), clearMask);
+	ClearRegion(WINDOW_VRAM_TOP, WINDOW_HEIGHT, clearMask);
 }
 
-void CGADriver::SetScissorRegion(int y1, int y2)
+void EGADriver::SetScissorRegion(int y1, int y2)
 {
 	scissorY1 = y1;
 	scissorY2 = y2;
 }
 
-void CGADriver::ClearScissorRegion()
+void EGADriver::ClearScissorRegion()
 {
 	scissorY1 = 0;
 	scissorY2 = screenHeight;
 }
 
-void CGADriver::ArrangeAppInterfaceWidgets(AppInterface& app)
+void EGADriver::ArrangeAppInterfaceWidgets(AppInterface& app)
 {
 	app.addressBar.x = ADDRESS_BAR_X;
 	app.addressBar.y = ADDRESS_BAR_Y;

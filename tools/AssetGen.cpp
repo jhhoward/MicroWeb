@@ -54,6 +54,37 @@ int main(int argc, char* argv)
 		outputFile.close();
 	}
 
+	// EGA resources
+	{
+		ofstream outputFile("src/DOS/EGAData.inc");
+
+		outputFile << "// Hercules resources" << endl;
+		outputFile << "// This file is auto generated" << endl << endl;
+		outputFile << "// Fonts:" << endl;
+
+		EncodeFont("assets/Default/font.png", outputFile, "EGA_RegularFont");
+		EncodeFont("assets/Default/font-small.png", outputFile, "EGA_SmallFont");
+		EncodeFont("assets/Default/font-large.png", outputFile, "EGA_LargeFont");
+
+		EncodeFont("assets/CGA/font-mono.png", outputFile, "EGA_RegularFont_Monospace");
+		EncodeFont("assets/CGA/font-mono-small.png", outputFile, "EGA_SmallFont_Monospace");
+		EncodeFont("assets/CGA/font-mono-large.png", outputFile, "EGA_LargeFont_Monospace");
+
+		outputFile << endl;
+		outputFile << "// Mouse cursors:" << endl;
+
+		EncodeCursor("assets/Default/mouse.png", outputFile, "EGA_MouseCursor", 0, 0);
+		EncodeCursor("assets/Default/mouse-link.png", outputFile, "EGA_MouseCursorHand", 6, 1);
+		EncodeCursor("assets/Default/mouse-select.png", outputFile, "EGA_MouseCursorTextSelect", 8, 6);
+
+		outputFile << endl;
+		outputFile << "// Images:" << endl;
+
+		EncodeImage("assets/Default/image-icon.png", outputFile, "EGA_ImageIcon");
+
+		outputFile.close();
+	}
+
 	// Hercules resources
 	{
 		ofstream outputFile("src/DOS/HercData.inc");
@@ -64,7 +95,7 @@ int main(int argc, char* argv)
 
 		EncodeFont("assets/Default/font.png", outputFile, "Herc_RegularFont");
 		EncodeFont("assets/Default/font-small.png", outputFile, "Herc_SmallFont");
-		EncodeFont("assets/CGA/font-large.png", outputFile, "CGA_LargeFont");
+		EncodeFont("assets/Default/font-large.png", outputFile, "Herc_LargeFont");
 
 		EncodeFont("assets/CGA/font-mono.png", outputFile, "CGA_RegularFont_Monospace");
 		EncodeFont("assets/CGA/font-mono-small.png", outputFile, "CGA_SmallFont_Monospace");

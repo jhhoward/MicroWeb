@@ -361,7 +361,7 @@ Font* HerculesDriver::GetFont(int fontSize, FontStyle::Type style)
 	case 2:
 	case 3:
 	case 4:
-		return &Herc_RegularFont; // &CGA_LargeFont;
+		return &Herc_LargeFont;
 	default:
 		return &Herc_RegularFont;
 	}

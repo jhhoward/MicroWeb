@@ -116,7 +116,7 @@ public:
 class Platform
 {
 public:
-	static void Init();
+	static void Init(int argc, char* argv[]);
 	static void Shutdown();
 	static void Update();
 

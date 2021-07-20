@@ -28,7 +28,7 @@ InputDriver* Platform::input = &winInputDriver;
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 HWND hWnd;
 
-void Platform::Init()
+void Platform::Init(int argc, char* argv[])
 {
 	WNDCLASSW wc = { 0 };
 	HINSTANCE hInstance = GetModuleHandle(NULL);

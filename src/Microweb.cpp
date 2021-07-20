@@ -20,22 +20,18 @@
 
 int main(int argc, char* argv[])
 {
+	Platform::Init(argc, argv);
+
 	App* app = new App();
 
 	if (!app)
 	{
 		fprintf(stderr, "Not enough memory\n");
+		Platform::Shutdown();
 		return 0;
 	}
 
-	Platform::Init();
-
-	if (argc >= 2)
-	{
-		app->OpenURL(argv[1]);
-	}
-
-	app->Run();
+	app->Run(argc, argv);
 
 	Platform::Shutdown();
 

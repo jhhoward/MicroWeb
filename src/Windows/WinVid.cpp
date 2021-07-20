@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <windows.h>
 #include "WinVid.h"
+#include "../Image.h"
 #include "../DOS/CGAData.inc"
 #include "../Interface.h"
 

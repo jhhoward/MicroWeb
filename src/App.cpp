@@ -38,11 +38,23 @@ void App::ResetPage()
 	ui.Reset();
 }
 
-void App::Run()
+void App::Run(int argc, char* argv[])
 {
 	running = true;
 
 	renderer.Init();
+
+	if (argc > 1)
+	{
+		for (int n = 1; n < argc; n++)
+		{
+			if (*argv[n] != '-')
+			{
+				OpenURL(argv[n]);
+				break;
+			}
+		}
+	}
 
 	while (running)
 	{

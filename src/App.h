@@ -59,7 +59,7 @@ public:
 	App();
 	~App();
 
-	void Run();
+	void Run(int argc, char* argv[]);
 	void Close() { running = false; }
 	void OpenURL(const char* url);
 

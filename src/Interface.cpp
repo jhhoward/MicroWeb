@@ -707,7 +707,7 @@ void AppInterface::UpdatePageScrollBar()
 {
 	int pageHeight = app.page.GetPageHeight();
 	int windowHeight = Platform::video->windowHeight;
-	int scrollWidgetSize = pageHeight < windowHeight ? windowHeight : windowHeight * windowHeight / pageHeight;
+	int scrollWidgetSize = pageHeight < windowHeight ? windowHeight : (int)(((int32_t)windowHeight * windowHeight) / pageHeight);
 	if (scrollWidgetSize < MIN_SCROLL_WIDGET_SIZE)
 		scrollWidgetSize = MIN_SCROLL_WIDGET_SIZE;
 	int maxWidgetPosition = windowHeight - scrollWidgetSize;
