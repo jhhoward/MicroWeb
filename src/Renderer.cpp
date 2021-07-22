@@ -36,7 +36,7 @@ void Renderer::Init()
 	RedrawScrollBar();
 	app.ui.DrawInterfaceWidgets();
 	SetTitle("MicroWeb");
-	SetStatus("");
+	SetStatus(" ");
 	Platform::input->ShowMouse();
 }
 
@@ -500,7 +500,7 @@ void Renderer::SetTitle(const char* title)
 {
 	Platform::input->HideMouse();
 
-	Platform::video->FillRect(app.ui.titleBar.x, app.ui.titleBar.y, app.ui.titleBar.width, app.ui.titleBar.height);
+	Platform::video->ClearRect(app.ui.titleBar.x, app.ui.titleBar.y, app.ui.titleBar.width, app.ui.titleBar.height);
 	if (title)
 	{
 		int textWidth = Platform::video->GetFont(1)->CalculateWidth(title);

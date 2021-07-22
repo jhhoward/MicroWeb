@@ -782,7 +782,7 @@ void EGADriver::ArrangeAppInterfaceWidgets(AppInterface& app)
 	app.statusBar.height = STATUS_BAR_HEIGHT;
 
 	app.titleBar.x = 0;
-	app.titleBar.y = 0;
+	app.titleBar.y = 1;
 	app.titleBar.width = SCREEN_WIDTH;
 	app.titleBar.height = TITLE_BAR_HEIGHT;
 }
