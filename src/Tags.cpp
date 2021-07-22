@@ -54,6 +54,7 @@ static const HTMLTagHandler* tagHandlers[] =
 	new StyleTagHandler("cite", FontStyle::Italic),
 	new StyleTagHandler("var", FontStyle::Italic),
 	new StyleTagHandler("u", FontStyle::Underline),
+	new StyleTagHandler("code", FontStyle::Monospace),
 	new ATagHandler(),
 	new ListTagHandler("ul"),
 	new ListTagHandler("ol"),
@@ -67,7 +68,6 @@ static const HTMLTagHandler* tagHandlers[] =
 	new ImgTagHandler(),
 	new MetaTagHandler(),
 	new PreformattedTagHandler("pre"),
-	new PreformattedTagHandler("code"),
 	NULL
 };
 
