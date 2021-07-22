@@ -360,7 +360,6 @@ void Page::AddBulletPoint()
 		FinishCurrentWidget();
 		widget->width = Platform::video->GetFont(widget->style.fontSize, widget->style.fontStyle)->CalculateWidth(" * ", widget->style.fontStyle);
 		widget->height = Platform::video->GetLineHeight(widget->style.fontSize, widget->style.fontStyle);
-		numFinishedWidgets = numWidgets;
 		currentLineStartWidgetIndex = -1;
 		currentWidgetIndex = -1;
 	}
