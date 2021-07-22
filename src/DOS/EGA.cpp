@@ -73,6 +73,7 @@ void EGADriver::SetupVars(int inScreenMode, int inScreenHeight)
 	invertScreen = false;
 	clearMask = invertScreen ? 0 : 0xffff;
 	imageIcon = &Default_ImageIcon;
+	bulletImage = &Default_Bullet;
 }
 
 void EGADriver::Init()
@@ -785,4 +786,10 @@ void EGADriver::ArrangeAppInterfaceWidgets(AppInterface& app)
 	app.titleBar.y = 1;
 	app.titleBar.width = SCREEN_WIDTH;
 	app.titleBar.height = TITLE_BAR_HEIGHT;
+}
+
+void EGADriver::ScaleImageDimensions(int& width, int& height)
+{
+	// Scale to 4:3
+	height = (height * 35) / 48;
 }

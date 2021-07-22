@@ -46,6 +46,7 @@ public:
 
 	virtual void HLine(int x, int y, int count);
 	virtual void VLine(int x, int y, int count);
+	virtual void ScaleImageDimensions(int& width, int& height);
 
 	virtual int GetGlyphWidth(char c, int fontSize = 1, FontStyle::Type style = FontStyle::Regular);
 	virtual int GetLineHeight(int fontSize = 1, FontStyle::Type style = FontStyle::Regular);

@@ -36,13 +36,14 @@ static const HTMLTagHandler* tagHandlers[] =
 	new HTagHandler("h4", 4),
 	new HTagHandler("h5", 5),
 	new HTagHandler("h6", 6),
-	new BlockTagHandler("blockquote"),
+	new BlockTagHandler("blockquote", true, 16),
 	new BlockTagHandler("section"),
 	new BlockTagHandler("p"),
-	new BlockTagHandler("div"),
+	new BlockTagHandler("div", false),
 	new BlockTagHandler("dt", false),
 	new BlockTagHandler("dd", false, 16),
 	new BlockTagHandler("tr", false),			// Table rows shouldn't really be a block but we don't have table support yet
+	new BlockTagHandler("ul", true, 16),
 	new BrTagHandler(),
 	new CenterTagHandler(),
 	new FontTagHandler(),
@@ -471,7 +472,7 @@ void ImgTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 	}
 	else
 	{
-		height /= 2;
+		Platform::video->ScaleImageDimensions(width, height);
 		parser.page.AddImage(altText, width, height);
 	}
 }

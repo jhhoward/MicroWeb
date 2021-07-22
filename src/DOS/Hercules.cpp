@@ -79,6 +79,7 @@ HerculesDriver::HerculesDriver()
 	invertScreen = false;
 	clearMask = invertScreen ? 0 : 0xffff;
 	imageIcon = &Default_ImageIcon;
+	bulletImage = &Default_Bullet;
 }
 
 // graphics mode CRTC register values
@@ -893,4 +894,10 @@ void HerculesDriver::ArrangeAppInterfaceWidgets(AppInterface& app)
 	app.titleBar.y = 1;
 	app.titleBar.width = SCREEN_WIDTH;
 	app.titleBar.height = TITLE_BAR_HEIGHT;
+}
+
+void HerculesDriver::ScaleImageDimensions(int& width, int& height)
+{
+	// Scale to 4:3
+	height = (height * 29) / 45;
 }

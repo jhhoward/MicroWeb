@@ -1257,3 +1257,13 @@ Image CGA_ImageIcon = {
 	CGA_ImageIcon_Data
 };
 
+static unsigned char CGA_Bullet_Data[] = {
+	0x00, 0x78, 0xfc, 0xfc, 0x78, 0x00, 0x00, 
+};
+
+Image CGA_Bullet = {
+	// Dimensions
+	6, 7,
+	CGA_Bullet_Data
+};
+

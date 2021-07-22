@@ -118,7 +118,7 @@ void Renderer::Update()
 
 			if (widgetLine > lowerRenderLine)
 			{
-				if (line == -1 || widgetLine == line)
+				if (line == -1 || (widget->y + baseY) <= line) 
 				{
 					Platform::input->HideMouse();
 					RenderWidgetInternal(widget, baseY);
@@ -347,7 +347,7 @@ void Renderer::RenderWidgetInternal(Widget* widget, int baseY)
 		}
 		break;
 	case Widget::BulletPoint:
-		Platform::video->DrawString("*", widget->x, widget->y + baseY, widget->style.fontSize, widget->style.fontStyle);
+		Platform::video->DrawImage(Platform::video->bulletImage, widget->x, widget->y + baseY);
 		break;
 	case Widget::HorizontalRule:
 		Platform::video->HLine(widget->x, widget->y + baseY, widget->width);

@@ -13,3 +13,4 @@ extern MouseCursorData Default_MouseCursorHand;
 extern MouseCursorData Default_MouseCursorTextSelect;
 
 extern Image Default_ImageIcon;
+extern Image Default_Bullet;

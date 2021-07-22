@@ -50,6 +50,7 @@ int main(int argc, char* argv)
 		outputFile << "// Images:" << endl;
 
 		EncodeImage("assets/CGA/image-icon.png", outputFile, "CGA_ImageIcon");
+		EncodeImage("assets/CGA/bullet.png", outputFile, "CGA_Bullet");
 
 		outputFile.close();
 	}
@@ -66,9 +67,9 @@ int main(int argc, char* argv)
 		EncodeFont("assets/Default/font-small.png", outputFile, "Default_SmallFont");
 		EncodeFont("assets/Default/font-large.png", outputFile, "Default_LargeFont");
 
-		EncodeFont("assets/CGA/font-mono.png", outputFile, "Default_RegularFont_Monospace");
-		EncodeFont("assets/CGA/font-mono-small.png", outputFile, "Default_SmallFont_Monospace");
-		EncodeFont("assets/CGA/font-mono-large.png", outputFile, "Default_LargeFont_Monospace");
+		EncodeFont("assets/Default/font-mono.png", outputFile, "Default_RegularFont_Monospace");
+		EncodeFont("assets/Default/font-mono-small.png", outputFile, "Default_SmallFont_Monospace");
+		EncodeFont("assets/Default/font-mono-large.png", outputFile, "Default_LargeFont_Monospace");
 
 		outputFile << endl;
 		outputFile << "// Mouse cursors:" << endl;
@@ -81,6 +82,7 @@ int main(int argc, char* argv)
 		outputFile << "// Images:" << endl;
 
 		EncodeImage("assets/Default/image-icon.png", outputFile, "Default_ImageIcon");
+		EncodeImage("assets/Default/bullet.png", outputFile, "Default_Bullet");
 
 		outputFile.close();
 	}

@@ -18,6 +18,7 @@
 #include "Platform.h"
 #include "Page.h"
 #include "App.h"
+#include "Image.h"
 
 #define TOP_MARGIN_PADDING 1
 
@@ -258,6 +259,14 @@ void Page::FinishCurrentLine(bool includeCurrentWidget)
 		int lineHeight = 0;
 		int lineEndWidget = numWidgets;
 
+		// If there is a bullet point right before the line start then treat it as part of the line finishing shuffling:
+		if (currentLineStartWidgetIndex > 0 && widgets[currentLineStartWidgetIndex - 1].type == Widget::BulletPoint)
+		{
+			// Also potentially shift the bullet point down to match the position of the next element
+			widgets[currentLineStartWidgetIndex - 1].y = widgets[currentLineStartWidgetIndex].y;
+			currentLineStartWidgetIndex--;
+		}
+
 		if (!includeCurrentWidget && currentWidgetIndex != -1)
 		{
 			lineEndWidget = numWidgets - 1;
@@ -358,8 +367,11 @@ void Page::AddBulletPoint()
 	if (widget)
 	{
 		FinishCurrentWidget();
-		widget->width = Platform::video->GetFont(widget->style.fontSize, widget->style.fontStyle)->CalculateWidth(" * ", widget->style.fontStyle);
-		widget->height = Platform::video->GetLineHeight(widget->style.fontSize, widget->style.fontStyle);
+		widget->style.fontStyle = FontStyle::Regular;
+		//widget->width = Platform::video->GetFont(widget->style.fontSize, widget->style.fontStyle)->CalculateWidth(" * ", widget->style.fontStyle);
+		//widget->height = Platform::video->GetLineHeight(widget->style.fontSize, widget->style.fontStyle);
+		widget->width = Platform::video->bulletImage->width;
+		widget->height = Platform::video->bulletImage->height;
 		currentLineStartWidgetIndex = -1;
 		currentWidgetIndex = -1;
 	}

@@ -69,6 +69,7 @@ CGADriver::CGADriver()
 	invertScreen = false;
 	clearMask = invertScreen ? 0 : 0xffff;
 	imageIcon = &CGA_ImageIcon;
+	bulletImage = &CGA_Bullet;
 }
 
 void CGADriver::Init()
@@ -875,4 +876,10 @@ void CGADriver::ArrangeAppInterfaceWidgets(AppInterface& app)
 	app.titleBar.y = 1;
 	app.titleBar.width = SCREEN_WIDTH;
 	app.titleBar.height = TITLE_BAR_HEIGHT;
+}
+
+void CGADriver::ScaleImageDimensions(int& width, int& height)
+{
+	// Scale to 4:3
+	height = (height * 5) / 12;
 }

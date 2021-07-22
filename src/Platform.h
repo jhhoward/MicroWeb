@@ -47,6 +47,8 @@ public:
 	virtual void HLine(int x, int y, int count) = 0;
 	virtual void VLine(int x, int y, int count) = 0;
 
+	virtual void ScaleImageDimensions(int& width, int& height) {}
+
 	virtual MouseCursorData* GetCursorGraphic(MouseCursor::Type type) = 0;
 
 	virtual Font* GetFont(int fontSize, FontStyle::Type style = FontStyle::Regular) = 0;
@@ -61,6 +63,7 @@ public:
 	int windowX, windowY;
 
 	Image* imageIcon;
+	Image* bulletImage;
 };
 
 class HTTPRequest
