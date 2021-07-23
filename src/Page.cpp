@@ -22,7 +22,7 @@
 
 #define TOP_MARGIN_PADDING 1
 
-Page::Page(App& inApp) : app(inApp)
+Page::Page(App& inApp) : app(inApp), widgets(allocator)
 {
 	Reset();
 }
@@ -34,7 +34,7 @@ void Page::Reset()
 	numFinishedWidgets = 0;
 	pageWidth = Platform::video->windowWidth;
 	pageHeight = 0;
-	numWidgets = 0;
+	widgets.Clear();
 	needLeadingWhiteSpace = false;
 	pendingVerticalPadding = 0;
 	widgetURL = NULL;
@@ -185,10 +185,9 @@ Widget* Page::CreateWidget(Widget::Type type)
 		FinishCurrentWidget();
 	}
 
-	if (numWidgets < MAX_PAGE_WIDGETS)
+	if (widgets.Allocate())
 	{
-		currentWidgetIndex = numWidgets;
-		numWidgets++;
+		currentWidgetIndex = widgets.Count() - 1;
 
 		Widget& current = widgets[currentWidgetIndex];
 		current.type = type;
@@ -257,7 +256,7 @@ void Page::FinishCurrentLine(bool includeCurrentWidget)
 	{
 		int lineWidth = 0;
 		int lineHeight = 0;
-		int lineEndWidget = numWidgets;
+		int lineEndWidget = widgets.Count();
 
 		// If there is a bullet point right before the line start then treat it as part of the line finishing shuffling:
 		if (currentLineStartWidgetIndex > 0 && widgets[currentLineStartWidgetIndex - 1].type == Widget::BulletPoint)
@@ -269,7 +268,7 @@ void Page::FinishCurrentLine(bool includeCurrentWidget)
 
 		if (!includeCurrentWidget && currentWidgetIndex != -1)
 		{
-			lineEndWidget = numWidgets - 1;
+			lineEndWidget = widgets.Count() - 1;
 		}
 
 		for (int n = currentLineStartWidgetIndex; n < lineEndWidget; n++)
@@ -525,7 +524,7 @@ void Page::SetTitle(const char* inTitle)
 
 Widget* Page::GetWidget(int x, int y)
 {
-	for (int n = 0; n < numWidgets; n++)
+	for (int n = 0; n < widgets.Count(); n++)
 	{
 		Widget* widget = &widgets[n];
 
@@ -553,4 +552,42 @@ void Page::FinishSection()
 void Page::SetFormData(WidgetFormData* inFormData)
 {
 	formData = inFormData;
+}
+
+WidgetContainer::WidgetContainer(LinearAllocator& inAllocator) : allocator(inAllocator), numAllocated(0)
+{
+}
+
+bool WidgetContainer::Allocate()
+{
+	int chunkIndex = WIDGET_INDEX_TO_CHUNK_INDEX(numAllocated);
+	int indexInChunk = WIDGET_INDEX_TO_INDEX_IN_CHUNK(numAllocated);
+
+	if (chunkIndex > MAX_WIDGET_CHUNKS)
+	{
+		return false;
+	}
+
+	if (indexInChunk == 0)
+	{
+		// Need to allocate a new chunk
+		chunks[chunkIndex] = allocator.Alloc<WidgetContainer::Chunk>();
+		if (chunks[chunkIndex] == NULL)
+		{
+			return false;
+		}
+	}
+
+	numAllocated++;
+	return true;
+}
+
+void WidgetContainer::Clear()
+{
+	numAllocated = 0;
+}
+
+Widget& WidgetContainer::operator[](int index)
+{
+	return chunks[WIDGET_INDEX_TO_CHUNK_INDEX(index)]->widgets[WIDGET_INDEX_TO_INDEX_IN_CHUNK(index)];
 }
