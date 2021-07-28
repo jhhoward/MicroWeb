@@ -1,0 +1,32 @@
+!SWITCHES=/N
+!DOS=HIGH
+;DEVICE=\FDOS\HIMEM.EXE /VERBOSE
+;?DEVICE=\FDOS\EMM386.EXE /VERBOSE
+;?DEVICE=\UMBPCI.SYS
+!FILES=20
+!BUFFERS=20
+!SHELL=A:\COMMAND.COM /E:512 /MSG /P
+;SHELLHIGH=\COMMAND.COM /E:256 /P
+
+MENU 
+MENU Choose Network adapter:
+MENU 
+MENU 0 = NE2000 (Port 300, IRQ 3)
+MENU 1 = NE2000 - XT compatible (Port 300, IRQ 3)
+MENU 2 = RTL8029AS
+MENU 3 = RTL8139
+MENU 4 = AMD PCNet (vlance)
+MENU 5 = 3Com EtherLink II (3C503) (Port 300, IRQ 3)
+MENU 6 = Western Digital WD8003E (Port 300, IRQ 3)
+MENU 7 = No network adapter
+MENU 
+MENUDEFAULT=0
+
+0? ECHO NE2000 (Port 300, IRQ 3) will be used
+1? ECHO NE2000 - XT compatible (Port 300, IRQ 3) will be used
+2? ECHO RTL8029AS will be used
+3? ECHO RTL8139 will be used
+4? ECHO AMD PCNet (vlance) will be used
+5? ECHO 3Com EtherLink II (3C503) (Port 300, IRQ 3) will be used
+6? ECHO Western Digital WD8003E (Port 300, IRQ 3) will be used
+7? ECHO No network adapter will be used
