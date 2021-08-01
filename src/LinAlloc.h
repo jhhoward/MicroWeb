@@ -33,7 +33,14 @@ class LinearAllocator
 	};
 
 public:
-	LinearAllocator() : allocOffset(0)
+	enum AllocationError
+	{
+		Error_None,
+		Error_AllocationTooLarge,
+		Error_OutOfMemory
+	};
+
+	LinearAllocator() : allocOffset(0), numAllocatedChunks(1), totalBytesUsed(0), errorFlag(Error_None)
 	{
 		currentChunk = firstChunk = new Chunk();
 	}
@@ -52,6 +59,8 @@ public:
 	{
 		currentChunk = firstChunk;
 		allocOffset = 0;
+		totalBytesUsed = 0;
+		errorFlag = Error_None;
 	}
 
 	char* AllocString(const char* inString)
@@ -79,6 +88,7 @@ public:
 	{
 		if (numBytes >= CHUNK_DATA_SIZE)
 		{
+			errorFlag = Error_AllocationTooLarge;
 			return NULL;
 		}
 
@@ -86,19 +96,25 @@ public:
 
 		if (allocOffset + numBytes > CHUNK_DATA_SIZE)
 		{
+			// Need to allocate from the next chunk
+
 			if (!currentChunk->next)
 			{
 				currentChunk->next = new Chunk();
 				if (!currentChunk->next)
 				{
+					errorFlag = Error_OutOfMemory;
 					return NULL;
 				}
+				numAllocatedChunks++;
 			}
+
 			currentChunk = currentChunk->next;
 			allocOffset = 0;
 			result = &currentChunk->data[allocOffset];
 		}
 
+		totalBytesUsed += numBytes;
 		allocOffset += numBytes;
 		return result;
 	}
@@ -109,9 +125,17 @@ public:
 		return new (Alloc(sizeof(T))) T();
 	}
 
+	uint32_t TotalAllocated() { return (uint32_t)numAllocatedChunks * sizeof(Chunk); }
+	uint32_t TotalUsed() { return totalBytesUsed; }
+	AllocationError GetError() { return errorFlag; }
+
 private:
 
 	Chunk* firstChunk;
 	Chunk* currentChunk;
 	size_t allocOffset;
+
+	size_t numAllocatedChunks;
+	uint32_t totalBytesUsed;		// Bytes actually used for data
+	AllocationError errorFlag;
 };

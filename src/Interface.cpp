@@ -191,6 +191,14 @@ void AppInterface::Update()
 			CycleWidgets(-1);
 			break;
 
+		case 'm':
+		{
+			char tempMessage[50];
+			snprintf(tempMessage, 50, "Allocated: %dK Used: %dK\n", (int)(app.page.allocator.TotalAllocated() / 1024), (int)(app.page.allocator.TotalUsed() / 1024));
+			app.renderer.SetStatus(tempMessage);
+		}
+			break;
+
 		default:
 //			printf("%x\n", keyPress);
 			break;

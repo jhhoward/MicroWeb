@@ -26,8 +26,8 @@ int main(int argc, char* argv[])
 
 	if (!app)
 	{
-		fprintf(stderr, "Not enough memory\n");
 		Platform::Shutdown();
+		fprintf(stderr, "Not enough memory\n");
 		return 0;
 	}
 

@@ -222,7 +222,7 @@ bool HTMLParser::IsWhiteSpace(char c)
 
 void HTMLParser::Parse(char* buffer, size_t count)
 {
-	while (count)
+	while (count && page.allocator.GetError() == LinearAllocator::Error_None)
 	{
 		char c = *buffer++;
 		count--;

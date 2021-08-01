@@ -180,6 +180,11 @@ Widget* Page::CreateTextWidget()
 
 Widget* Page::CreateWidget(Widget::Type type)
 {
+	if (allocator.GetError() == LinearAllocator::Error_OutOfMemory)
+	{
+		return NULL;
+	}
+
 	if (currentWidgetIndex != -1)
 	{
 		FinishCurrentWidget();
