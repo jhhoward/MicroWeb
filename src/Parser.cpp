@@ -28,6 +28,7 @@ HTMLParser::HTMLParser(Page& inPage)
 , parseState(ParseText)
 , textBufferSize(0)
 , parsingUnicode(false)
+, preformatted(0)
 {
 	sectionStack[0] = HTMLParseSection::Document;
 }
@@ -37,6 +38,7 @@ void HTMLParser::Reset()
 	parseState = ParseText;
 	textBufferSize = 0;
 	sectionStackSize = 0;
+	preformatted = 0;
 	SetTextEncoding(TextEncoding::UTF8);
 }
 
