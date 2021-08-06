@@ -62,6 +62,9 @@ WindowsVideoDriver::WindowsVideoDriver()
 	scissorY1 = 0;
 	scissorX2 = screenWidth;
 	scissorY2 = screenHeight;
+
+	imageIcon = &CGA_ImageIcon;
+	bulletImage = &CGA_Bullet;
 }
 
 void WindowsVideoDriver::Init()
