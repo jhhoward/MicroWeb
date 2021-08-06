@@ -304,7 +304,14 @@ void Page::FinishCurrentLine(bool includeCurrentWidget)
 
 		numFinishedWidgets = lineEndWidget;
 
-		currentLineStartWidgetIndex = currentWidgetIndex;
+		if (includeCurrentWidget)
+		{
+			currentLineStartWidgetIndex = -1;
+		}
+		else
+		{
+			currentLineStartWidgetIndex = currentWidgetIndex;
+		}
 	}
 
 	cursorX = leftMarginPadding;
