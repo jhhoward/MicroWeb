@@ -39,6 +39,7 @@ Option | Effect
  -h    | Force to run in 720x348 Hercules mode
  -e    | Force to run in 640x350 EGA mode
  -v    | Force to run in 640x480 VGA mode
+ -i    | Start with inverted screen colours (useful for some LCD monitors)
  
 For example `MICROWEB -c http://68k.news` will start in CGA 640x200 mode and load the 68k.news website
 

@@ -142,6 +142,8 @@ static void AutoDetectVideoDriver()
 
 void Platform::Init(int argc, char* argv[])
 {
+	bool inverse = false;
+
 	for (int n = 1; n < argc; n++)
 	{
 		if (!stricmp(argv[n], "-v") && !video)
@@ -160,6 +162,10 @@ void Platform::Init(int argc, char* argv[])
 		{
 			video = new HerculesDriver();
 		}
+		if (!stricmp(argv[n], "-i"))
+		{
+			inverse = true;
+		}
 	}
 
 	if (!video)
@@ -171,6 +177,11 @@ void Platform::Init(int argc, char* argv[])
 	video->Init();
 	video->ClearScreen();
 	input->Init();
+
+	if (inverse)
+	{
+		video->InvertScreen();
+	}
 }
 
 void Platform::Shutdown()
