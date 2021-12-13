@@ -101,6 +101,7 @@
     <ClCompile Include="..\..\src\DOS\DOSNet.cpp" />
     <ClCompile Include="..\..\src\DOS\EGA.cpp" />
     <ClCompile Include="..\..\src\DOS\Hercules.cpp" />
+    <ClCompile Include="..\..\src\DOS\HP95LX.cpp" />
     <ClCompile Include="..\..\src\DOS\Platform.cpp" />
     <ClCompile Include="..\..\src\DOS\TextMode.cpp" />
     <ClCompile Include="..\..\src\Font.cpp" />
@@ -116,6 +117,7 @@
     <ClInclude Include="..\..\src\DOS\DOSNet.h" />
     <ClInclude Include="..\..\src\DOS\EGA.h" />
     <ClInclude Include="..\..\src\DOS\Hercules.h" />
+    <ClInclude Include="..\..\src\DOS\HP95LX.h" />
     <ClInclude Include="..\..\src\DOS\TextMode.h" />
     <ClInclude Include="..\..\src\Image.h" />
     <ClInclude Include="..\..\src\Interface.h" />
@@ -135,6 +137,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\Unicode.inc" />
+    <None Include="hp95lx.mak" />
     <None Include="Makefile" />
     <None Include="TCP.CFG" />
   </ItemGroup>

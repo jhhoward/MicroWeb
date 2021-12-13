@@ -14,10 +14,14 @@
 
 #include <i86.h>
 #include "../Platform.h"
+#ifdef HP95LX
+#include "HP95LX.h"
+#else
 #include "CGA.h"
 #include "EGA.h"
 #include "Hercules.h"
 #include "TextMode.h"
+#endif
 #include "DOSInput.h"
 #include "DOSNet.h"
 
@@ -92,7 +96,19 @@ bool DetectHercules();
 static void AutoDetectVideoDriver()
 {
 	union REGS inreg, outreg;
+#ifdef HP95LX
+	inreg.x.ax = 0x4dd4;
+	int86(0x15, &inreg, &outreg);
+	if (outreg.x.bx == 0x4850)
+	{
+		Platform::video = new HP95LXVideoDriver();
+		printf("Detected HP 95LX\n");
+		return;
+	}
 
+	fprintf(stderr, "This build only works with the HP 95LX, 100LX and 200LX\n");
+	exit(1);
+#else
 	// First try detect presence of VGA card
 	inreg.x.ax = 0x1200;		
 	inreg.h.bl = 0x32;
@@ -101,6 +117,7 @@ static void AutoDetectVideoDriver()
 	if (outreg.h.al == 0x12)
 	{
 		Platform::video = new VGADriver();
+		printf("Detected VGA\n");
 		return;
 	}
 
@@ -112,27 +129,33 @@ static void AutoDetectVideoDriver()
 	if (outreg.h.bl < 4)
 	{
 		Platform::video = new EGADriver();
-		return;
-	}
-
-	bool isMono = Find6845(0x3b4);
-	// Attempt to detect Hercules
-	if (isMono && DetectHercules())
-	{
-		Platform::video = new HerculesDriver();
+		printf("Detected EGA\n");
 		return;
 	}
 
 	// Attempt to detect CGA
+	// Note we are preferring CGA over Hercules because some CGA devices are errorneously reporting Hercules support
 	if (Find6845(0x3d4))
 	{
 		Platform::video = new CGADriver();
+		printf("Detected CGA\n");
+		return;
+	}
+
+	bool isMono = Find6845(0x3b4);
+	
+	// Attempt to detect Hercules
+	if (isMono && DetectHercules())
+	{
+		Platform::video = new HerculesDriver();
+		printf("Detected Hercules\n");
 		return;
 	}
 
 	if (isMono)
 	{
 		Platform::video = new MDATextModeDriver();
+		printf("Detected MDA\n");
 		return;
 		//fprintf(stderr, "MDA cards not supported!\n");
 	}
@@ -141,14 +164,17 @@ static void AutoDetectVideoDriver()
 		fprintf(stderr, "Could not detect video card!\n");
 	}
 	exit(1);
+#endif
 }
 
 void Platform::Init(int argc, char* argv[])
 {
 	bool inverse = false;
+	video = NULL;
 
 	for (int n = 1; n < argc; n++)
 	{
+#ifndef HP95LX
 		if (!stricmp(argv[n], "-v") && !video)
 		{
 			video = new VGADriver();
@@ -173,6 +199,7 @@ void Platform::Init(int argc, char* argv[])
 		{
 			video = new MDATextModeDriver();
 		}
+#endif
 		if (!stricmp(argv[n], "-i"))
 		{
 			inverse = true;

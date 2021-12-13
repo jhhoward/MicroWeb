@@ -155,7 +155,7 @@ void Page::AddTextField(char* text, int bufferLength, char* name)
 			}
 			widget->textField->bufferLength = bufferLength;
 
-			widget->width = 200;
+			widget->width = Platform::video->screenWidth / 3;
 			widget->height = Platform::video->GetFont(1)->glyphHeight + 4;
 			//widget->width = Platform::video->GetFont(1)->CalculateWidth(text) + 4;
 		}

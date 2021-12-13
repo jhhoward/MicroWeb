@@ -512,6 +512,12 @@ void Renderer::SetTitle(const char* title)
 
 void Renderer::SetStatus(const char* status)
 {
+	if (app.ui.statusBar.height == 0)
+	{
+		// For video modes that hide the status bar
+		return;
+	}
+
 	if(!status && statusMessage[0] != '\0' || strncmp(status, statusMessage, MAX_STATUS_LENGTH))
 	{
 		Platform::input->HideMouse();

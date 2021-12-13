@@ -64,6 +64,11 @@ void DOSNetworkDriver::Init()
 		return;
 	}
 
+	for (int n = 0; n < MAX_CONCURRENT_HTTP_REQUESTS; n++)
+	{
+		requests[n] = new DOSHTTPRequest();
+	}
+
 	isConnected = true;
 }
 
@@ -87,7 +92,7 @@ void DOSNetworkDriver::Update()
 
 		for (int n = 0; n < MAX_CONCURRENT_HTTP_REQUESTS; n++)
 		{
-			requests[n].Update();
+			requests[n]->Update();
 		}
 	}
 }
@@ -98,10 +103,10 @@ HTTPRequest* DOSNetworkDriver::CreateRequest(char* url)
 	{
 		for (int n = 0; n < MAX_CONCURRENT_HTTP_REQUESTS; n++)
 		{
-			if (requests[n].GetStatus() == HTTPRequest::Stopped)
+			if (requests[n]->GetStatus() == HTTPRequest::Stopped)
 			{
-				requests[n].Open(url);
-				return &requests[n];
+				requests[n]->Open(url);
+				return requests[n];
 			}
 		}
 	}

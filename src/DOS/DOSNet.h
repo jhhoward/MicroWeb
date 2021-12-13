@@ -18,8 +18,13 @@
 #include "../Platform.h"
 #include "../URL.h"
 
+#ifdef HP95LX
+#define TCP_RECV_BUFFER_SIZE  (8192)
+#define MAX_CONCURRENT_HTTP_REQUESTS 1
+#else
 #define TCP_RECV_BUFFER_SIZE  (16384)
 #define MAX_CONCURRENT_HTTP_REQUESTS 3
+#endif
 #define HOSTNAME_LEN        (80)
 #define PATH_LEN           (MAX_URL_LENGTH)
 #define LINE_BUFFER_SIZE 512
@@ -108,6 +113,6 @@ public:
 	virtual void DestroyRequest(HTTPRequest* request);
 
 private:
-	DOSHTTPRequest requests[MAX_CONCURRENT_HTTP_REQUESTS];
+	DOSHTTPRequest* requests[MAX_CONCURRENT_HTTP_REQUESTS];
 	bool isConnected;
 };
