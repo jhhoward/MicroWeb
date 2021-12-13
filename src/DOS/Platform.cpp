@@ -17,6 +17,7 @@
 #include "CGA.h"
 #include "EGA.h"
 #include "Hercules.h"
+#include "TextMode.h"
 #include "DOSInput.h"
 #include "DOSNet.h"
 
@@ -131,7 +132,9 @@ static void AutoDetectVideoDriver()
 
 	if (isMono)
 	{
-		fprintf(stderr, "MDA cards not supported!\n");
+		Platform::video = new MDATextModeDriver();
+		return;
+		//fprintf(stderr, "MDA cards not supported!\n");
 	}
 	else
 	{
@@ -161,6 +164,14 @@ void Platform::Init(int argc, char* argv[])
 		if (!stricmp(argv[n], "-h") && !video)
 		{
 			video = new HerculesDriver();
+		}
+		if (!stricmp(argv[n], "-t") && !video)
+		{
+			video = new CGATextModeDriver();
+		}
+		if (!stricmp(argv[n], "-m") && !video)
+		{
+			video = new MDATextModeDriver();
 		}
 		if (!stricmp(argv[n], "-i"))
 		{

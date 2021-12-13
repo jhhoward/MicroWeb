@@ -80,6 +80,7 @@ HerculesDriver::HerculesDriver()
 	clearMask = invertScreen ? 0 : 0xffff;
 	imageIcon = &Default_ImageIcon;
 	bulletImage = &Default_Bullet;
+	isTextMode = false;
 }
 
 // graphics mode CRTC register values

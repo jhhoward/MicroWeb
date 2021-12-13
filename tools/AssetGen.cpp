@@ -20,6 +20,7 @@ using namespace std;
 void EncodeImage(const char* imageFilename, ofstream& outputFile, const char* varName);
 void EncodeFont(const char* imageFilename, ofstream& outputFile, const char* varName);
 void EncodeCursor(const char* imageFilename, ofstream& outputFile, const char* varName, int hotSpotX, int hotSpotY);
+void GenerateDummyFont(ofstream& outputFile, const char* varName);
 
 int main(int argc, char* argv)
 {
@@ -84,6 +85,19 @@ int main(int argc, char* argv)
 		EncodeImage("assets/Default/image-icon.png", outputFile, "Default_ImageIcon");
 		EncodeImage("assets/Default/bullet.png", outputFile, "Default_Bullet");
 
+		outputFile.close();
+	}
+
+	// Text mode resources
+	{
+		ofstream outputFile("src/DOS/TextData.inc");
+
+		outputFile << "// Text mode resources" << endl;
+		outputFile << "// This file is auto generated" << endl << endl;
+		outputFile << "// Fonts:" << endl;
+
+		GenerateDummyFont(outputFile, "TextMode_Font");
+		outputFile << endl;
 		outputFile.close();
 	}
 

@@ -64,6 +64,8 @@ public:
 
 	Image* imageIcon;
 	Image* bulletImage;
+
+	bool isTextMode;
 };
 
 class HTTPRequest

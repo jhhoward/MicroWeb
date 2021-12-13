@@ -102,6 +102,7 @@
     <ClCompile Include="..\..\src\DOS\EGA.cpp" />
     <ClCompile Include="..\..\src\DOS\Hercules.cpp" />
     <ClCompile Include="..\..\src\DOS\Platform.cpp" />
+    <ClCompile Include="..\..\src\DOS\TextMode.cpp" />
     <ClCompile Include="..\..\src\Font.cpp" />
     <ClCompile Include="..\..\src\Interface.cpp" />
     <ClCompile Include="..\..\src\Microweb.cpp" />
@@ -115,6 +116,7 @@
     <ClInclude Include="..\..\src\DOS\DOSNet.h" />
     <ClInclude Include="..\..\src\DOS\EGA.h" />
     <ClInclude Include="..\..\src\DOS\Hercules.h" />
+    <ClInclude Include="..\..\src\DOS\TextMode.h" />
     <ClInclude Include="..\..\src\Image.h" />
     <ClInclude Include="..\..\src\Interface.h" />
     <ClInclude Include="..\..\src\KeyCodes.h" />

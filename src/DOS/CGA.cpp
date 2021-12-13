@@ -70,6 +70,7 @@ CGADriver::CGADriver()
 	clearMask = invertScreen ? 0 : 0xffff;
 	imageIcon = &CGA_ImageIcon;
 	bulletImage = &CGA_Bullet;
+	isTextMode = false;
 }
 
 void CGADriver::Init()

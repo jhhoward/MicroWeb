@@ -93,7 +93,31 @@ void DOSInputDriver::SetMouseCursor(MouseCursor::Type type)
 		return;
 	}
 	MouseCursorData* cursor = Platform::video->GetCursorGraphic(type);
-	SetMouseCursorASM(cursor->data, cursor->hotSpotX, cursor->hotSpotY);
+	if (cursor)
+	{
+		SetMouseCursorASM(cursor->data, cursor->hotSpotX, cursor->hotSpotY);
+	}
+	else
+	{
+		union REGS inreg, outreg;
+		inreg.x.ax = 0xa;
+		inreg.x.bx = 0;
+		inreg.x.cx = 0xff00;
+		switch (type)
+		{
+		case MouseCursor::Pointer:
+			inreg.x.dx = 0x00db;
+			break;
+		case MouseCursor::Hand:
+			inreg.x.dx = 0x00b1;
+			break;
+		case MouseCursor::TextSelect:
+			inreg.x.dx = 0x00b3;
+			break;
+		}
+		int86(0x33, &inreg, &outreg);
+	}
+
 	currentCursor = type;
 }
 
@@ -110,6 +134,12 @@ void DOSInputDriver::GetMouseStatus(int& buttons, int& x, int& y)
 	x = outreg.x.cx;
 	y = outreg.x.dx;
 	buttons = outreg.x.bx;
+
+	if (Platform::video->isTextMode)
+	{
+		x >>= 3;
+		y >>= 3;
+	}
 }
 
 InputButtonCode DOSInputDriver::GetKeyPress() 

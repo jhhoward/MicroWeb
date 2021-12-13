@@ -74,6 +74,7 @@ void EGADriver::SetupVars(int inScreenMode, int inScreenHeight)
 	clearMask = invertScreen ? 0 : 0xffff;
 	imageIcon = &Default_ImageIcon;
 	bulletImage = &Default_Bullet;
+	isTextMode = false;
 }
 
 void EGADriver::Init()

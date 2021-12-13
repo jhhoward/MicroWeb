@@ -65,6 +65,7 @@ WindowsVideoDriver::WindowsVideoDriver()
 
 	imageIcon = &CGA_ImageIcon;
 	bulletImage = &CGA_Bullet;
+	isTextMode = false;
 }
 
 void WindowsVideoDriver::Init()

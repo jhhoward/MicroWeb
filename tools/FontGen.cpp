@@ -178,3 +178,26 @@ void EncodeFont(const char* imageFilename, ofstream& outputFile, const char* var
 	outputFile << "};" << endl << endl;
 }
 
+
+void GenerateDummyFont(ofstream& outputFile, const char* varName)
+{
+	outputFile << "Font " << varName << " = {" << endl;
+	outputFile << "\t// Glyph widths" << endl;
+	outputFile << "\t{ ";
+
+	for (int n = 0; n < 96; n++)
+	{
+		int width = 1;
+		outputFile << width;
+		if (n != 95)
+		{
+			outputFile << ",";
+		}
+	}
+	outputFile << "}, " << endl;
+	outputFile << "\t" << 0 << ", \t// Byte width" << endl;
+	outputFile << "\t" << 1 << ", \t// Glyph height" << endl;
+	outputFile << "\t" << 0 << ", \t// Glyph stride" << endl;
+	outputFile << "\t" << "NULL" << endl;
+	outputFile << "};" << endl << endl;
+}
