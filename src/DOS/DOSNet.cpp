@@ -375,8 +375,14 @@ void DOSHTTPRequest::Update()
 				break;
 			case SendHeaders:
 				{
+					char* agent = getenv("HTTP_USER_AGENT");
 					WriteLine("GET %s HTTP/1.0", path);
-					WriteLine("User-Agent: MicroWeb " __DATE__);
+					if (agent == NULL) {
+						WriteLine("User-Agent: MicroWeb " __DATE__);
+					}
+					else {
+						WriteLine("User-Agent: MicroWeb %s %s", __DATE__, agent);
+					}
 					WriteLine("Host: %s", hostname);
 					WriteLine("Connection: close");
 					WriteLine();
