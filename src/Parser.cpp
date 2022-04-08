@@ -229,7 +229,7 @@ void HTMLParser::Parse(char* buffer, size_t count)
 		char c = *buffer++;
 		count--;
 
-		if ((unsigned char)c > 128)
+		if ((unsigned char)c > 127)
 		{
 			switch (textEncoding)
 			{
