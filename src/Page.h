@@ -28,6 +28,7 @@
 #define WIDGET_INDEX_TO_INDEX_IN_CHUNK(index) ((index) & 0x3f)
 
 class App;
+class Node;
 
 class WidgetContainer
 {
@@ -77,6 +78,8 @@ public:
 	void SetWidgetURL(const char* url);
 	void ClearWidgetURL();
 
+	Node* GetRootNode() { return rootNode; }
+
 	Widget* GetWidget(int x, int y);
 
 	WidgetStyle& GetStyleStackTop();
@@ -113,6 +116,8 @@ private:
 	int leftMarginPadding;
 
 	bool needLeadingWhiteSpace;
+
+	Node* rootNode;
 
 	WidgetContainer widgets;
 

@@ -16,6 +16,8 @@
 
 #include <stdint.h>
 class Page;
+class Node;
+class HTMLTagHandler;
 
 struct TextEncoding
 {
@@ -40,6 +42,12 @@ struct HTMLParseSection
 	};
 };
 
+struct HTMLParseContext
+{
+	Node* node;
+	const HTMLTagHandler* tag;
+};
+
 class AttributeParser
 {
 public:
@@ -58,6 +66,7 @@ private:
 };
 
 #define MAX_PARSE_SECTION_STACK_SIZE 32
+#define MAX_PARSE_CONTEXT_STACK_SIZE 32
 
 class HTMLParser
 {
@@ -73,6 +82,10 @@ public:
 	void PopSection(HTMLParseSection::Type section);
 	HTMLParseSection::Type CurrentSection() { return sectionStack[sectionStackSize]; }
 
+	void PushContext(Node* node, const HTMLTagHandler* tag);
+	void PopContext(const HTMLTagHandler* tag);
+	HTMLParseContext& CurrentContext() { return contextStack[contextStackSize]; }
+
 	void SetTextEncoding(TextEncoding::Type newType);
 
 	void PushPreFormatted();
@@ -80,6 +93,8 @@ public:
 
 private:
 	void ParseChar(char c);
+
+	void AddTextElement(const char* text);
 
 	//HTMLNode* CreateNode(HTMLNode::NodeType nodeType, HTMLNode* parentNode);
 	void AppendTextBuffer(char c);
@@ -101,6 +116,9 @@ private:
 
 	HTMLParseSection::Type sectionStack[MAX_PARSE_SECTION_STACK_SIZE];
 	unsigned int sectionStackSize;
+
+	HTMLParseContext contextStack[MAX_PARSE_CONTEXT_STACK_SIZE];
+	unsigned int contextStackSize;
 
 	bool parsingUnicode;
 	int unicodeByteCount;

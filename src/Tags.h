@@ -16,6 +16,7 @@
 
 #include "Parser.h"
 #include "Font.h"
+#include "Nodes/Section.h"
 
 class HTMLParser;
 
@@ -35,10 +36,10 @@ protected:
 class SectionTagHandler : public HTMLTagHandler
 {
 public:
-	SectionTagHandler(const char* inName, HTMLParseSection::Type inSection) : HTMLTagHandler(inName), section(inSection) {}
+	SectionTagHandler(const char* inName, SectionElement::Type inSectionType) : HTMLTagHandler(inName), sectionType(inSectionType) {}
 	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
 	virtual void Close(class HTMLParser& parser) const;
-	const HTMLParseSection::Type section;
+	const SectionElement::Type sectionType;
 };
 
 class CenterTagHandler : public HTMLTagHandler

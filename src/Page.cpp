@@ -19,6 +19,7 @@
 #include "Page.h"
 #include "App.h"
 #include "Image.h"
+#include "Nodes/Section.h"
 
 #define TOP_MARGIN_PADDING 1
 
@@ -47,6 +48,8 @@ void Page::Reset()
 	styleStackSize = 1;
 	styleStack[0] = WidgetStyle(FontStyle::Regular, 1, false);
 	allocator.Reset();
+
+	rootNode = SectionElement::Construct(allocator, SectionElement::Document);
 }
 
 WidgetStyle& Page::GetStyleStackTop()

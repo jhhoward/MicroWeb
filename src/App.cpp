@@ -168,7 +168,7 @@ void LoadTask::Stop()
 		if (fs)
 		{
 			fclose(fs);
-			fs = NULL;
+			fs = nullptr;
 		}
 		break;
 	case LoadTask::RemoteFile:
@@ -176,7 +176,7 @@ void LoadTask::Stop()
 		{
 			request->Stop();
 			Platform::network->DestroyRequest(request);
-			request = NULL;
+			request = nullptr;
 		}
 		break;
 	}

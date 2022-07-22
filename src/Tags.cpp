@@ -21,15 +21,17 @@
 #include "Platform.h"
 #include "Image.h"
 
+#include "Nodes/Section.h"
+
 static const HTMLTagHandler* tagHandlers[] =
 {
 	new HTMLTagHandler("generic"),
-	new SectionTagHandler("html", HTMLParseSection::Document),
-	new SectionTagHandler("head", HTMLParseSection::Head),
-	new SectionTagHandler("body", HTMLParseSection::Body),
-	new SectionTagHandler("script", HTMLParseSection::Script),
-	new SectionTagHandler("style", HTMLParseSection::Style),
-	new SectionTagHandler("title", HTMLParseSection::Title),
+	new SectionTagHandler("html", SectionElement::HTML),
+	new SectionTagHandler("head", SectionElement::Head),
+	new SectionTagHandler("body", SectionElement::Body),
+	new SectionTagHandler("script", SectionElement::Script),
+	new SectionTagHandler("style", SectionElement::Style),
+	new SectionTagHandler("title", SectionElement::Title),
 	new HTagHandler("h1", 1),
 	new HTagHandler("h2", 2),
 	new HTagHandler("h3", 3),
@@ -208,11 +210,16 @@ void BlockTagHandler::Close(class HTMLParser& parser) const
 
 void SectionTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	parser.PushSection(section);
+	Node* sectionElement = SectionElement::Construct(parser.page.allocator, sectionType);
+	if (sectionElement)
+	{
+		parser.CurrentContext().node->AddChild(sectionElement);
+		parser.PushContext(sectionElement, this);
+	}
 }
 void SectionTagHandler::Close(class HTMLParser& parser) const
 {
-	parser.PopSection(section);
+	parser.PopContext(this);
 }
 
 void StyleTagHandler::Open(class HTMLParser& parser, char* attributeStr) const

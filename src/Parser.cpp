@@ -21,10 +21,12 @@
 #include "Renderer.h"
 #include "Page.h"
 #include "Unicode.inc"
+#include "Nodes/Text.h"
 
 HTMLParser::HTMLParser(Page& inPage)
 : page(inPage)
 , sectionStackSize(0)
+, contextStackSize(0)
 , parseState(ParseText)
 , textBufferSize(0)
 , parsingUnicode(false)
@@ -40,7 +42,40 @@ void HTMLParser::Reset()
 	sectionStackSize = 0;
 	preformatted = 0;
 	SetTextEncoding(TextEncoding::UTF8);
+
+	contextStackSize = -1;
+	PushContext(page.GetRootNode(), nullptr);
 }
+
+void HTMLParser::PushContext(Node* node, const HTMLTagHandler* tag)
+{
+	if (contextStackSize < MAX_PARSE_CONTEXT_STACK_SIZE - 1)
+	{
+		contextStackSize++;
+		contextStack[contextStackSize].node = node;
+		contextStack[contextStackSize].tag = tag;
+	}
+	else
+	{
+		// TODO: ERROR
+	}
+}
+
+void HTMLParser::PopContext(const HTMLTagHandler* tag)
+{
+	for (int n = contextStackSize; n >= 0; n--)
+	{
+		// Search for matching tag
+		if (contextStack[n].tag == tag)
+		{
+			contextStackSize = n - 1;
+			return;
+		}
+	}
+
+	// TODO: ERROR
+}
+
 
 void HTMLParser::PushSection(HTMLParseSection::Type section)
 {
@@ -106,6 +141,16 @@ void HTMLParser::AppendTextBuffer(char c)
 	}
 }
 
+void HTMLParser::AddTextElement(const char* text)
+{
+	Node* textElement = TextElement::Construct(page.allocator, text);
+	if (textElement)
+	{
+		textElement->style = CurrentContext().node->style;
+		CurrentContext().node->AddChild(textElement);
+	}
+}
+
 void HTMLParser::FlushTextBuffer()
 {
 	textBuffer[textBufferSize] = '\0';
@@ -114,6 +159,8 @@ void HTMLParser::FlushTextBuffer()
 	{
 		case ParseText:
 		{
+			AddTextElement(textBuffer);
+
 			if(CurrentSection() == HTMLParseSection::Body && textBufferSize > 0)
 			{
 				page.AppendText(textBuffer);

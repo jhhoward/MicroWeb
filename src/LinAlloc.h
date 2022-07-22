@@ -125,8 +125,26 @@ public:
 		return new (Alloc(sizeof(T))) T();
 	}
 
-	uint32_t TotalAllocated() { return (uint32_t)numAllocatedChunks * sizeof(Chunk); }
-	uint32_t TotalUsed() { return totalBytesUsed; }
+	template <typename T, typename A>
+	T* Alloc(A a)
+	{
+		return new (Alloc(sizeof(T))) T(a);
+	}
+
+	template <typename T, typename A, typename B>
+	T* Alloc(A a, B b)
+	{
+		return new (Alloc(sizeof(T))) T(a, b);
+	}
+
+	template <typename T, typename A, typename B, typename C>
+	T* Alloc(A a, B b, C c)
+	{
+		return new (Alloc(sizeof(T))) T(a, b, c);
+	}
+
+	size_t TotalAllocated() { return numAllocatedChunks * sizeof(Chunk); }
+	size_t TotalUsed() { return totalBytesUsed; }
 	AllocationError GetError() { return errorFlag; }
 
 private:
@@ -136,6 +154,7 @@ private:
 	size_t allocOffset;
 
 	size_t numAllocatedChunks;
-	uint32_t totalBytesUsed;		// Bytes actually used for data
+	size_t totalBytesUsed;		// Bytes actually used for data
 	AllocationError errorFlag;
 };
+
