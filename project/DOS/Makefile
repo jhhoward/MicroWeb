@@ -4,7 +4,7 @@ OBJDIR=obj
 objects = MicroWeb.obj App.obj Parser.obj Renderer.obj Tags.obj Platform.obj CGA.obj EGA.obj Hercules.obj TextMode.obj Font.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj 
 memory_model = -ml
 CC = wpp
-CFLAGS = -zq -0 -ot -bt=DOS -w2 $(memory_model)
+CFLAGS = -zq -0 -ot -bt=DOS -w2 $(memory_model) -fi=$(SRC_PATH)\Defines.h
 LD = wlink
 
 # begin mTCP stuff

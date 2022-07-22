@@ -1,15 +1,15 @@
-bin = MWEB95.exe
-SRC_PATH = ..\..\src
+bin = MicroWeb.exe
+SRC_PATH = src
 OBJDIR=obj
-objects = MicroWeb.obj App.obj Parser.obj Renderer.obj Tags.obj Platform.obj HP95LX.obj Font.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj 
+objects = MicroWeb.obj App.obj Parser.obj Render.obj Tags.obj Platform.obj CGA.obj EGA.obj Hercules.obj TextMode.obj Font.obj Interfac.obj DOSInput.obj DOSNet.obj Page.obj 
 memory_model = -ml
 CC = wpp
-CFLAGS = -zq -0 -ot -bt=DOS -w2 $(memory_model) -dHP95LX -fi=$(SRC_PATH)\Defines.h
+CFLAGS = -zq -0 -ot -bt=DOS -w2 $(memory_model)
 LD = wlink
 
 # begin mTCP stuff
-tcp_h_dir = ..\..\lib\mTCP\TCPINC\
-tcp_c_dir = ..\..\lib\mTCP\TCPLIB\
+tcp_h_dir = lib\mTCP\TCPINC\
+tcp_c_dir = lib\mTCP\TCPLIB\
 
 tcpobjs = packet.obj arp.obj eth.obj ip.obj tcp.obj tcpsockm.obj udp.obj utils.obj dns.obj timer.obj ipasm.obj trace.obj
 
@@ -40,7 +40,7 @@ App.obj: $(SRC_PATH)\App.cpp
 Parser.obj: $(SRC_PATH)\Parser.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
-Renderer.obj: $(SRC_PATH)\Renderer.cpp
+Render.obj: $(SRC_PATH)\Render.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 Tags.obj: $(SRC_PATH)\Tags.cpp
@@ -55,10 +55,19 @@ Platform.obj: $(SRC_PATH)\DOS\Platform.cpp
 Font.obj: $(SRC_PATH)\Font.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
-Interface.obj: $(SRC_PATH)\Interface.cpp
+Interfac.obj: $(SRC_PATH)\Interfac.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
-HP95LX.obj: $(SRC_PATH)\DOS\HP95LX.cpp
+CGA.obj: $(SRC_PATH)\DOS\CGA.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+Hercules.obj: $(SRC_PATH)\DOS\Hercules.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+EGA.obj: $(SRC_PATH)\DOS\EGA.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+TextMode.obj: $(SRC_PATH)\DOS\TextMode.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 DOSInput.obj: $(SRC_PATH)\DOS\DOSInput.cpp
