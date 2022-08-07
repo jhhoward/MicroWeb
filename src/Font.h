@@ -37,5 +37,6 @@ struct Font
 	uint8_t* glyphData;
 
 	int CalculateWidth(const char* text, FontStyle::Type style = FontStyle::Regular);
+	int GetGlyphWidth(char c) { return glyphWidth[c - 32]; }
 };
 

@@ -17,6 +17,7 @@
 #include <stdint.h>
 class Page;
 class Node;
+struct Image;
 class HTMLTagHandler;
 
 struct TextEncoding
@@ -86,6 +87,10 @@ public:
 	void PopContext(const HTMLTagHandler* tag);
 	HTMLParseContext& CurrentContext() { return contextStack[contextStackSize]; }
 
+	void EmitNode(Node* node);
+	void EmitText(const char* text);
+	void EmitImage(Image* image, int imageWidth, int imageHeight);
+
 	void SetTextEncoding(TextEncoding::Type newType);
 
 	void PushPreFormatted();
@@ -93,8 +98,6 @@ public:
 
 private:
 	void ParseChar(char c);
-
-	void AddTextElement(const char* text);
 
 	//HTMLNode* CreateNode(HTMLNode::NodeType nodeType, HTMLNode* parentNode);
 	void AppendTextBuffer(char c);
@@ -118,7 +121,7 @@ private:
 	unsigned int sectionStackSize;
 
 	HTMLParseContext contextStack[MAX_PARSE_CONTEXT_STACK_SIZE];
-	unsigned int contextStackSize;
+	int contextStackSize;
 
 	bool parsingUnicode;
 	int unicodeByteCount;

@@ -22,6 +22,8 @@
 #include "Image.h"
 
 #include "Nodes/Section.h"
+#include "Nodes/ImgNode.h"
+#include "Nodes/Break.h"
 
 static const HTMLTagHandler* tagHandlers[] =
 {
@@ -116,11 +118,13 @@ void HTMLTagHandler::ApplyStyleAttributes(WidgetStyle& style, char* attributeStr
 void HrTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
 	parser.page.AddHorizontalRule();
+	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
 }
 
 void BrTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
 	parser.page.BreakTextLine();
+	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
 }
 
 void HTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
@@ -131,6 +135,8 @@ void HTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 	ApplyStyleAttributes(currentStyle, attributeStr);
 	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize) >> 1);
 	parser.page.PushStyle(currentStyle);
+
+	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
 }
 
 void HTagHandler::Close(class HTMLParser& parser) const
@@ -138,6 +144,8 @@ void HTagHandler::Close(class HTMLParser& parser) const
 	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
 	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize) >> 1);
 	parser.page.PopStyle();
+
+	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
 }
 
 void SizeTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
@@ -156,6 +164,8 @@ void LiTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
 	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
 	int bulletPointWidth = Platform::video->GetFont(currentStyle.fontSize, currentStyle.fontStyle)->CalculateWidth(" * ", currentStyle.fontStyle);
+
+	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
 
 	parser.page.BreakLine();
 	parser.page.AddBulletPoint();
@@ -199,6 +209,8 @@ void BlockTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 	parser.page.BreakLine(useVerticalPadding ? Platform::video->GetLineHeight(currentStyle.fontSize) >> 1 : 0);
 	ApplyStyleAttributes(currentStyle, attributeStr);
 	parser.page.PushStyle(currentStyle);
+
+	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
 }
 void BlockTagHandler::Close(class HTMLParser& parser) const
 {
@@ -206,6 +218,8 @@ void BlockTagHandler::Close(class HTMLParser& parser) const
 	parser.page.AdjustLeftMargin(-leftMarginPadding);
 	parser.page.BreakLine(useVerticalPadding ? Platform::video->GetLineHeight(currentStyle.fontSize) >> 1 : 0);
 	parser.page.PopStyle();
+
+	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
 }
 
 void SectionTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
@@ -307,12 +321,14 @@ void ListTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
 	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
 	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize) >> 1);
+	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
 }
 
 void ListTagHandler::Close(class HTMLParser& parser) const
 {
 	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
 	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize) >> 1);
+	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
 }
 
 struct HTMLInputTag
@@ -469,7 +485,8 @@ void ImgTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 		Image* imageIcon = Platform::video->imageIcon;
 		if (imageIcon)
 		{
-			parser.page.AddImage(NULL, imageIcon->width, imageIcon->height);
+			//parser.page.AddImage(NULL, imageIcon->width, imageIcon->height);
+			parser.EmitImage(NULL, imageIcon->width, imageIcon->height);
 		}
 
 		if (altText)
@@ -480,7 +497,8 @@ void ImgTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 	else
 	{
 		Platform::video->ScaleImageDimensions(width, height);
-		parser.page.AddImage(altText, width, height);
+		//parser.page.AddImage(altText, width, height);
+		parser.EmitImage(NULL, width, height);
 	}
 }
 
@@ -532,6 +550,7 @@ void PreformattedTagHandler::Open(class HTMLParser& parser, char* attributeStr) 
 	parser.page.PushStyle(currentStyle);
 	parser.PushPreFormatted();
 	parser.page.BreakTextLine();
+	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
 }
 
 void PreformattedTagHandler::Close(class HTMLParser& parser) const
@@ -541,4 +560,5 @@ void PreformattedTagHandler::Close(class HTMLParser& parser) const
 
 	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
 	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize, currentStyle.fontStyle) >> 1);
+	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
 }

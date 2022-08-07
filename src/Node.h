@@ -1,8 +1,12 @@
 #pragma once
+#ifndef _NODE_H_
+#define _NODE_H_
+
 #include <stdint.h>
 
 class Page;
 class Node;
+class Layout;
 typedef class LinearAllocator Allocator;
 
 typedef uint16_t ElementStyle;
@@ -10,7 +14,8 @@ typedef uint16_t ElementStyle;
 class NodeHandler
 {
 public:
-	virtual void Draw(Page& page, Node* element) = 0;
+	virtual void Draw(Page& page, Node* element) {}
+	virtual void GenerateLayout(Layout& layout, Node* node) {}
 };
 
 struct Coord
@@ -34,6 +39,10 @@ public:
 	{
 		Section,
 		Text,
+		SubText,
+		Image,
+		Break,
+		Style,
 		NumNodeTypes
 	};
 
@@ -48,8 +57,9 @@ public:
 	Type type;
 
 	ElementStyle style;
-	Coord anchor;
-	Rect rect;
+	
+	Coord anchor;				// Top left page position
+	Coord size;					// Rectangle size that encapsulates node and its children
 
 	Node* parent;
 	Node* next;
@@ -60,3 +70,5 @@ public:
 protected:
 	static NodeHandler* nodeHandlers[Node::NumNodeTypes];
 };
+
+#endif

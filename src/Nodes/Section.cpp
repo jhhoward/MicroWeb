@@ -7,7 +7,7 @@ Node* SectionElement::Construct(Allocator& allocator, SectionElement::Type secti
 
 	if (data)
 	{
-		return allocator.Alloc<Node>(Node::Type::Section, data);
+		return allocator.Alloc<Node>(Node::Section, data);
 	}
 	return nullptr;
 }

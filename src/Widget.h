@@ -101,7 +101,7 @@ struct Widget
 		{
 			return image->linkURL;
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	union

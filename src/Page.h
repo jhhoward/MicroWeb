@@ -17,6 +17,7 @@
 #include "Widget.h"
 #include "LinAlloc.h"
 #include "URL.h"
+#include "Layout.h"
 
 #define MAX_PAGE_WIDGETS 2000
 #define MAX_PAGE_STYLE_STACK_SIZE 32
@@ -87,8 +88,11 @@ public:
 	void PopStyle();
 
 	LinearAllocator allocator;
+	Layout layout;
 
 	int GetPageHeight() { return pageHeight; }
+
+	void DebugDraw(Node* node);
 
 	URL pageURL;
 

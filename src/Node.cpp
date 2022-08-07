@@ -2,11 +2,18 @@
 #include "Node.h"
 #include "Nodes/Text.h"
 #include "Nodes/Section.h"
+#include "Nodes/ImgNode.h"
+#include "Nodes/Break.h"
+#include "Nodes/StyNode.h"
 
 NodeHandler* Node::nodeHandlers[Node::NumNodeTypes] =
 {
 	new SectionElement(),
-	new TextElement()
+	new TextElement(),
+	new SubTextElement(),
+	new ImageNode(),
+	new BreakNode(),
+	new StyleNode()
 };
 
 Node::Node(Type inType, void* inData)
@@ -18,7 +25,7 @@ Node::Node(Type inType, void* inData)
 	, data(inData)
 {
 	anchor.Clear();
-	rect.Clear();
+	size.Clear();
 }
 
 void Node::AddChild(Node* child)

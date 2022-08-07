@@ -22,6 +22,7 @@
 #include "Page.h"
 #include "Unicode.inc"
 #include "Nodes/Text.h"
+#include "Nodes/ImgNode.h"
 
 HTMLParser::HTMLParser(Page& inPage)
 : page(inPage)
@@ -69,6 +70,12 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 		if (contextStack[n].tag == tag)
 		{
 			contextStackSize = n - 1;
+
+			if (contextStackSize == 0)
+			{
+				page.DebugDraw(page.GetRootNode());
+			}
+
 			return;
 		}
 	}
@@ -141,15 +148,33 @@ void HTMLParser::AppendTextBuffer(char c)
 	}
 }
 
-void HTMLParser::AddTextElement(const char* text)
+void HTMLParser::EmitText(const char* text)
 {
 	Node* textElement = TextElement::Construct(page.allocator, text);
 	if (textElement)
 	{
 		textElement->style = CurrentContext().node->style;
-		CurrentContext().node->AddChild(textElement);
+		EmitNode(textElement);
 	}
 }
+
+void HTMLParser::EmitNode(Node* node)
+{
+	CurrentContext().node->AddChild(node);
+	node->Handler().GenerateLayout(page.layout, node);
+}
+
+void HTMLParser::EmitImage(Image* image, int imageWidth, int imageHeight)
+{
+	Node* node = ImageNode::Construct(page.allocator, image);
+	if (node)
+	{
+		node->size.x = imageWidth;
+		node->size.y = imageHeight;
+		EmitNode(node);
+	}
+}
+
 
 void HTMLParser::FlushTextBuffer()
 {
@@ -159,7 +184,10 @@ void HTMLParser::FlushTextBuffer()
 	{
 		case ParseText:
 		{
-			AddTextElement(textBuffer);
+			if (textBufferSize > 0)
+			{
+				EmitText(textBuffer);
+			}
 
 			if(CurrentSection() == HTMLParseSection::Body && textBufferSize > 0)
 			{

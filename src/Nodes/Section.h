@@ -24,6 +24,5 @@ public:
 	};
 
 	static Node* Construct(Allocator& allocator, SectionElement::Type sectionType);
-	virtual void Draw(Page& page, Node* element) override {}
 };
 

@@ -23,7 +23,7 @@
 
 #define TOP_MARGIN_PADDING 1
 
-Page::Page(App& inApp) : app(inApp), widgets(allocator)
+Page::Page(App& inApp) : app(inApp), widgets(allocator), layout(*this)
 {
 	Reset();
 }
@@ -50,6 +50,8 @@ void Page::Reset()
 	allocator.Reset();
 
 	rootNode = SectionElement::Construct(allocator, SectionElement::Document);
+
+	layout.Reset();
 }
 
 WidgetStyle& Page::GetStyleStackTop()
@@ -567,6 +569,18 @@ void Page::FinishSection()
 void Page::SetFormData(WidgetFormData* inFormData)
 {
 	formData = inFormData;
+}
+
+void Page::DebugDraw(Node* node)
+{
+	while (node)
+	{
+		node->Handler().Draw(*this, node);
+
+		DebugDraw(node->firstChild);
+
+		node = node->next;
+	}
 }
 
 WidgetContainer::WidgetContainer(LinearAllocator& inAllocator) : allocator(inAllocator), numAllocated(0)
