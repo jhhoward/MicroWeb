@@ -22,29 +22,32 @@
 #include "CGA.h"
 #include "CGAData.inc"
 #include "../Interface.h"
+#include "DefData.h"
 
 #define CGA_BASE_VRAM_ADDRESS (uint8_t*) MK_FP(0xB800, 0)
 
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 200
 
-#define NAVIGATION_BUTTON_WIDTH 24
-#define NAVIGATION_BUTTON_HEIGHT 12
-
 #define BACK_BUTTON_X 4
 #define FORWARD_BUTTON_X 32
 
 #define ADDRESS_BAR_X 60
-#define ADDRESS_BAR_Y 10
+//#define ADDRESS_BAR_Y 10
+#define ADDRESS_BAR_Y (TITLE_BAR_HEIGHT + 1)
 #define ADDRESS_BAR_WIDTH (SCREEN_WIDTH - 64)
-#define ADDRESS_BAR_HEIGHT 12
-#define TITLE_BAR_HEIGHT 8
-#define STATUS_BAR_HEIGHT 8
+#define ADDRESS_BAR_HEIGHT 15 // 12
+#define TITLE_BAR_HEIGHT 12 //8
+#define STATUS_BAR_HEIGHT 12 //8
 #define STATUS_BAR_Y (SCREEN_HEIGHT - STATUS_BAR_HEIGHT)
 
-#define WINDOW_TOP 24
+#define WINDOW_TOP (TITLE_BAR_HEIGHT + ADDRESS_BAR_HEIGHT + 3)
+//#define WINDOW_TOP 24
 #define WINDOW_HEIGHT (SCREEN_HEIGHT - WINDOW_TOP - STATUS_BAR_HEIGHT)
 #define WINDOW_BOTTOM (WINDOW_TOP + WINDOW_HEIGHT)
+
+#define NAVIGATION_BUTTON_WIDTH 24
+#define NAVIGATION_BUTTON_HEIGHT ADDRESS_BAR_HEIGHT
 
 #define SCROLL_BAR_WIDTH 16
 
@@ -319,7 +322,7 @@ void CGADriver::DrawString(const char* text, int x, int y, int size, FontStyle::
 
 Font* CGADriver::GetFont(int fontSize, FontStyle::Type style)
 {
-	if (style & FontStyle::Monospace)
+/*	if (style & FontStyle::Monospace)
 	{
 		switch (fontSize)
 		{
@@ -344,7 +347,35 @@ Font* CGADriver::GetFont(int fontSize, FontStyle::Type style)
 		return &CGA_LargeFont;
 	default:
 		return &CGA_RegularFont;
+	}*/
+
+	if (style & FontStyle::Monospace)
+	{
+		switch (fontSize)
+		{
+		case 0:
+			return &Default_SmallFont_Monospace;
+		case 2:
+		case 3:
+		case 4:
+			return &Default_LargeFont_Monospace;
+		default:
+			return &Default_RegularFont_Monospace;
+		}
 	}
+
+	switch (fontSize)
+	{
+	case 0:
+		return &Default_SmallFont;
+	case 2:
+	case 3:
+	case 4:
+		return &Default_LargeFont;
+	default:
+		return &Default_RegularFont;
+	}
+
 }
 
 void CGADriver::HLine(int x, int y, int count)

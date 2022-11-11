@@ -17,6 +17,7 @@
 #include "Parser.h"
 #include "Font.h"
 #include "Nodes/Section.h"
+#include "Style.h"
 
 class HTMLParser;
 
@@ -42,12 +43,13 @@ public:
 	const SectionElement::Type sectionType;
 };
 
-class CenterTagHandler : public HTMLTagHandler
+class AlignmentTagHandler : public HTMLTagHandler
 {
 public:
-	CenterTagHandler() : HTMLTagHandler("center") {}
+	AlignmentTagHandler(const char* inName, ElementAlignment::Type inAlignmentType) : HTMLTagHandler(inName), alignmentType(inAlignmentType) {}
 	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
 	virtual void Close(class HTMLParser& parser) const;
+	const ElementAlignment::Type alignmentType;
 };
 
 class PreformattedTagHandler : public HTMLTagHandler

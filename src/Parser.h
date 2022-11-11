@@ -104,6 +104,8 @@ private:
 	void FlushTextBuffer();
 	bool IsWhiteSpace(char c);
 
+	void DebugDumpNodeGraph(Node* node, int depth = 0);
+
 	enum ParseState
 	{
 		ParseText,

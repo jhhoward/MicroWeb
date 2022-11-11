@@ -20,7 +20,8 @@
 #include <stdint.h>
 #include "../Image.h"
 #include "HP95LX.h"
-#include "DefData.h"
+#include "CGAData.inc"
+//#include "DefData.h"
 #include "../Interface.h"
 
 #define USE_EGA_PREVIS 0
@@ -31,11 +32,11 @@
 #define BASE_VRAM_ADDRESS (uint8_t*) MK_FP(0xB000, 0)
 #endif
 
-#define SCREEN_WIDTH 240
-#define SCREEN_HEIGHT 128
+#define SCREEN_WIDTH 320
+#define SCREEN_HEIGHT 200
 
-#define ADDRESS_BAR_HEIGHT 13
-#define TITLE_BAR_HEIGHT 8
+#define ADDRESS_BAR_HEIGHT 10
+#define TITLE_BAR_HEIGHT 6
 #define STATUS_BAR_HEIGHT 0
 #define STATUS_BAR_Y (SCREEN_HEIGHT - STATUS_BAR_HEIGHT)
 
@@ -81,8 +82,8 @@ HP95LXVideoDriver::HP95LXVideoDriver()
 	scissorY2 = SCREEN_HEIGHT;
 	invertScreen = true;
 	clearMask = invertScreen ? 0 : 0xffff;
-	imageIcon = &Default_ImageIcon;
-	bulletImage = &Default_Bullet;
+	imageIcon = &CGA_ImageIcon;
+	bulletImage = &CGA_Bullet;
 	isTextMode = false;
 }
 
@@ -310,22 +311,22 @@ Font* HP95LXVideoDriver::GetFont(int fontSize, FontStyle::Type style)
 		switch (fontSize)
 		{
 		default:
-			return &Default_SmallFont_Monospace;
+			return &CGA_SmallFont_Monospace;
 		case 2:
 		case 3:
 		case 4:
-			return &Default_RegularFont_Monospace;
+			return &CGA_RegularFont_Monospace;
 		}
 	}
 
 	switch (fontSize)
 	{
 	default:
-		return &Default_SmallFont;
+		return &CGA_SmallFont;
 	case 2:
 	case 3:
 	case 4:
-		return &Default_RegularFont;
+		return &CGA_RegularFont;
 	}
 }
 
@@ -578,11 +579,11 @@ MouseCursorData* HP95LXVideoDriver::GetCursorGraphic(MouseCursor::Type type)
 	{
 	default:
 	case MouseCursor::Pointer:
-		return &Default_MouseCursor;
+		return &CGA_MouseCursor;
 	case MouseCursor::Hand:
-		return &Default_MouseCursorHand;
+		return &CGA_MouseCursorHand;
 	case MouseCursor::TextSelect:
-		return &Default_MouseCursorTextSelect;
+		return &CGA_MouseCursorTextSelect;
 	}
 }
 

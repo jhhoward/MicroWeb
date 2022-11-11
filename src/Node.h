@@ -3,19 +3,19 @@
 #define _NODE_H_
 
 #include <stdint.h>
+#include "Style.h"
 
 class Page;
 class Node;
 class Layout;
 typedef class LinearAllocator Allocator;
 
-typedef uint16_t ElementStyle;
-
 class NodeHandler
 {
 public:
 	virtual void Draw(Page& page, Node* element) {}
 	virtual void GenerateLayout(Layout& layout, Node* node) {}
+	virtual void ApplyStyle(Node* node) {}
 };
 
 struct Coord
@@ -43,6 +43,7 @@ public:
 		Image,
 		Break,
 		Style,
+		Link,
 		NumNodeTypes
 	};
 

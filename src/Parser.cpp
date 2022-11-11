@@ -50,8 +50,19 @@ void HTMLParser::Reset()
 
 void HTMLParser::PushContext(Node* node, const HTMLTagHandler* tag)
 {
+	if (!node)
+	{
+		return;
+	}
 	if (contextStackSize < MAX_PARSE_CONTEXT_STACK_SIZE - 1)
 	{
+		if (contextStackSize >= 0)
+		{
+			Node* parentNode = CurrentContext().node;
+			parentNode->AddChild(node);
+			node->Handler().ApplyStyle(node);
+		}
+
 		contextStackSize++;
 		contextStack[contextStackSize].node = node;
 		contextStack[contextStackSize].tag = tag;
@@ -73,6 +84,7 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 
 			if (contextStackSize == 0)
 			{
+				page.DebugDumpNodeGraph(page.GetRootNode());
 				page.DebugDraw(page.GetRootNode());
 			}
 
@@ -160,7 +172,13 @@ void HTMLParser::EmitText(const char* text)
 
 void HTMLParser::EmitNode(Node* node)
 {
-	CurrentContext().node->AddChild(node);
+	if (!node)
+	{
+		return;
+	}
+	Node* parentNode = CurrentContext().node;
+	parentNode->AddChild(node);
+	node->Handler().ApplyStyle(node);
 	node->Handler().GenerateLayout(page.layout, node);
 }
 

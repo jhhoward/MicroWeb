@@ -20,6 +20,7 @@
 #include "App.h"
 #include "Image.h"
 #include "Nodes/Section.h"
+#include "Nodes/Text.h"
 
 #define TOP_MARGIN_PADDING 1
 
@@ -50,6 +51,9 @@ void Page::Reset()
 	allocator.Reset();
 
 	rootNode = SectionElement::Construct(allocator, SectionElement::Document);
+	rootNode->style.alignment = ElementAlignment::Left;
+	rootNode->style.fontSize = 1;
+	rootNode->style.fontStyle = FontStyle::Regular;
 
 	layout.Reset();
 }
@@ -619,4 +623,59 @@ void WidgetContainer::Clear()
 Widget& WidgetContainer::operator[](int index)
 {
 	return chunks[WIDGET_INDEX_TO_CHUNK_INDEX(index)]->widgets[WIDGET_INDEX_TO_INDEX_IN_CHUNK(index)];
+}
+
+void Page::DebugDumpNodeGraph(Node* node, int depth)
+{
+	static const char* nodeTypeNames[] =
+	{
+		"Section",
+		"Text",
+		"SubText",
+		"Image",
+		"Break",
+		"Style",
+		"Link"
+	};
+
+	static const char* sectionTypeNames[] =
+	{
+		"Document",
+		"HTML",
+		"Head",
+		"Body",
+		"Script",
+		"Style",
+		"Title"
+	};
+
+	for (int i = 0; i < depth; i++)
+	{
+		printf(" ");
+	}
+	
+	switch (node->type)
+	{
+	case Node::Text:
+	case Node::SubText:
+		{
+			TextElement::Data* data = static_cast<TextElement::Data*>(node->data);
+			printf("<%s> %s\n", nodeTypeNames[node->type], data->text);
+		}
+		break;
+	case Node::Section:
+		{
+			SectionElement::Data* data = static_cast<SectionElement::Data*>(node->data);
+			printf("<%s> %s\n", nodeTypeNames[node->type], sectionTypeNames[data->type]);
+		}
+		break;
+	default:
+		printf("<%s>\n", nodeTypeNames[node->type]);
+		break;
+	}
+
+	for (Node* child = node->firstChild; child; child = child->next)
+	{
+		DebugDumpNodeGraph(child, depth + 1);
+	}
 }

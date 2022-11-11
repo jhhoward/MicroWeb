@@ -5,6 +5,7 @@
 #include "Nodes/ImgNode.h"
 #include "Nodes/Break.h"
 #include "Nodes/StyNode.h"
+#include "Nodes/LinkNode.h"
 
 NodeHandler* Node::nodeHandlers[Node::NumNodeTypes] =
 {
@@ -13,12 +14,12 @@ NodeHandler* Node::nodeHandlers[Node::NumNodeTypes] =
 	new SubTextElement(),
 	new ImageNode(),
 	new BreakNode(),
-	new StyleNode()
+	new StyleNode(),
+	new LinkNode()
 };
 
 Node::Node(Type inType, void* inData)
 	: type(inType)
-	, style(0)
 	, parent(nullptr)
 	, next(nullptr)
 	, firstChild(nullptr)
@@ -31,6 +32,7 @@ Node::Node(Type inType, void* inData)
 void Node::AddChild(Node* child)
 {
 	child->parent = this;
+	child->style = style;
 
 	if(!firstChild)
 	{

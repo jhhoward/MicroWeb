@@ -10,9 +10,9 @@ void TextElement::Draw(Page& page, Node* node)
 
 	if (!node->firstChild && data->text)
 	{
-		Platform::video->DrawString(data->text, node->anchor.x, node->anchor.y + 50);
+		Platform::video->DrawString(data->text, node->anchor.x, node->anchor.y + 50, node->style.fontSize, node->style.fontStyle);
 		//Platform::video->InvertRect(node->anchor.x, node->anchor.y + 50, node->size.x, node->size.y);
-		printf("%s [%d, %d]", data->text, node->anchor.x, node->anchor.y);
+		printf("%s [%d, %d](%d %d)", data->text, node->anchor.x, node->anchor.y, node->style.fontStyle, node->style.fontSize);
 	}
 }
 
@@ -34,7 +34,7 @@ Node* TextElement::Construct(Allocator& allocator, const char* text)
 void TextElement::GenerateLayout(Layout& layout, Node* node)
 {
 	TextElement::Data* data = static_cast<TextElement::Data*>(node->data);
-	Font* font = Platform::video->GetFont(1);	// TODO: Get font from active style
+	Font* font = Platform::video->GetFont(node->style.fontSize, node->style.fontStyle);	// TODO: Get font from active style
 	int lineHeight = font->glyphHeight;
 
 	// Clear out SubTextElement children if we are regenerating the layout
@@ -69,7 +69,8 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 			lastBreakPointWidth = width;
 		}
 
-		width += font->GetGlyphWidth(c);
+		width += Platform::video->GetGlyphWidth(c, node->style.fontSize, node->style.fontStyle);
+
 		if (width > layout.AvailableWidth())
 		{
 			// Needs a line break

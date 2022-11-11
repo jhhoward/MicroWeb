@@ -46,8 +46,11 @@ void Layout::PopLayout()
 void Layout::BreakNewLine()
 {
 	// Recenter items if required
-	//int shift = AvailableWidth() / 2;
-	//TranslateNodes(lineStartNode, shift, 0);
+	if (lineStartNode && lineStartNode->style.alignment == ElementAlignment::Center)
+	{
+		int shift = AvailableWidth() / 2;
+		TranslateNodes(lineStartNode, shift, 0);
+	}
 
 	cursor.x = GetParams().marginLeft;
 	cursor.y += currentLineHeight;
