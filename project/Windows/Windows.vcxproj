@@ -142,6 +142,7 @@
     <ClCompile Include="..\..\src\App.cpp" />
     <ClCompile Include="..\..\src\Layout.cpp" />
     <ClCompile Include="..\..\src\Node.cpp" />
+    <ClCompile Include="..\..\src\Nodes\Block.cpp" />
     <ClCompile Include="..\..\src\Nodes\Break.cpp" />
     <ClCompile Include="..\..\src\Nodes\ImgNode.cpp" />
     <ClCompile Include="..\..\src\Nodes\LinkNode.cpp" />
@@ -165,6 +166,7 @@
     <ClInclude Include="..\..\src\Defines.h" />
     <ClInclude Include="..\..\src\Layout.h" />
     <ClInclude Include="..\..\src\Node.h" />
+    <ClInclude Include="..\..\src\Nodes\Block.h" />
     <ClInclude Include="..\..\src\Nodes\Break.h" />
     <ClInclude Include="..\..\src\Nodes\ImgNode.h" />
     <ClInclude Include="..\..\src\Nodes\LinkNode.h" />

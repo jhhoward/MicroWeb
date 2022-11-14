@@ -26,7 +26,11 @@ public:
 
 	void PushLayout();
 	void PopLayout();
+	
+	void PadHorizontal(int left, int right);
+	void PadVertical(int down);
 
+	void OnNodeEmitted(Node* node);
 	void ProgressCursor(Node* nodeContext, int width, int lineHeight);
 
 	Coord GetCursor(int lineHeight = 0) 
@@ -47,7 +51,7 @@ public:
 	LayoutParams paramStack[MAX_LAYOUT_PARAMS_STACK_SIZE];
 	int paramStackSize;
 
-	void TranslateNodes(Node* node, int deltaX, int deltaY);
+	void TranslateNodes(Node* node, int deltaX, int deltaY, bool visitSiblings = false);
 };
 
 /*

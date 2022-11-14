@@ -26,6 +26,7 @@
 #include "Nodes/Break.h"
 #include "Nodes/StyNode.h"
 #include "Nodes/LinkNode.h"
+#include "Nodes/Block.h"
 
 static const HTMLTagHandler* tagHandlers[] =
 {
@@ -217,7 +218,7 @@ void BlockTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 	//ApplyStyleAttributes(currentStyle, attributeStr);
 	//parser.page.PushStyle(currentStyle);
 
-	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
+	parser.PushContext(BlockNode::Construct(parser.page.allocator, leftMarginPadding, useVerticalPadding ? Platform::video->GetLineHeight(1) >> 1 : 0), this);
 }
 void BlockTagHandler::Close(class HTMLParser& parser) const
 {
@@ -226,16 +227,12 @@ void BlockTagHandler::Close(class HTMLParser& parser) const
 	//parser.page.BreakLine(useVerticalPadding ? Platform::video->GetLineHeight(currentStyle.fontSize) >> 1 : 0);
 	//parser.page.PopStyle();
 
-	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
+	parser.PopContext(this);
 }
 
 void SectionTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	Node* sectionElement = SectionElement::Construct(parser.page.allocator, sectionType);
-	if (sectionElement)
-	{
-		parser.PushContext(sectionElement, this);
-	}
+	parser.PushContext(SectionElement::Construct(parser.page.allocator, sectionType), this);
 }
 void SectionTagHandler::Close(class HTMLParser& parser) const
 {

@@ -15,6 +15,7 @@ public:
 	};
 
 	virtual void ApplyStyle(Node* node) override;
+	virtual void GenerateLayout(Layout& layout, Node* node) override;
 
 	static Node* Construct(Allocator& allocator);
 	static Node* ConstructFontStyle(Allocator& allocator, FontStyle::Type fontStyle, int fontSize = -1);

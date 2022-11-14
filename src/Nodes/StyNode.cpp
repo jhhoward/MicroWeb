@@ -1,10 +1,20 @@
 #include "StyNode.h"
 #include "../LinAlloc.h"
+#include "../Layout.h"
 
 void StyleNode::ApplyStyle(Node* node)
 {
 	StyleNode::Data* data = static_cast<StyleNode::Data*>(node->data);
 	data->styleOverride.Apply(node->style);
+}
+
+void StyleNode::GenerateLayout(Layout& layout, Node* node)
+{
+	StyleNode::Data* data = static_cast<StyleNode::Data*>(node->data);
+	if (data->styleOverride.overrideMask.alignment)
+	{
+		layout.BreakNewLine();
+	}
 }
 
 Node* StyleNode::Construct(Allocator& allocator)

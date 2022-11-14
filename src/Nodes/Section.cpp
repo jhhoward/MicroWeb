@@ -1,5 +1,7 @@
+
 #include "Section.h"
 #include "../LinAlloc.h"
+#include "../Layout.h"
 
 Node* SectionElement::Construct(Allocator& allocator, SectionElement::Type sectionType)
 {
@@ -11,3 +13,4 @@ Node* SectionElement::Construct(Allocator& allocator, SectionElement::Type secti
 	}
 	return nullptr;
 }
+

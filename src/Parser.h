@@ -15,6 +15,8 @@
 #pragma once
 
 #include <stdint.h>
+#include "Nodes/Section.h"
+
 class Page;
 class Node;
 struct Image;
@@ -27,19 +29,6 @@ struct TextEncoding
 		UTF8,
 		ISO_8859_1,
 		ISO_8859_2
-	};
-};
-
-struct HTMLParseSection
-{
-	enum Type
-	{
-		Document,
-		Head,
-		Body,
-		Script,
-		Style,
-		Title
 	};
 };
 
@@ -66,7 +55,6 @@ private:
 	char* value;
 };
 
-#define MAX_PARSE_SECTION_STACK_SIZE 32
 #define MAX_PARSE_CONTEXT_STACK_SIZE 32
 
 class HTMLParser
@@ -79,9 +67,7 @@ public:
 
 	Page& page;
 
-	void PushSection(HTMLParseSection::Type section);
-	void PopSection(HTMLParseSection::Type section);
-	HTMLParseSection::Type CurrentSection() { return sectionStack[sectionStackSize]; }
+	SectionElement::Type CurrentSection() { return currentParseSection; }
 
 	void PushContext(Node* node, const HTMLTagHandler* tag);
 	void PopContext(const HTMLTagHandler* tag);
@@ -118,9 +104,8 @@ private:
 	ParseState parseState;
 	char textBuffer[2560];
 	size_t textBufferSize;
-
-	HTMLParseSection::Type sectionStack[MAX_PARSE_SECTION_STACK_SIZE];
-	unsigned int sectionStackSize;
+	
+	SectionElement::Type currentParseSection;
 
 	HTMLParseContext contextStack[MAX_PARSE_CONTEXT_STACK_SIZE];
 	int contextStackSize;

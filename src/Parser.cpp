@@ -26,21 +26,20 @@
 
 HTMLParser::HTMLParser(Page& inPage)
 : page(inPage)
-, sectionStackSize(0)
+, currentParseSection(SectionElement::Document)
 , contextStackSize(0)
 , parseState(ParseText)
 , textBufferSize(0)
 , parsingUnicode(false)
 , preformatted(0)
 {
-	sectionStack[0] = HTMLParseSection::Document;
 }
 
 void HTMLParser::Reset()
 {
 	parseState = ParseText;
 	textBufferSize = 0;
-	sectionStackSize = 0;
+	currentParseSection = SectionElement::Document;
 	preformatted = 0;
 	SetTextEncoding(TextEncoding::UTF8);
 
@@ -66,6 +65,14 @@ void HTMLParser::PushContext(Node* node, const HTMLTagHandler* tag)
 		contextStackSize++;
 		contextStack[contextStackSize].node = node;
 		contextStack[contextStackSize].tag = tag;
+
+		if (node->type == Node::Section)
+		{
+			SectionElement::Data* data = static_cast<SectionElement::Data*>(node->data);
+			currentParseSection = data->type;
+		}
+
+		node->Handler().BeginLayoutContext(page.layout, node);
 	}
 	else
 	{
@@ -77,8 +84,12 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 {
 	for (int n = contextStackSize; n >= 0; n--)
 	{
+		HTMLParseContext& parseContext = contextStack[n];
+
+		parseContext.node->Handler().EndLayoutContext(page.layout, parseContext.node);
+
 		// Search for matching tag
-		if (contextStack[n].tag == tag)
+		if (parseContext.tag == tag)
 		{
 			contextStackSize = n - 1;
 
@@ -88,44 +99,22 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 				page.DebugDraw(page.GetRootNode());
 			}
 
+			// We may have exited a section so update
+			for (int i = contextStackSize; i >= 0; i--)
+			{
+				if (contextStack[i].node->type == Node::Section)
+				{
+					SectionElement::Data* data = static_cast<SectionElement::Data*>(contextStack[i].node->data);
+					currentParseSection = data->type;
+					break;
+				}
+			}
+
 			return;
 		}
 	}
 
 	// TODO: ERROR
-}
-
-
-void HTMLParser::PushSection(HTMLParseSection::Type section)
-{
-	if (sectionStackSize < MAX_PARSE_SECTION_STACK_SIZE - 1)
-	{
-		sectionStackSize++;
-		sectionStack[sectionStackSize] = section;
-	}
-	else
-	{
-		// TODO: ERROR
-	}
-}
-
-void HTMLParser::PopSection(HTMLParseSection::Type section)
-{
-	if (sectionStackSize > 0)
-	{
-		if (CurrentSection() != section)
-		{
-			// TODO ERROR
-		}
-
-		sectionStackSize--;
-	}
-	else
-	{
-		// TODO: ERROR
-	}
-
-	page.FinishSection();
 }
 
 #define NUM_AMPERSAND_ESCAPE_SEQUENCES 14
@@ -176,10 +165,13 @@ void HTMLParser::EmitNode(Node* node)
 	{
 		return;
 	}
+
 	Node* parentNode = CurrentContext().node;
 	parentNode->AddChild(node);
+
 	node->Handler().ApplyStyle(node);
-	node->Handler().GenerateLayout(page.layout, node);
+
+	page.layout.OnNodeEmitted(node);
 }
 
 void HTMLParser::EmitImage(Image* image, int imageWidth, int imageHeight)
@@ -202,16 +194,11 @@ void HTMLParser::FlushTextBuffer()
 	{
 		case ParseText:
 		{
-			if (textBufferSize > 0)
+			if(CurrentSection() == SectionElement::Body && textBufferSize > 0)
 			{
 				EmitText(textBuffer);
 			}
-
-			if(CurrentSection() == HTMLParseSection::Body && textBufferSize > 0)
-			{
-				page.AppendText(textBuffer);
-			}
-			if (CurrentSection() == HTMLParseSection::Title && textBufferSize > 0)
+			if (CurrentSection() == SectionElement::Title && textBufferSize > 0)
 			{
 				page.SetTitle(textBuffer);
 			}
@@ -249,7 +236,7 @@ void HTMLParser::FlushTextBuffer()
 				const HTMLTagHandler* tagHandler = DetermineTag(tagStr);
 
 				// Special case when parsing <script> tag : just ignore all other tags until we have a closing </script>
-				if (CurrentSection() == HTMLParseSection::Script)
+				if (CurrentSection() == SectionElement::Script)
 				{
 					if (!isCloseTag || stricmp(tagHandler->name, "script"))
 					{
@@ -529,7 +516,7 @@ void HTMLParser::ParseChar(char c)
 			}
 
 			// Special case when parsing script tags : we just want to look for a script closing tag
-			if (CurrentSection() == HTMLParseSection::Script && textBufferSize >= 7 && strnicmp(textBuffer, "/script", 7))
+			if (CurrentSection() == SectionElement::Script && textBufferSize >= 7 && strnicmp(textBuffer, "/script", 7))
 			{
 				textBufferSize = 0;
 				textBuffer[0] = '\0';

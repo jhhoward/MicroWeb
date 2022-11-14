@@ -6,6 +6,7 @@
 #include "Nodes/Break.h"
 #include "Nodes/StyNode.h"
 #include "Nodes/LinkNode.h"
+#include "Nodes/Block.h"
 
 NodeHandler* Node::nodeHandlers[Node::NumNodeTypes] =
 {
@@ -15,7 +16,8 @@ NodeHandler* Node::nodeHandlers[Node::NumNodeTypes] =
 	new ImageNode(),
 	new BreakNode(),
 	new StyleNode(),
-	new LinkNode()
+	new LinkNode(),
+	new BlockNode()
 };
 
 Node::Node(Type inType, void* inData)

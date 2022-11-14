@@ -635,7 +635,8 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 		"Image",
 		"Break",
 		"Style",
-		"Link"
+		"Link",
+		"Block"
 	};
 
 	static const char* sectionTypeNames[] =

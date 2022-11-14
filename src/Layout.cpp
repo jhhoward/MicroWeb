@@ -49,7 +49,7 @@ void Layout::BreakNewLine()
 	if (lineStartNode && lineStartNode->style.alignment == ElementAlignment::Center)
 	{
 		int shift = AvailableWidth() / 2;
-		TranslateNodes(lineStartNode, shift, 0);
+		TranslateNodes(lineStartNode, shift, 0, true);
 	}
 
 	cursor.x = GetParams().marginLeft;
@@ -69,14 +69,14 @@ void Layout::ProgressCursor(Node* nodeContext, int width, int lineHeight)
 	{
 		// Line height has increased so move everything down accordingly
 		int deltaY = lineHeight - currentLineHeight;
-		TranslateNodes(lineStartNode, 0, deltaY);
+		TranslateNodes(lineStartNode, 0, deltaY, true);
 		currentLineHeight = lineHeight;
 	}
 
 	cursor.x += width;
 }
 
-void Layout::TranslateNodes(Node* node, int deltaX, int deltaY)
+void Layout::TranslateNodes(Node* node, int deltaX, int deltaY, bool visitSiblings)
 {
 	while (node)
 	{
@@ -85,6 +85,71 @@ void Layout::TranslateNodes(Node* node, int deltaX, int deltaY)
 
 		TranslateNodes(node->firstChild, deltaX, deltaY);
 
-		node = node->next;
+		if (visitSiblings)
+		{
+			if (node->next)
+			{
+				node = node->next;
+			}
+			else 
+			{
+				while(1)
+				{
+					if (!node->parent)
+					{
+						return;
+					}
+					if (!node->parent->next)
+					{
+						node = node->parent;
+					}
+					else
+					{
+						node = node->parent->next;
+						break;
+					}
+				}
+			}
+		}
+		else
+		{
+			node = node->next;
+		}
 	}
+}
+
+void Layout::OnNodeEmitted(Node* node)
+{
+	if (!lineStartNode)
+	{
+		lineStartNode = node;
+	}
+
+	node->Handler().GenerateLayout(*this, node);
+}
+
+void Layout::PadHorizontal(int left, int right)
+{
+	LayoutParams& params = GetParams();
+	if (params.marginLeft + left >= params.marginRight - right)
+	{
+		params.marginLeft = (params.marginLeft + left + params.marginRight - right) / 2;
+		params.marginRight = params.marginLeft + 1;
+	}
+	else
+	{
+		params.marginLeft += left;
+		params.marginRight -= right;
+	}
+	if (cursor.x < params.marginLeft)
+	{
+		cursor.x = params.marginLeft;
+	}
+}
+
+void Layout::PadVertical(int down)
+{
+	cursor.x = GetParams().marginLeft;
+	cursor.y += down;
+
 }

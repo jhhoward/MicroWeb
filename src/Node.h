@@ -15,6 +15,8 @@ class NodeHandler
 public:
 	virtual void Draw(Page& page, Node* element) {}
 	virtual void GenerateLayout(Layout& layout, Node* node) {}
+	virtual void BeginLayoutContext(Layout& layout, Node* node) {}
+	virtual void EndLayoutContext(Layout& layout, Node* node) {}
 	virtual void ApplyStyle(Node* node) {}
 };
 
@@ -44,6 +46,7 @@ public:
 		Break,
 		Style,
 		Link,
+		Block,
 		NumNodeTypes
 	};
 
