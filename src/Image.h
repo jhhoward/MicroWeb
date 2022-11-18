@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _IMAGE_H_
+#define _IMAGE_H_
 
 #include <stdint.h>
 
@@ -9,3 +10,5 @@ struct Image
 	uint16_t height;
 	uint8_t* data;
 };
+
+#endif

@@ -12,7 +12,7 @@ void TextElement::Draw(Page& page, Node* node)
 	{
 		Platform::video->DrawString(data->text, node->anchor.x, node->anchor.y + 50, node->style.fontSize, node->style.fontStyle);
 		//Platform::video->InvertRect(node->anchor.x, node->anchor.y + 50, node->size.x, node->size.y);
-		printf("%s [%d, %d](%d %d)", data->text, node->anchor.x, node->anchor.y, node->style.fontStyle, node->style.fontSize);
+		//printf("%s [%d, %d](%d %d)", data->text, node->anchor.x, node->anchor.y, node->style.fontStyle, node->style.fontSize);
 	}
 }
 

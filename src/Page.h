@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _PAGE_H_
+#define _PAGE_H_
 
 #include "Widget.h"
 #include "LinAlloc.h"
@@ -135,3 +136,5 @@ private:
 
 	char* widgetURL;
 };
+
+#endif

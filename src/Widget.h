@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _WIDGET_H_
+#define _WIDGET_H_
 #include <stdint.h>
 #include "Font.h"
 
@@ -114,3 +115,4 @@ struct Widget
 	};
 };
 
+#endif

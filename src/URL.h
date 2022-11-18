@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _URL_H_
+#define _URL_H_
 
 #include <string.h>
 #include <stdio.h>
@@ -166,3 +167,5 @@ struct URL
 
 	char url[MAX_URL_LENGTH];
 };
+
+#endif

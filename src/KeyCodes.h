@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _KEYCODES_H_
+#define _KEYCODES_H_
 
 #define KEYCODE_ARROW_UP 0x4800
 #define KEYCODE_ARROW_DOWN 0x5000
@@ -50,3 +51,5 @@
 #define KEYCODE_F8 0x4200
 #define KEYCODE_F9 0x4300
 #define KEYCODE_F10 0x4400
+
+#endif

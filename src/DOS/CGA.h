@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _CGA_H_
+#define _CGA_H_
 
 #include "../Platform.h"
 
@@ -70,3 +71,5 @@ private:
 	int startingScreenMode;
 	int scissorX1, scissorY1, scissorX2, scissorY2;
 };
+
+#endif

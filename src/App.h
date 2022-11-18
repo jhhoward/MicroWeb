@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _APP_H_
+#define _APP_H_
 
 #include <stdio.h>
 #include "Parser.h"
@@ -89,3 +90,5 @@ private:
 	int pageHistorySize;
 	int pageHistoryPos;
 };
+
+#endif

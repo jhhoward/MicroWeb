@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _STYLE_H_
+#define _STYLE_H_
 
 #include <stdint.h>
 #include "Font.h"
@@ -94,3 +95,5 @@ struct ElementStyleOverride
 		}
 	}
 };
+
+#endif

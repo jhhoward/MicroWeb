@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _HERCULES_H_
+#define _HERCULES_H_
 
 #include "../Platform.h"
 
@@ -69,3 +70,5 @@ private:
 	uint16_t clearMask;
 	int scissorX1, scissorY1, scissorX2, scissorY2;
 };
+
+#endif

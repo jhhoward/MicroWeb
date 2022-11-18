@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _PARSER_H_
+#define _PARSER_H_
 
 #include <stdint.h>
 #include "Nodes/Section.h"
@@ -118,3 +119,5 @@ private:
 
 	unsigned int preformatted;
 };
+
+#endif

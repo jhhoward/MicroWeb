@@ -95,7 +95,7 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 
 			if (contextStackSize == 0)
 			{
-				page.DebugDumpNodeGraph(page.GetRootNode());
+				//page.DebugDumpNodeGraph(page.GetRootNode());
 				page.DebugDraw(page.GetRootNode());
 			}
 

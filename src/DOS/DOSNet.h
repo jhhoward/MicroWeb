@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _DOSNET_H_
+#define _DOSNET_H_
 
 #include <stdint.h>
 #include "../Platform.h"
@@ -116,3 +117,5 @@ private:
 	DOSHTTPRequest* requests[MAX_CONCURRENT_HTTP_REQUESTS];
 	bool isConnected;
 };
+
+#endif

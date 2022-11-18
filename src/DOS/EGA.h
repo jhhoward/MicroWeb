@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _EGA_H_
+#define _EGA_H_
 
 #include "../Platform.h"
 
@@ -85,3 +86,5 @@ public:
 	}
 	virtual void ScaleImageDimensions(int& width, int& height) {}
 };
+
+#endif

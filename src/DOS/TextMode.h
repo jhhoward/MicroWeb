@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _TEXTMODE_H_
+#define _TEXTMODE_H_
 
 #include "../Platform.h"
 
@@ -86,3 +87,5 @@ public:
 private:
 	static uint8_t cgaAttributeMap[16];
 };
+
+#endif

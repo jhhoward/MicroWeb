@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _PLATFORM_H_
+#define _PLATFORM_H_
 
 #include <stdlib.h>
 #include "Font.h"
@@ -129,3 +130,5 @@ public:
 	static NetworkDriver* network;
 	static InputDriver* input;
 };
+
+#endif

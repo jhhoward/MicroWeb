@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _HP95LX_H_
+#define _HP95LX_H_
 
 #include "../Platform.h"
 
@@ -72,3 +73,4 @@ private:
 
 };
 
+#endif

@@ -15,7 +15,7 @@ Node* BreakNode::Construct(Allocator& allocator, int breakPadding, bool displayB
 
 void BreakNode::Draw(Page& page, Node* element)
 {
-	printf("\n");
+	//printf("\n");
 }
 
 void BreakNode::GenerateLayout(Layout& layout, Node* node)

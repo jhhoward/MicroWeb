@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _DOSINPUT_H_
+#define _DOSINPUT_H_
 #include "../Platform.h"
 
 class DOSInputDriver : public InputDriver
@@ -35,3 +36,5 @@ private:
 	bool mouseVisible;
 	bool hasMouse;
 };
+
+#endif

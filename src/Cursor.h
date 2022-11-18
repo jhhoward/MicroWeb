@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _CURSOR_H_
+#define _CURSOR_H_
 #include <stdint.h>
 
 struct MouseCursor
@@ -30,3 +31,5 @@ struct MouseCursorData
 	uint16_t data[32];
 	int hotSpotX, hotSpotY;
 };
+
+#endif

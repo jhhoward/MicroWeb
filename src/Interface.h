@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _INTERFACE_H_
+#define _INTERFACE_H_
 #include "Widget.h"
 #include "Platform.h"
 #include "URL.h"
@@ -77,3 +78,5 @@ private:
 	TextFieldWidgetData addressBarData;
 	ScrollBarData scrollBarData;
 };
+
+#endif

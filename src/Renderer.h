@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _RENDERER_H_
+#define _RENDERER_H_
 
 #include "Font.h"
 class App;
@@ -68,3 +69,4 @@ private:
 	int upperRenderLine, lowerRenderLine;
 };
 
+#endif

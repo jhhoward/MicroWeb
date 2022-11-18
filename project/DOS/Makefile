@@ -1,7 +1,7 @@
 bin = MicroWeb.exe
 SRC_PATH = ..\..\src
 OBJDIR=obj
-objects = MicroWeb.obj App.obj Parser.obj Renderer.obj Tags.obj Platform.obj CGA.obj EGA.obj Hercules.obj TextMode.obj Font.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj Layout.obj Node.obj Text.obj Section.obj ImgNode.obj
+objects = MicroWeb.obj App.obj Parser.obj Renderer.obj Tags.obj Platform.obj CGA.obj EGA.obj Hercules.obj TextMode.obj Font.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj Layout.obj Node.obj Text.obj Section.obj ImgNode.obj Block.obj StyNode.obj LinkNode.obj Break.obj
 memory_model = -ml
 CC = wpp
 CFLAGS = -zq -0 -ot -bt=DOS -w2 $(memory_model) -fi=$(SRC_PATH)\Defines.h
@@ -65,6 +65,18 @@ Node.obj: $(SRC_PATH)\Node.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 ImgNode.obj: $(SRC_PATH)\Nodes\ImgNode.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+StyNode.obj: $(SRC_PATH)\Nodes\StyNode.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+LinkNode.obj: $(SRC_PATH)\Nodes\LinkNode.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+Block.obj: $(SRC_PATH)\Nodes\Block.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+Break.obj: $(SRC_PATH)\Nodes\Break.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 Section.obj: $(SRC_PATH)\Nodes\Section.cpp

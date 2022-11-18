@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _TAGS_H_
+#define _TAGS_H_
 
 #include "Parser.h"
 #include "Font.h"
@@ -181,3 +182,5 @@ public:
 };
 
 const HTMLTagHandler* DetermineTag(const char* str);
+
+#endif

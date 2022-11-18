@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _LINALLOC_H_
+#define _LINALLOC_H_
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -158,3 +159,4 @@ private:
 	AllocationError errorFlag;
 };
 
+#endif

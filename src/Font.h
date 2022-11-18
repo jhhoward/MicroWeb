@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _FONT_H_
+#define _FONT_H_
 
 #include <stdint.h>
 
@@ -40,3 +41,4 @@ struct Font
 	int GetGlyphWidth(char c) { return glyphWidth[c - 32]; }
 };
 
+#endif
