@@ -1,24 +1,63 @@
-#pragma once
+#ifndef _DATAPACK_H_
+#define _DATAPACK_H_
 
+#include <stdint.h>
+#include "Cursor.h"
 #include "Image.h"
 #include "Font.h"
-#include "Cursor.h"
+
+/*
+
+Asset data pack format
+
+Header: (all offsets relative to end of the header)
+uint16 smallFontOffset
+uint16 mediumFontOffset
+uint16 largeFontOffset
+uint16 smallMonoFontOffset
+uint16 mediumMonoFontOffset
+uint16 largeMonoFontOffset
+uint16 pointerCursorOffset
+uint16 linkCursorOffset
+uint16 textSelectCursorOffset
+
+Mouse cursor:
+uint16 hotspotX
+uint16 hotspotY
+uint16 cursorData[32]
+
+Font data:
+uint8 glyphWidth[256 - 32]
+uint8 glyphWidthBytes
+uint8 glyphHeight
+uint8 glyphDataStride
+uint8 glyphData[variable]
+
+*/
+
+#define NUM_FONT_SIZES 3
+
+struct DataPackHeader
+{
+	uint16_t fontOffsets[NUM_FONT_SIZES];
+	uint16_t monoFontOffsets[NUM_FONT_SIZES];
+	uint16_t pointerCursorOffset;
+	uint16_t linkCursorOffset;
+	uint16_t textSelectCursorOffset;
+};
 
 struct DataPack
 {
-	MouseCursorData cursor;
-	MouseCursorData hand;
-	MouseCursorData select;
-	Image imageIcon;
-	Font small;
-	Font medium;
-	Font large;
+	MouseCursorData* pointerCursor;
+	MouseCursorData* linkCursor;
+	MouseCursorData* textSelectCursor;
 
-	void Fixup()
-	{
-		imageIcon.data += (uint8_t*)(this);
-		small.glyphData += (uint8_t*)(this);
-		medium.glyphData += (uint8_t*)(this);
-		large.glyphData += (uint8_t*)(this);
-	}
+	Font fonts[NUM_FONT_SIZES];
+	Font monoFonts[NUM_FONT_SIZES];
+
+	bool Load(const char* path);
 };
+
+extern DataPack Assets;
+
+#endif

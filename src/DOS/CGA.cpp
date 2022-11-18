@@ -322,7 +322,7 @@ void CGADriver::DrawString(const char* text, int x, int y, int size, FontStyle::
 
 Font* CGADriver::GetFont(int fontSize, FontStyle::Type style)
 {
-/*	if (style & FontStyle::Monospace)
+	if (style & FontStyle::Monospace)
 	{
 		switch (fontSize)
 		{
@@ -336,7 +336,7 @@ Font* CGADriver::GetFont(int fontSize, FontStyle::Type style)
 			return &CGA_RegularFont_Monospace;
 		}
 	}
-
+	
 	switch (fontSize)
 	{
 	case 0:
@@ -347,8 +347,8 @@ Font* CGADriver::GetFont(int fontSize, FontStyle::Type style)
 		return &CGA_LargeFont;
 	default:
 		return &CGA_RegularFont;
-	}*/
-
+	}
+	/*
 	if (style & FontStyle::Monospace)
 	{
 		switch (fontSize)
@@ -375,7 +375,7 @@ Font* CGADriver::GetFont(int fontSize, FontStyle::Type style)
 	default:
 		return &Default_RegularFont;
 	}
-
+	*/
 }
 
 void CGADriver::HLine(int x, int y, int count)

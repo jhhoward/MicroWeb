@@ -1,0 +1,13 @@
+HELVA.FON, Helv 8,10,12,14,18,24 (CGA resolution)
+HELVB.FON, Helv 8,10,12,14,18,24 (EGA resolution)
+HELVC.FON, Helv 8,10,12,14,18,24 (60 dpi)
+HELVD.FON, Helv 8,10,12,14,18,24 (120 dpi)
+HELVE.FON, Helv 8,10,12,14,18,24 (VGA resolution)
+HELVF.FON, Helv 8,10,12,14,18,24 (8514/a resolution)
+
+COURA.FON, Courier 10,12,15 (CGA resolution)
+COURB.FON, Courier 10,12,15 (EGA resolution)
+COURC.FON, Courier 10,12,15 (60 dpi)
+COURD.FON, Courier 10,12,15 (120 dpi)
+COURE.FON, Courier 10,12,15 (VGA resolution)
+COURF.FON, Courier 10,12,15 (8514/a resolution)

@@ -29,7 +29,7 @@ struct MouseCursor
 struct MouseCursorData
 {
 	uint16_t data[32];
-	int hotSpotX, hotSpotY;
+	int16_t hotSpotX, hotSpotY;
 };
 
 #endif

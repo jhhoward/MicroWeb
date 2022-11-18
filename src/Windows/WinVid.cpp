@@ -16,8 +16,9 @@
 #include <windows.h>
 #include "WinVid.h"
 #include "../Image.h"
-#include "../DOS/CGAData.inc"
+//#include "../DOS/CGAData.inc"
 #include "../Interface.h"
+#include "../DataPack.h"
 
 #define WINDOW_TOP 24
 #define WINDOW_HEIGHT 168
@@ -48,7 +49,7 @@ extern HWND hWnd;
 WindowsVideoDriver::WindowsVideoDriver()
 {
 	screenWidth = 640;
-	screenHeight = 200;
+	screenHeight = 480;
 	windowWidth = screenWidth - 16;
 	windowHeight = WINDOW_HEIGHT;
 	windowX = 0;
@@ -56,15 +57,20 @@ WindowsVideoDriver::WindowsVideoDriver()
 
 	foregroundColour = RGB(0, 0, 0);
 	backgroundColour = RGB(255, 255, 255);
-	verticalScale = 2;
+	verticalScale = 1;
 
 	scissorX1 = 0;
 	scissorY1 = 0;
 	scissorX2 = screenWidth;
 	scissorY2 = screenHeight;
 
-	imageIcon = &CGA_ImageIcon;
-	bulletImage = &CGA_Bullet;
+
+
+	//imageIcon = &CGA_ImageIcon;
+	//bulletImage = &CGA_Bullet;
+
+	Assets.Load("Default.dat");
+
 	isTextMode = false;
 }
 
@@ -295,24 +301,24 @@ Font* WindowsVideoDriver::GetFont(int fontSize, FontStyle::Type style)
 		switch (fontSize)
 		{
 		case 0:
-			return &CGA_SmallFont_Monospace;
+			return &Assets.monoFonts[0];
 		case 2:
 		case 3:
 		case 4:
-			return &CGA_LargeFont_Monospace;
+			return &Assets.monoFonts[2];
 		default:
-			return &CGA_RegularFont_Monospace;
+			return &Assets.monoFonts[1];
 		}
 	}
 
 	switch (fontSize)
 	{
 	case 0:
-		return &CGA_SmallFont;
+		return &Assets.fonts[0];
 	case 2:
-		return &CGA_LargeFont;
+		return &Assets.fonts[2];
 	default:
-		return &CGA_RegularFont;
+		return &Assets.fonts[1];
 	}
 
 }

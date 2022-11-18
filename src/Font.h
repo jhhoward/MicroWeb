@@ -17,6 +17,9 @@
 
 #include <stdint.h>
 
+#define FIRST_FONT_GLYPH 32
+#define LAST_FONT_GLYPH 255
+
 struct FontStyle
 {
 	enum Type
@@ -29,16 +32,20 @@ struct FontStyle
 	};
 };
 
-struct Font
+struct FontMetaData
 {
-	uint8_t glyphWidth[96];
+	uint8_t glyphWidth[LAST_FONT_GLYPH + 1 - FIRST_FONT_GLYPH];
 	uint8_t glyphWidthBytes;
 	uint8_t glyphHeight;
 	uint8_t glyphDataStride;
+};
+
+struct Font : public FontMetaData
+{
 	uint8_t* glyphData;
 
 	int CalculateWidth(const char* text, FontStyle::Type style = FontStyle::Regular);
-	int GetGlyphWidth(char c) { return glyphWidth[c - 32]; }
+	int GetGlyphWidth(char c) { return glyphWidth[c - FIRST_FONT_GLYPH]; }
 };
 
 #endif

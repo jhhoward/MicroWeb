@@ -96,6 +96,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\App.cpp" />
+    <ClCompile Include="..\..\src\DataPack.cpp" />
     <ClCompile Include="..\..\src\DOS\CGA.cpp" />
     <ClCompile Include="..\..\src\DOS\DOSInput.cpp" />
     <ClCompile Include="..\..\src\DOS\DOSNet.cpp" />
