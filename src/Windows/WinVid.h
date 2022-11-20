@@ -17,6 +17,8 @@
 #include "../Platform.h"
 #include <Windows.h>
 
+class DrawSurface;
+
 class WindowsVideoDriver : public VideoDriver
 {
 public:
@@ -58,8 +60,11 @@ private:
 	void InvertPixel(int x, int y, uint32_t colour);
 	void FillRect(int x, int y, int width, int height, uint32_t colour);
 
+	BITMAPINFO* bitmapInfo;
 	uint32_t* lpBitmapBits;
 	HBITMAP screenBitmap;
+
+	DrawSurface* drawSurface;
 
 	uint32_t foregroundColour, backgroundColour;
 	int scissorX1, scissorY1, scissorX2, scissorY2;

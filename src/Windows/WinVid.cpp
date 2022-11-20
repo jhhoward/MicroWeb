@@ -19,13 +19,14 @@
 //#include "../DOS/CGAData.inc"
 #include "../Interface.h"
 #include "../DataPack.h"
+#include "../Draw/Surf1bpp.h"
 
 #define WINDOW_TOP 24
 #define WINDOW_HEIGHT 168
 #define WINDOW_BOTTOM (WINDOW_TOP + WINDOW_HEIGHT)
 
 #define SCREEN_WIDTH 640
-#define SCREEN_HEIGHT 200
+#define SCREEN_HEIGHT 480
 
 #define NAVIGATION_BUTTON_WIDTH 24
 #define NAVIGATION_BUTTON_HEIGHT 12
@@ -48,8 +49,8 @@ extern HWND hWnd;
 
 WindowsVideoDriver::WindowsVideoDriver()
 {
-	screenWidth = 640;
-	screenHeight = 480;
+	screenWidth = SCREEN_WIDTH;
+	screenHeight = SCREEN_HEIGHT;
 	windowWidth = screenWidth - 16;
 	windowHeight = WINDOW_HEIGHT;
 	windowX = 0;
@@ -79,19 +80,51 @@ void WindowsVideoDriver::Init()
 	HDC hDC = GetDC(hWnd);
 	HDC hDCMem = CreateCompatibleDC(hDC);
 
-	BITMAPINFO bi;
-	ZeroMemory(&bi, sizeof(BITMAPINFO));
-	bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-	bi.bmiHeader.biWidth = screenWidth;
-	bi.bmiHeader.biHeight = screenHeight * verticalScale;
-	bi.bmiHeader.biPlanes = 1;
-	bi.bmiHeader.biBitCount = 32;
+	bitmapInfo = (BITMAPINFO*) malloc(sizeof(BITMAPINFO) + sizeof(RGBQUAD) * 2);
+	ZeroMemory(bitmapInfo, sizeof(BITMAPINFO));
+	bitmapInfo->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	bitmapInfo->bmiHeader.biWidth = screenWidth;
+	bitmapInfo->bmiHeader.biHeight = screenHeight * verticalScale;
+	bitmapInfo->bmiHeader.biPlanes = 1;
+//	bitmapInfo->bmiHeader.biBitCount = 32;
+	bitmapInfo->bmiHeader.biBitCount = 1;
+	bitmapInfo->bmiHeader.biCompression = BI_RGB;
+	bitmapInfo->bmiHeader.biClrUsed = 0;
 
-	screenBitmap = CreateDIBSection(hDCMem, &bi, DIB_RGB_COLORS, (VOID**)&lpBitmapBits, NULL, 0);
+	bitmapInfo->bmiColors[0].rgbRed = 0;
+	bitmapInfo->bmiColors[0].rgbGreen = 0;
+	bitmapInfo->bmiColors[0].rgbBlue = 0;
+	bitmapInfo->bmiColors[1].rgbRed = 0xff;
+	bitmapInfo->bmiColors[1].rgbGreen = 0xff;
+	bitmapInfo->bmiColors[1].rgbBlue = 0xff;
 
-	for (int n = 0; n < screenWidth * screenHeight * verticalScale; n++)
+	screenBitmap = CreateDIBSection(hDCMem, bitmapInfo, DIB_RGB_COLORS, (VOID**)&lpBitmapBits, NULL, 0);
+
 	{
-		lpBitmapBits[n] = backgroundColour;
+		DrawSurface_1BPP* surface = new DrawSurface_1BPP(screenWidth, screenHeight);
+		uint8_t* buffer = (uint8_t*)(lpBitmapBits);
+		for (int y = 0; y < screenHeight; y++)
+		{
+			int bufferY = (screenHeight - 1 - y);
+			surface->lines[y] = &buffer[bufferY * (screenWidth / 8)];
+		}
+		drawSurface = surface;
+	}
+
+	if (bitmapInfo->bmiHeader.biBitCount == 1)
+	{
+		uint8_t* ptr = (uint8_t*)(lpBitmapBits);
+		for (int n = 0; n < screenWidth * screenHeight / 8; n++)
+		{
+			ptr[n] = 0xff;
+		}
+	}
+	else
+	{
+		for (int n = 0; n < screenWidth * screenHeight * verticalScale; n++)
+		{
+			lpBitmapBits[n] = backgroundColour;
+		}
 	}
 }
 
@@ -108,22 +141,45 @@ void WindowsVideoDriver::ClearScreen()
 
 void WindowsVideoDriver::FillRect(int x, int y, int width, int height)
 {
-	FillRect(x, y, width, height, foregroundColour);
+	DrawContext context(0, 0, screenWidth, screenHeight);
+	drawSurface->FillRect(context, x, y, width, height, 0);
+
+	//	FillRect(x, y, width, height, foregroundColour);
 }
 
 void WindowsVideoDriver::FillRect(int x, int y, int width, int height, uint32_t colour)
 {
-	for (int j = 0; j < height; j++)
-	{
-		for (int i = 0; i < width; i++)
-		{
-			SetPixel(x + i, y + j, colour);
-		}
-	}
+	DrawContext context(0, 0, screenWidth, screenHeight);
+	drawSurface->FillRect(context, x, y, width, height, colour ? 1 : 0);
+
+//	for (int j = 0; j < height; j++)
+//	{
+//		for (int i = 0; i < width; i++)
+//		{
+//			SetPixel(x + i, y + j, colour);
+//		}
+//	}
 }
 
 void WindowsVideoDriver::SetPixel(int x, int y, uint32_t colour)
 {
+	if (x >= 0 && y >= 0 && x < screenWidth && y < screenHeight)
+	{
+		int outY = screenHeight - y - 1;
+		uint8_t mask = 0x80 >> ((uint8_t)(x & 7));
+		uint8_t* ptr = (uint8_t*)(lpBitmapBits);
+		int index = (outY * (screenWidth / 8) + (x / 8));
+
+		if (colour)
+		{
+			ptr[index] |= mask;
+		}
+		else
+		{
+			ptr[index] &= ~mask;
+		}
+	}
+	/*
 	if (x >= 0 && y >= 0 && x < screenWidth && y < screenHeight)
 	{
 		int line = ((screenHeight - y - 1) * verticalScale);
@@ -132,18 +188,29 @@ void WindowsVideoDriver::SetPixel(int x, int y, uint32_t colour)
 			lpBitmapBits[(line + j) * screenWidth + x] = colour;
 		}
 	}
+	*/
 }
 
 void WindowsVideoDriver::InvertPixel(int x, int y, uint32_t colour)
 {
 	if (x >= 0 && y >= 0 && x < screenWidth && y < screenHeight)
 	{
+		int outY = screenHeight - y - 1;
+		uint8_t mask = 0x80 >> ((uint8_t)(x & 7));
+		uint8_t* ptr = (uint8_t*)(lpBitmapBits);
+		int index = (outY * (screenWidth / 8) + (x / 8));
+
+		ptr[index] ^= mask;
+	}
+
+	/*if (x >= 0 && y >= 0 && x < screenWidth && y < screenHeight)
+	{
 		int line = ((screenHeight - y - 1) * verticalScale);
 		for (int j = 0; j < verticalScale; j++)
 		{
 			lpBitmapBits[(line + j) * screenWidth + x] ^= colour;
 		}
-	}
+	}*/
 }
 
 void WindowsVideoDriver::ClearWindow()
@@ -176,6 +243,11 @@ void WindowsVideoDriver::DrawString(const char* text, int x, int y, int size, Fo
 {
 //	printf("%s\n", text);
 	Font* font = GetFont(size, style);
+
+	DrawContext context(0, 0, screenWidth, screenHeight);
+	drawSurface->DrawString(context, font, text, x, y, 0, style);
+	return;
+	
 
 	int startX = x;
 	uint8_t glyphHeight = font->glyphHeight;
@@ -271,18 +343,22 @@ void WindowsVideoDriver::DrawString(const char* text, int x, int y, int size, Fo
 
 void WindowsVideoDriver::HLine(int x, int y, int count)
 {
-	for (int n = 0; n < count; n++)
-	{
-		SetPixel(x + n, y, foregroundColour);
-	}
+	DrawContext context(0, 0, screenWidth, screenHeight);
+	drawSurface->HLine(context, x, y, count, 0);
+	//for (int n = 0; n < count; n++)
+	//{
+	//	SetPixel(x + n, y, foregroundColour);
+	//}
 }
 
 void WindowsVideoDriver::VLine(int x, int y, int count)
 {
-	for (int n = 0; n < count; n++)
-	{
-		SetPixel(x, y + n, foregroundColour);
-	}
+	DrawContext context(0, 0, screenWidth, screenHeight);
+	drawSurface->VLine(context, x, y, count, 0);
+	//for (int n = 0; n < count; n++)
+	//{
+	//	SetPixel(x, y + n, foregroundColour);
+	//}
 }
 
 void WindowsVideoDriver::DrawScrollBar(int position, int size)

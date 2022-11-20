@@ -141,6 +141,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\App.cpp" />
     <ClCompile Include="..\..\src\DataPack.cpp" />
+    <ClCompile Include="..\..\src\Draw\Surf1bpp.cpp" />
     <ClCompile Include="..\..\src\Layout.cpp" />
     <ClCompile Include="..\..\src\Node.cpp" />
     <ClCompile Include="..\..\src\Nodes\Block.cpp" />
@@ -165,6 +166,8 @@
     <ClInclude Include="..\..\src\App.h" />
     <ClInclude Include="..\..\src\Cursor.h" />
     <ClInclude Include="..\..\src\Defines.h" />
+    <ClInclude Include="..\..\src\Draw\Surf1bpp.h" />
+    <ClInclude Include="..\..\src\Draw\Surface.h" />
     <ClInclude Include="..\..\src\Layout.h" />
     <ClInclude Include="..\..\src\Node.h" />
     <ClInclude Include="..\..\src\Nodes\Block.h" />
