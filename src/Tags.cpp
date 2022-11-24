@@ -27,6 +27,8 @@
 #include "Nodes/StyNode.h"
 #include "Nodes/LinkNode.h"
 #include "Nodes/Block.h"
+#include "Nodes/Button.h"
+#include "Nodes/Field.h"
 
 static const HTMLTagHandler* tagHandlers[] =
 {
@@ -367,10 +369,7 @@ void ButtonTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 		}
 	}
 
-	if (title)
-	{
-		//parser.page.AddButton(title);
-	}
+	parser.EmitNode(ButtonNode::Construct(parser.page.allocator, title));
 }
 
 void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
@@ -385,7 +384,7 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 	{
 		if (!stricmp(attributes.Key(), "type"))
 		{
-			if (!stricmp(attributes.Value(), "submit"))
+			if (!stricmp(attributes.Value(), "submit") || !stricmp(attributes.Value(), "button"))
 			{
 				type = HTMLInputTag::Submit;
 			}
@@ -413,11 +412,11 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 	case HTMLInputTag::Submit:
 		if (value)
 		{
-			parser.page.AddButton(value);
+			parser.EmitNode(ButtonNode::Construct(parser.page.allocator, value));
 		}
 		break;
 	case HTMLInputTag::Text:
-		parser.page.AddTextField(value, bufferLength, name);
+		parser.EmitNode(TextFieldNode::Construct(parser.page.allocator, value));
 		break;
 	}
 }

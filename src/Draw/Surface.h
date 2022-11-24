@@ -3,17 +3,20 @@
 
 #include "../Font.h"
 struct Font;
-class Image;
+struct Image;
+class DrawSurface;
 
 struct DrawContext
 {
 	DrawContext() {}
-	DrawContext(int inClipLeft, int inClipTop, int inClipRight, int inClipBottom)
-		: clipLeft(inClipLeft), clipTop(inClipTop), clipRight(inClipRight), clipBottom(inClipBottom)
+	DrawContext(DrawSurface* inSurface, int inClipLeft, int inClipTop, int inClipRight, int inClipBottom)
+		: surface(inSurface), clipLeft(inClipLeft), clipTop(inClipTop), clipRight(inClipRight), clipBottom(inClipBottom), drawOffsetX(0), drawOffsetY(0)
 	{
 
 	}
+	DrawSurface* surface;
 	int clipLeft, clipTop, clipRight, clipBottom;
+	int drawOffsetX, drawOffsetY;
 };
 
 class DrawSurface

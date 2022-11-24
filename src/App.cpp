@@ -17,7 +17,7 @@
 #include "Platform.h"
 
 App::App() 
-	: page(*this), renderer(*this), parser(page), ui(*this)
+	: page(*this), renderer(*this), pageRenderer(*this), parser(page), ui(*this)
 {
 	requestedNewPage = false;
 	pageHistorySize = 0;
@@ -43,6 +43,7 @@ void App::Run(int argc, char* argv[])
 	running = true;
 
 	renderer.Init();
+	ui.Init();
 
 	if (argc > 1)
 	{
@@ -59,7 +60,7 @@ void App::Run(int argc, char* argv[])
 	while (running)
 	{
 		Platform::Update();
-		renderer.Update();
+		//renderer.Update();
 
 		if (loadTask.HasContent())
 		{

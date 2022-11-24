@@ -20,8 +20,10 @@
 #include <stdint.h>
 #include "../Image.h"
 #include "Hercules.h"
-#include "DefData.h"
+//#include "DefData.h"
+#include "../DataPack.h"
 #include "../Interface.h"
+#include "../Draw/Surf1bpp.h"
 
 #define BASE_VRAM_ADDRESS (uint8_t*) MK_FP(0xB000, 0)
 
@@ -78,8 +80,9 @@ HerculesDriver::HerculesDriver()
 	scissorY2 = SCREEN_HEIGHT;
 	invertScreen = false;
 	clearMask = invertScreen ? 0 : 0xffff;
-	imageIcon = &Default_ImageIcon;
-	bulletImage = &Default_Bullet;
+	//imageIcon = &Default_ImageIcon;
+	//bulletImage = &Default_Bullet;
+	imageIcon = bulletImage = NULL;
 	isTextMode = false;
 }
 
@@ -93,6 +96,19 @@ static uint8_t textModeCRTC[] = { 0x61, 0x50, 0x52, 0x0f, 0x19, 0x06, 0x19, 0x19
 void HerculesDriver::Init()
 {
 	SetGraphicsMode();
+
+	Assets.Load("EGA.DAT");
+
+	DrawSurface_1BPP* drawSurface1BPP = new DrawSurface_1BPP(screenWidth, screenHeight);
+	for (int y = 0; y < screenHeight; y += 4)
+	{
+		int offset = BYTES_PER_LINE * (y / 4);
+		drawSurface1BPP->lines[y] = (BASE_VRAM_ADDRESS) + offset;
+		drawSurface1BPP->lines[y + 1] = (BASE_VRAM_ADDRESS) + offset + 0x2000;
+		drawSurface1BPP->lines[y + 2] = (BASE_VRAM_ADDRESS) + offset + 0x4000;
+		drawSurface1BPP->lines[y + 3] = (BASE_VRAM_ADDRESS) + offset + 0x6000;
+	}
+	drawSurface = drawSurface1BPP;
 }
 
 void HerculesDriver::Shutdown()
@@ -341,6 +357,8 @@ void HerculesDriver::DrawString(const char* text, int x, int y, int size, FontSt
 
 Font* HerculesDriver::GetFont(int fontSize, FontStyle::Type style)
 {
+	return Assets.GetFont(fontSize, style);
+	/*
 	if (style & FontStyle::Monospace)
 	{
 		switch (fontSize)
@@ -367,6 +385,7 @@ Font* HerculesDriver::GetFont(int fontSize, FontStyle::Type style)
 	default:
 		return &Default_RegularFont;
 	}
+	*/
 }
 
 void HerculesDriver::HLine(int x, int y, int count)
@@ -625,6 +644,8 @@ void HerculesDriver::VLine(int x, int y, int count)
 
 MouseCursorData* HerculesDriver::GetCursorGraphic(MouseCursor::Type type)
 {
+	return Assets.GetMouseCursorData(type);
+	/*
 	switch (type)
 	{
 	default:
@@ -635,6 +656,7 @@ MouseCursorData* HerculesDriver::GetCursorGraphic(MouseCursor::Type type)
 	case MouseCursor::TextSelect:
 		return &Default_MouseCursorTextSelect;
 	}
+	*/
 }
 
 int HerculesDriver::GetGlyphWidth(char c, int fontSize, FontStyle::Type style)

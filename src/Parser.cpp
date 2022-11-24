@@ -24,6 +24,10 @@
 #include "Nodes/Text.h"
 #include "Nodes/ImgNode.h"
 
+// debug
+#include "Platform.h"
+#include "Draw/Surface.h"
+
 HTMLParser::HTMLParser(Page& inPage)
 : page(inPage)
 , currentParseSection(SectionElement::Document)
@@ -95,8 +99,13 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 
 			if (contextStackSize == 0)
 			{
-				//page.DebugDumpNodeGraph(page.GetRootNode());
-				page.DebugDraw(page.GetRootNode());
+				page.GetRootNode()->EncapsulateChildren();
+				DrawContext context(Platform::video->drawSurface, 0, 20, Platform::video->screenWidth, Platform::video->screenHeight - 20);
+				context.drawOffsetY = 50;
+#ifdef _WIN32
+				page.DebugDumpNodeGraph(page.GetRootNode());
+#endif
+				page.DebugDraw(context, page.GetRootNode());
 			}
 
 			// We may have exited a section so update

@@ -20,11 +20,14 @@
 #include <stdint.h>
 #include "../Image.h"
 #include "CGA.h"
-#include "CGAData.inc"
+//#include "CGAData.inc"
 #include "../Interface.h"
 #include "DefData.h"
+#include "../DataPack.h"
+#include "../Draw/Surf1bpp.h"
 
 #define CGA_BASE_VRAM_ADDRESS (uint8_t*) MK_FP(0xB800, 0)
+#define CGA_PAGE2_VRAM_ADDRESS (uint8_t*) MK_FP(0xBA00, 0)
 
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 200
@@ -71,8 +74,10 @@ CGADriver::CGADriver()
 	scissorY2 = SCREEN_HEIGHT;
 	invertScreen = false;
 	clearMask = invertScreen ? 0 : 0xffff;
-	imageIcon = &CGA_ImageIcon;
-	bulletImage = &CGA_Bullet;
+	//imageIcon = &CGA_ImageIcon;
+	//bulletImage = &CGA_Bullet;
+	imageIcon = NULL;
+	bulletImage = NULL;
 	isTextMode = false;
 }
 
@@ -80,6 +85,16 @@ void CGADriver::Init()
 {
 	startingScreenMode = GetScreenMode();
 	SetScreenMode(6);
+
+	Assets.Load("CGA.DAT");
+
+	DrawSurface_1BPP* drawSurface1BPP = new DrawSurface_1BPP(screenWidth, screenHeight);
+	for (int y = 0; y < screenHeight; y += 2)
+	{
+		drawSurface1BPP->lines[y] = (CGA_BASE_VRAM_ADDRESS) + (40 * y);
+		drawSurface1BPP->lines[y + 1] = (CGA_PAGE2_VRAM_ADDRESS) + (40 * y);
+	}
+	drawSurface = drawSurface1BPP;
 }
 
 void CGADriver::Shutdown()
@@ -322,6 +337,8 @@ void CGADriver::DrawString(const char* text, int x, int y, int size, FontStyle::
 
 Font* CGADriver::GetFont(int fontSize, FontStyle::Type style)
 {
+	return Assets.GetFont(fontSize, style);
+	/*
 	if (style & FontStyle::Monospace)
 	{
 		switch (fontSize)
@@ -347,7 +364,7 @@ Font* CGADriver::GetFont(int fontSize, FontStyle::Type style)
 		return &CGA_LargeFont;
 	default:
 		return &CGA_RegularFont;
-	}
+	}*/
 	/*
 	if (style & FontStyle::Monospace)
 	{
@@ -650,6 +667,8 @@ void CGADriver::VLine(int x, int y, int count)
 
 MouseCursorData* CGADriver::GetCursorGraphic(MouseCursor::Type type)
 {
+	return NULL;
+	/*
 	switch (type)
 	{
 	default:
@@ -659,7 +678,7 @@ MouseCursorData* CGADriver::GetCursorGraphic(MouseCursor::Type type)
 		return &CGA_MouseCursorHand;
 	case MouseCursor::TextSelect:
 		return &CGA_MouseCursorTextSelect;
-	}
+	}*/
 }
 
 int CGADriver::GetGlyphWidth(char c, int fontSize, FontStyle::Type style)

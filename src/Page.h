@@ -91,9 +91,10 @@ public:
 	LinearAllocator allocator;
 	Layout layout;
 
+	int GetPageWidth();
 	int GetPageHeight() { return pageHeight; }
 
-	void DebugDraw(Node* node);
+	void DebugDraw(DrawContext& context, Node* node);
 	void DebugDumpNodeGraph(Node* node, int depth = 0);
 
 	URL pageURL;

@@ -21,6 +21,7 @@
 #include "Renderer.h"
 #include "URL.h"
 #include "Interface.h"
+#include "Render.h"
 
 #define MAX_PAGE_URL_HISTORY 5
 
@@ -73,6 +74,7 @@ public:
 
 	Page page;
 	Renderer renderer;
+	PageRenderer pageRenderer;
 	HTMLParser parser;
 	AppInterface ui;
 

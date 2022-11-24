@@ -25,8 +25,8 @@
 #define WINDOW_HEIGHT 168
 #define WINDOW_BOTTOM (WINDOW_TOP + WINDOW_HEIGHT)
 
-#define SCREEN_WIDTH 640
-#define SCREEN_HEIGHT 480
+#define SCREEN_WIDTH 800
+#define SCREEN_HEIGHT 600
 
 #define NAVIGATION_BUTTON_WIDTH 24
 #define NAVIGATION_BUTTON_HEIGHT 12
@@ -103,10 +103,17 @@ void WindowsVideoDriver::Init()
 	{
 		DrawSurface_1BPP* surface = new DrawSurface_1BPP(screenWidth, screenHeight);
 		uint8_t* buffer = (uint8_t*)(lpBitmapBits);
+		
+		int pitch = (screenWidth + 7) / 8;		// How many bytes needed for 1bpp
+		if (pitch & 3)							// Round to nearest 32-bit 
+		{
+			pitch += 4 - (pitch & 3);
+		}
+
 		for (int y = 0; y < screenHeight; y++)
 		{
 			int bufferY = (screenHeight - 1 - y);
-			surface->lines[y] = &buffer[bufferY * (screenWidth / 8)];
+			surface->lines[y] = &buffer[bufferY * pitch];
 		}
 		drawSurface = surface;
 	}
@@ -134,22 +141,22 @@ void WindowsVideoDriver::Shutdown()
 
 void WindowsVideoDriver::ClearScreen()
 {
-	FillRect(0, 0, screenWidth, TITLE_BAR_HEIGHT, foregroundColour);
-	FillRect(0, TITLE_BAR_HEIGHT, screenWidth, screenHeight - STATUS_BAR_HEIGHT - TITLE_BAR_HEIGHT, backgroundColour);
-	FillRect(0, screenHeight - STATUS_BAR_HEIGHT, screenWidth, STATUS_BAR_HEIGHT, foregroundColour);
+	//FillRect(0, 0, screenWidth, TITLE_BAR_HEIGHT, foregroundColour);
+	//FillRect(0, TITLE_BAR_HEIGHT, screenWidth, screenHeight - STATUS_BAR_HEIGHT - TITLE_BAR_HEIGHT, backgroundColour);
+	//FillRect(0, screenHeight - STATUS_BAR_HEIGHT, screenWidth, STATUS_BAR_HEIGHT, foregroundColour);
 }
 
 void WindowsVideoDriver::FillRect(int x, int y, int width, int height)
 {
-	DrawContext context(0, 0, screenWidth, screenHeight);
-	drawSurface->FillRect(context, x, y, width, height, 0);
+	DrawContext context(drawSurface, 0, 0, screenWidth, screenHeight);
+	//drawSurface->FillRect(context, x, y, width, height, 0);
 
 	//	FillRect(x, y, width, height, foregroundColour);
 }
 
 void WindowsVideoDriver::FillRect(int x, int y, int width, int height, uint32_t colour)
 {
-	DrawContext context(0, 0, screenWidth, screenHeight);
+	DrawContext context(drawSurface, 0, 0, screenWidth, screenHeight);
 	drawSurface->FillRect(context, x, y, width, height, colour ? 1 : 0);
 
 //	for (int j = 0; j < height; j++)
@@ -215,12 +222,12 @@ void WindowsVideoDriver::InvertPixel(int x, int y, uint32_t colour)
 
 void WindowsVideoDriver::ClearWindow()
 {
-	FillRect(0, WINDOW_TOP, SCREEN_WIDTH - SCROLL_BAR_WIDTH, WINDOW_HEIGHT, backgroundColour);
+	//FillRect(0, WINDOW_TOP, SCREEN_WIDTH - SCROLL_BAR_WIDTH, WINDOW_HEIGHT, backgroundColour);
 }
 
 void WindowsVideoDriver::ClearRect(int x, int y, int width, int height)
 {
-	FillRect(x, y, width, height, backgroundColour);
+	//FillRect(x, y, width, height, backgroundColour);
 }
 
 void WindowsVideoDriver::ScrollWindow(int delta)
@@ -244,7 +251,7 @@ void WindowsVideoDriver::DrawString(const char* text, int x, int y, int size, Fo
 //	printf("%s\n", text);
 	Font* font = GetFont(size, style);
 
-	DrawContext context(0, 0, screenWidth, screenHeight);
+	DrawContext context(drawSurface, 0, 0, screenWidth, screenHeight);
 	drawSurface->DrawString(context, font, text, x, y, 0, style);
 	return;
 	
@@ -343,7 +350,7 @@ void WindowsVideoDriver::DrawString(const char* text, int x, int y, int size, Fo
 
 void WindowsVideoDriver::HLine(int x, int y, int count)
 {
-	DrawContext context(0, 0, screenWidth, screenHeight);
+	DrawContext context(drawSurface, 0, 0, screenWidth, screenHeight);
 	drawSurface->HLine(context, x, y, count, 0);
 	//for (int n = 0; n < count; n++)
 	//{
@@ -353,7 +360,7 @@ void WindowsVideoDriver::HLine(int x, int y, int count)
 
 void WindowsVideoDriver::VLine(int x, int y, int count)
 {
-	DrawContext context(0, 0, screenWidth, screenHeight);
+	DrawContext context(drawSurface, 0, 0, screenWidth, screenHeight);
 	drawSurface->VLine(context, x, y, count, 0);
 	//for (int n = 0; n < count; n++)
 	//{

@@ -28,7 +28,7 @@
 #include "../Image.h"
 #include "../Cursor.h"
 #include "../Font.h"
-#include "DefData.inc"
+//#include "DefData.inc"
 
 static DOSInputDriver DOSinput;
 static DOSNetworkDriver DOSNet;

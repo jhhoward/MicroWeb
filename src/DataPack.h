@@ -56,6 +56,8 @@ struct DataPack
 	Font monoFonts[NUM_FONT_SIZES];
 
 	bool Load(const char* path);
+	Font* GetFont(int fontSize, FontStyle::Type fontStyle);
+	MouseCursorData* GetMouseCursorData(MouseCursor::Type type);
 };
 
 extern DataPack Assets;

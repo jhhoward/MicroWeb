@@ -16,6 +16,12 @@
 #include "Interface.h"
 #include "App.h"
 #include "KeyCodes.h"
+#include "Nodes/Section.h"
+#include "Nodes/Button.h"
+#include "Nodes/Field.h"
+#include "Nodes/Text.h"
+#include "Draw/Surface.h"
+#include "DataPack.h"
 
 #define MIN_SCROLL_WIDGET_SIZE 8
 
@@ -29,6 +35,17 @@ AppInterface::AppInterface(App& inApp) : app(inApp)
 	oldButtons = 0;
 	textFieldCursorPosition = 0;
 	clickingButton = false;
+
+	hoverNode = nullptr;
+	focusedNode = nullptr;
+}
+
+void AppInterface::Init()
+{
+	GenerateInterfaceNodes();
+
+	DrawContext context(Platform::video->drawSurface, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight);
+	DrawInterfaceNodes(context);
 }
 
 void AppInterface::Reset()
@@ -42,10 +59,20 @@ void AppInterface::Reset()
 	{
 		hoverWidget = NULL;
 	}
+
+	if (focusedNode && !IsInterfaceNode(focusedNode))
+	{
+		focusedNode = nullptr;
+	}
+	if (!hoverNode && !IsInterfaceNode(hoverNode))
+	{
+		hoverNode = nullptr;
+	}
 }
 
 void AppInterface::DrawInterfaceWidgets()
 {
+	/*
 	for (int n = 0; n < NUM_APP_INTERFACE_WIDGETS; n++)
 	{
 		app.renderer.RenderWidget(appInterfaceWidgets[n]);
@@ -53,6 +80,7 @@ void AppInterface::DrawInterfaceWidgets()
 
 	// Page top line divider
 	Platform::video->HLine(0, Platform::video->windowY - 1, Platform::video->screenWidth);
+	*/
 }
 
 void AppInterface::Update()
@@ -66,15 +94,15 @@ void AppInterface::Update()
 	int buttons, mouseX, mouseY;
 	Platform::input->GetMouseStatus(buttons, mouseX, mouseY);
 
-	Widget* oldHoverWidget = hoverWidget;
+	Node* oldHoverNode = hoverNode;
 
-	if (hoverWidget && !app.renderer.IsOverWidget(hoverWidget, mouseX, mouseY))
+	if (hoverNode && !IsOverNode(hoverNode, mouseX, mouseY))
 	{
-		hoverWidget = PickWidget(mouseX, mouseY);
+		hoverNode = PickNode(mouseX, mouseY);
 	}
-	else if (!hoverWidget && (mouseX != oldMouseX || mouseY != oldMouseY))
+	else if (!hoverNode && (mouseX != oldMouseX || mouseY != oldMouseY))
 	{
-		hoverWidget = PickWidget(mouseX, mouseY);
+		hoverNode = PickNode(mouseX, mouseY);
 	}
 
 	if ((buttons & 1) && !(oldButtons & 1))
@@ -111,20 +139,26 @@ void AppInterface::Update()
 	oldMouseY = mouseY;
 	oldButtons = buttons;
 
-	if (hoverWidget != oldHoverWidget)
+	if (hoverNode != oldHoverNode)
 	{
-		if (hoverWidget && hoverWidget->GetLinkURL())
+		if (hoverNode)
 		{
-			app.renderer.SetStatus(URL::GenerateFromRelative(app.page.pageURL.url, hoverWidget->GetLinkURL()).url);
-			Platform::input->SetMouseCursor(MouseCursor::Hand);
-		}
-		else if (hoverWidget && hoverWidget->type == Widget::TextField)
-		{
-			Platform::input->SetMouseCursor(MouseCursor::TextSelect);
+			switch (hoverNode->type)
+			{
+			case Node::Link:
+				Platform::input->SetMouseCursor(MouseCursor::Hand);
+				// TODO show link URL
+				break;
+			case Node::TextField:
+				Platform::input->SetMouseCursor(MouseCursor::TextSelect);
+				break;
+			default:
+				Platform::input->SetMouseCursor(MouseCursor::Pointer);
+				break;
+			}
 		}
 		else
 		{
-			app.renderer.SetStatus("");
 			Platform::input->SetMouseCursor(MouseCursor::Pointer);
 		}
 	}
@@ -265,6 +299,46 @@ Widget* AppInterface::PickWidget(int x, int y)
 	return app.renderer.PickPageWidget(x, y);
 }
 
+bool AppInterface::IsOverNode(Node* node, int x, int y)
+{
+	if (!node)
+	{
+		return false;
+	}
+	if (IsInterfaceNode(node))
+	{
+		return node->IsPointInsideNode(x, y);
+	}
+	else
+	{
+		x -= windowRect.x;
+		y -= windowRect.y - app.pageRenderer.GetScrollPositionY();
+		return node->IsPointInsideNode(x, y);
+	}
+}
+
+Node* AppInterface::PickNode(int x, int y)
+{
+	Node* interfaceNode = rootInterfaceNode->Handler().Pick(rootInterfaceNode, x, y);
+
+	if (interfaceNode)
+	{
+		return interfaceNode;
+	}
+
+	if (x >= windowRect.x && y >= windowRect.y && x < windowRect.x + windowRect.width && y < windowRect.y + windowRect.height)
+	{
+		int pageX = x - windowRect.x;
+		int pageY = y - windowRect.y - app.pageRenderer.GetScrollPositionY();
+
+		Node* pageRootNode = app.page.GetRootNode();
+		return pageRootNode->Handler().Pick(pageRootNode, pageX, pageY);
+	}
+
+	return nullptr;
+}
+
+
 void AppInterface::DeactivateWidget()
 {
 	if (activeWidget)
@@ -368,6 +442,14 @@ void AppInterface::HandleClick(int mouseX, int mouseY)
 	if (activeWidget && activeWidget != hoverWidget)
 	{
 		DeactivateWidget();
+	}
+
+	{
+		Node* clickedNode = PickNode(mouseX, mouseY);
+		if (clickedNode)
+		{
+			printf("Clicked a node\n");
+		}
 	}
 
 	if (hoverWidget)
@@ -708,7 +790,7 @@ void AppInterface::SubmitForm(WidgetFormData* form)
 void AppInterface::UpdateAddressBar(const URL& url)
 {
 	addressBarURL = url;
-	app.renderer.RedrawWidget(&addressBar);
+	//app.renderer.RedrawWidget(&addressBar);
 }
 
 void AppInterface::UpdatePageScrollBar()
@@ -826,4 +908,88 @@ void AppInterface::CycleWidgets(int direction)
 			break;
 		}
 	}
+}
+
+void AppInterface::GenerateInterfaceNodes()
+{
+	rootInterfaceNode = SectionElement::Construct(allocator, SectionElement::Interface);
+	rootInterfaceNode->style.alignment = ElementAlignment::Left;
+	rootInterfaceNode->style.fontSize = 1;
+	rootInterfaceNode->style.fontStyle = FontStyle::Regular;
+
+	Font* interfaceFont = Assets.GetFont(1, FontStyle::Regular);
+
+	{
+		titleBuffer[0] = '\0';
+		TextElement::Data* titleNodeData = allocator.Alloc<TextElement::Data>(titleBuffer);
+		titleNode = allocator.Alloc<Node>(Node::Text, titleNodeData);
+		titleNode->anchor.Clear();
+		titleNode->size.x = Platform::video->screenWidth;
+		titleNode->size.y = interfaceFont->glyphHeight;
+		titleNode->style = rootInterfaceNode->style;
+		rootInterfaceNode->AddChild(titleNode);
+	}
+
+	backButtonNode = ButtonNode::Construct(allocator, " < ");
+	backButtonNode->style = rootInterfaceNode->style;
+	backButtonNode->size = ButtonNode::CalculateSize(backButtonNode);
+	backButtonNode->anchor.x = 1;
+	backButtonNode->anchor.y = titleNode->size.y;
+	rootInterfaceNode->AddChild(backButtonNode);
+
+	forwardButtonNode = ButtonNode::Construct(allocator, " > ");
+	forwardButtonNode->style = rootInterfaceNode->style;
+	forwardButtonNode->size = ButtonNode::CalculateSize(forwardButtonNode);
+	forwardButtonNode->anchor.x = backButtonNode->anchor.x + backButtonNode->size.x + 2;
+	forwardButtonNode->anchor.y = titleNode->size.y;
+	rootInterfaceNode->AddChild(forwardButtonNode);
+
+	addressBarNode = TextFieldNode::Construct(allocator, "http://www.example.com");
+	addressBarNode->style = rootInterfaceNode->style;
+	addressBarNode->anchor.x = forwardButtonNode->anchor.x + forwardButtonNode->size.x + 2;
+	addressBarNode->anchor.y = titleNode->size.y;
+	addressBarNode->size.x = Platform::video->screenWidth - addressBarNode->anchor.x - 1;
+	addressBarNode->size.y = backButtonNode->size.y;
+	rootInterfaceNode->AddChild(addressBarNode);
+
+	rootInterfaceNode->EncapsulateChildren();
+
+	windowRect.x = 0;
+	windowRect.y = backButtonNode->anchor.y + backButtonNode->size.y + 3;
+	windowRect.width = Platform::video->screenWidth - 16;
+	windowRect.height = Platform::video->screenHeight - windowRect.y;
+}
+
+void AppInterface::DrawInterfaceNodes(DrawContext& context)
+{
+	Platform::input->HideMouse();
+	app.pageRenderer.DrawAll(context, rootInterfaceNode);
+
+	uint8_t dividerColour = 0;
+	context.surface->HLine(context, 0, windowRect.y - 1, Platform::video->screenWidth, dividerColour);
+	Platform::input->ShowMouse();
+}
+
+void AppInterface::SetTitle(const char* title)
+{
+	strncpy(titleBuffer, title, MAX_TITLE_LENGTH);
+	Font* font = Assets.GetFont(titleNode->style.fontSize, titleNode->style.fontStyle);
+	int titleWidth = font->CalculateWidth(titleBuffer, titleNode->style.fontStyle);
+	titleNode->anchor.x = Platform::video->screenWidth / 2 - titleWidth / 2;
+	if (titleNode->anchor.x < 0)
+	{
+		titleNode->anchor.x = 0;
+	}
+
+	DrawContext context(Platform::video->drawSurface, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight);
+	Platform::input->HideMouse();
+	uint8_t fillColour = 1;
+	context.surface->FillRect(context, 0, 0, titleNode->size.x, titleNode->size.y, fillColour);
+	titleNode->Handler().Draw(context, titleNode);
+	Platform::input->ShowMouse();
+}
+
+bool AppInterface::IsInterfaceNode(Node* node)
+{
+	return node && node->parent == rootInterfaceNode;
 }

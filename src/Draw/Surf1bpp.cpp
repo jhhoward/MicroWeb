@@ -9,6 +9,9 @@ DrawSurface_1BPP::DrawSurface_1BPP(int inWidth, int inHeight)
 
 void DrawSurface_1BPP::HLine(DrawContext& context, int x, int y, int count, uint8_t colour)
 {
+	x += context.drawOffsetX;
+	y += context.drawOffsetY;
+
 	if (y < context.clipTop || y >= context.clipBottom)
 	{
 		return;
@@ -20,7 +23,7 @@ void DrawSurface_1BPP::HLine(DrawContext& context, int x, int y, int count, uint
 	}
 	if (x + count >= context.clipRight)
 	{
-		count = context.clipRight - count - 1;
+		count = context.clipRight - x;
 	}
 	if (count < 0)
 	{
@@ -84,6 +87,9 @@ void DrawSurface_1BPP::HLine(DrawContext& context, int x, int y, int count, uint
 
 void DrawSurface_1BPP::VLine(DrawContext& context, int x, int y, int count, uint8_t colour)
 {
+	x += context.drawOffsetX;
+	y += context.drawOffsetY;
+
 	if (x >= context.clipRight || x < context.clipLeft)
 	{
 		return;
@@ -130,6 +136,9 @@ void DrawSurface_1BPP::VLine(DrawContext& context, int x, int y, int count, uint
 
 void DrawSurface_1BPP::FillRect(DrawContext& context, int x, int y, int width, int height, uint8_t colour)
 {
+	x += context.drawOffsetX;
+	y += context.drawOffsetY;
+
 	if (x < context.clipLeft)
 	{
 		width -= (context.clipLeft - x);
@@ -217,6 +226,9 @@ void DrawSurface_1BPP::FillRect(DrawContext& context, int x, int y, int width, i
 
 void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* text, int x, int y, uint8_t colour, FontStyle::Type style)
 {
+	x += context.drawOffsetX;
+	y += context.drawOffsetY;
+
 	int startX = x;
 	uint8_t glyphHeight = font->glyphHeight;
 
@@ -338,12 +350,14 @@ void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* 
 
 	if ((style & FontStyle::Underline) && y - firstLine + font->glyphHeight - 1 < context.clipBottom)
 	{
-		HLine(context, startX, y - firstLine + font->glyphHeight - 1, x - startX, colour);
+		HLine(context, startX, y - firstLine + font->glyphHeight - 1 - context.drawOffsetY, x - startX - context.drawOffsetX, colour);
 	}
 
 }
 
 void DrawSurface_1BPP::BlitImage(DrawContext& context, Image* image, int x, int y)
 {
+	x += context.drawOffsetX;
+	y += context.drawOffsetY;
 
 }

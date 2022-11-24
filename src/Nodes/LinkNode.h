@@ -12,7 +12,5 @@ public:
 	};
 
 	virtual void ApplyStyle(Node* node) override;
-
 	static Node* Construct(Allocator& allocator);
-
 };

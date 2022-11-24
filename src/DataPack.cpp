@@ -54,3 +54,48 @@ bool DataPack::Load(const char* path)
 
 	return true;
 }
+
+Font* DataPack::GetFont(int fontSize, FontStyle::Type fontStyle)
+{
+	if (fontStyle & FontStyle::Monospace)
+	{
+		switch (fontSize)
+		{
+		case 0:
+			return &monoFonts[0];
+		case 2:
+		case 3:
+		case 4:
+			return &monoFonts[2];
+		default:
+			return &monoFonts[1];
+		}
+	}
+
+	switch (fontSize)
+	{
+	case 0:
+		return &fonts[0];
+	case 2:
+	case 3:
+	case 4:
+		return &fonts[2];
+	default:
+		return &fonts[1];
+	}
+
+}
+
+MouseCursorData* DataPack::GetMouseCursorData(MouseCursor::Type type)
+{
+	switch (type)
+	{
+	case MouseCursor::Hand:
+		return linkCursor;
+	case MouseCursor::Pointer:
+		return pointerCursor;
+	case MouseCursor::TextSelect:
+		return textSelectCursor;
+	}
+	return NULL;
+}

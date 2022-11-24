@@ -1,10 +1,10 @@
 #include "Layout.h"
 #include "Page.h"
+#include "Platform.h"
 
 Layout::Layout(Page& inPage)
 	: page(inPage)
 {
-	Reset();
 }
 
 void Layout::Reset()
@@ -15,7 +15,7 @@ void Layout::Reset()
 
 	LayoutParams& params = GetParams();
 	params.marginLeft = 0;
-	params.marginRight = 600;
+	params.marginRight = page.GetPageWidth();
 }
 
 void Layout::PushLayout()

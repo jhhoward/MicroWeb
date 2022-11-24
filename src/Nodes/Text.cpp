@@ -3,14 +3,18 @@
 #include "Text.h"
 #include "../LinAlloc.h"
 #include "../Layout.h"
+#include "../Draw/Surface.h"
+#include "../DataPack.h"
 
-void TextElement::Draw(Page& page, Node* node)
+void TextElement::Draw(DrawContext& context, Node* node)
 {
 	TextElement::Data* data = static_cast<TextElement::Data*>(node->data);
 
 	if (!node->firstChild && data->text)
 	{
-		Platform::video->DrawString(data->text, node->anchor.x, node->anchor.y + 50, node->style.fontSize, node->style.fontStyle);
+		Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+		uint8_t textColour = 0;
+		context.surface->DrawString(context, font, data->text, node->anchor.x, node->anchor.y, textColour, node->style.fontStyle);
 		//Platform::video->InvertRect(node->anchor.x, node->anchor.y + 50, node->size.x, node->size.y);
 		//printf("%s [%d, %d](%d %d)", data->text, node->anchor.x, node->anchor.y, node->style.fontStyle, node->style.fontSize);
 	}

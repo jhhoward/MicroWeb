@@ -13,6 +13,6 @@ public:
 	};
 
 	static Node* Construct(Allocator& allocator, void* imageData);
-	virtual void Draw(Page& page, Node* element) override;
+	virtual void Draw(DrawContext& context, Node* element) override;
 	virtual void GenerateLayout(Layout& layout, Node* node) override;
 };

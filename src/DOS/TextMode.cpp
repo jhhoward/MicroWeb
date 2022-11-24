@@ -20,7 +20,7 @@
 #include <stdint.h>
 #include "../Image.h"
 #include "TextMode.h"
-#include "TextData.inc"
+//#include "TextData.inc"
 #include "../Interface.h"
 
 #define NAVIGATION_BUTTON_WIDTH 3
@@ -181,7 +181,8 @@ void TextModeDriver::DrawString(const char* text, int x, int y, int size, FontSt
 
 Font* TextModeDriver::GetFont(int fontSize, FontStyle::Type style)
 {
-	return &TextMode_Font;
+	return NULL;
+	//return &TextMode_Font;
 }
 
 void TextModeDriver::HLine(int x, int y, int count)

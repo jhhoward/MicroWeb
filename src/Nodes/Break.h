@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _BREAK_H_
+#define _BREAK_H_
 
 #include "../Node.h"
 
@@ -14,6 +15,7 @@ public:
 	};
 
 	static Node* Construct(Allocator& allocator, int breakPadding = 0, bool displayBreakLine = false);
-	virtual void Draw(Page& page, Node* element) override;
 	virtual void GenerateLayout(Layout& layout, Node* node) override;
 };
+
+#endif

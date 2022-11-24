@@ -146,6 +146,8 @@
     <ClCompile Include="..\..\src\Node.cpp" />
     <ClCompile Include="..\..\src\Nodes\Block.cpp" />
     <ClCompile Include="..\..\src\Nodes\Break.cpp" />
+    <ClCompile Include="..\..\src\Nodes\Button.cpp" />
+    <ClCompile Include="..\..\src\Nodes\Field.cpp" />
     <ClCompile Include="..\..\src\Nodes\ImgNode.cpp" />
     <ClCompile Include="..\..\src\Nodes\LinkNode.cpp" />
     <ClCompile Include="..\..\src\Nodes\Section.cpp" />
@@ -156,6 +158,7 @@
     <ClCompile Include="..\..\src\Microweb.cpp" />
     <ClCompile Include="..\..\src\Page.cpp" />
     <ClCompile Include="..\..\src\Parser.cpp" />
+    <ClCompile Include="..\..\src\Render.cpp" />
     <ClCompile Include="..\..\src\Renderer.cpp" />
     <ClCompile Include="..\..\src\Tags.cpp" />
     <ClCompile Include="..\..\src\Windows\Platform.cpp" />
@@ -172,6 +175,8 @@
     <ClInclude Include="..\..\src\Node.h" />
     <ClInclude Include="..\..\src\Nodes\Block.h" />
     <ClInclude Include="..\..\src\Nodes\Break.h" />
+    <ClInclude Include="..\..\src\Nodes\Button.h" />
+    <ClInclude Include="..\..\src\Nodes\Field.h" />
     <ClInclude Include="..\..\src\Nodes\ImgNode.h" />
     <ClInclude Include="..\..\src\Nodes\LinkNode.h" />
     <ClInclude Include="..\..\src\Nodes\Section.h" />
@@ -183,6 +188,7 @@
     <ClInclude Include="..\..\src\Page.h" />
     <ClInclude Include="..\..\src\Parser.h" />
     <ClInclude Include="..\..\src\Platform.h" />
+    <ClInclude Include="..\..\src\Render.h" />
     <ClInclude Include="..\..\src\Renderer.h" />
     <ClInclude Include="..\..\src\Style.h" />
     <ClInclude Include="..\..\src\Tags.h" />

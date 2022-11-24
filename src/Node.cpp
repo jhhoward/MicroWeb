@@ -7,6 +7,8 @@
 #include "Nodes/StyNode.h"
 #include "Nodes/LinkNode.h"
 #include "Nodes/Block.h"
+#include "Nodes/Button.h"
+#include "Nodes/Field.h"
 
 NodeHandler* Node::nodeHandlers[Node::NumNodeTypes] =
 {
@@ -17,7 +19,9 @@ NodeHandler* Node::nodeHandlers[Node::NumNodeTypes] =
 	new BreakNode(),
 	new StyleNode(),
 	new LinkNode(),
-	new BlockNode()
+	new BlockNode(),
+	new ButtonNode(),
+	new TextFieldNode()
 };
 
 Node::Node(Type inType, void* inData)
@@ -48,4 +52,62 @@ void Node::AddChild(Node* child)
 	}
 }
 
+void Node::EncapsulateChildren()
+{
+	if (firstChild)
+	{
+		anchor = firstChild->anchor;
+		size = firstChild->size;
 
+		for (Node* node = firstChild->next; node; node = node->next)
+		{
+			if (node->anchor.x < anchor.x)
+			{
+				anchor.x = node->anchor.x;
+			}
+			if (node->anchor.y < anchor.y)
+			{
+				anchor.y = node->anchor.y;
+			}
+			if (node->anchor.x + node->size.x > anchor.x + size.x)
+			{
+				size.x = node->anchor.x + node->size.x - anchor.x;
+			}
+			if (node->anchor.y + node->size.y > anchor.y + size.y)
+			{
+				size.y = node->anchor.y + node->size.y - anchor.y;
+			}
+		}
+	}
+}
+
+bool Node::IsPointInsideNode(int x, int y)
+{
+	return x >= anchor.x && y >= anchor.y && x < anchor.x + size.x && y < anchor.y + size.y;
+}
+
+Node* NodeHandler::Pick(Node* node, int x, int y)
+{
+	if (!node || !node->IsPointInsideNode(x, y))
+	{
+		return nullptr;
+	}
+
+	for (Node* it = node->firstChild; it; it = it->next)
+	{
+		if (it->IsPointInsideNode(x, y))
+		{
+			return it->Handler().Pick(it, x, y);
+		}
+	}
+
+	return nullptr;
+}
+
+void NodeHandler::EndLayoutContext(Layout& layout, Node* node)
+{
+	if (node->size.x == 0 && node->size.y == 0)
+	{
+		node->EncapsulateChildren();
+	}
+}

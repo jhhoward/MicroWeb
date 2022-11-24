@@ -13,7 +13,8 @@ public:
 		Body,
 		Script,
 		Style,
-		Title
+		Title,
+		Interface
 	};
 
 	class Data

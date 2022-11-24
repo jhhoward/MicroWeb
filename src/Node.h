@@ -5,19 +5,24 @@
 #include <stdint.h>
 #include "Style.h"
 
+class App;
 class Page;
 class Node;
 class Layout;
+struct DrawContext;
 typedef class LinearAllocator Allocator;
 
 class NodeHandler
 {
 public:
-	virtual void Draw(Page& page, Node* element) {}
+	virtual void Draw(DrawContext& context, Node* element) {}
 	virtual void GenerateLayout(Layout& layout, Node* node) {}
 	virtual void BeginLayoutContext(Layout& layout, Node* node) {}
-	virtual void EndLayoutContext(Layout& layout, Node* node) {}
+	virtual void EndLayoutContext(Layout& layout, Node* node);
 	virtual void ApplyStyle(Node* node) {}
+	virtual Node* Pick(Node* node, int x, int y);
+	virtual void OnMouseClick(App& app) {}
+	virtual void OnMouseRelease(App& app) {}
 };
 
 struct Coord
@@ -47,6 +52,8 @@ public:
 		Style,
 		Link,
 		Block,
+		Button,
+		TextField,
 		NumNodeTypes
 	};
 
@@ -57,6 +64,8 @@ public:
 
 	Node(Type inType, void* inData);
 	void AddChild(Node* child);
+	void EncapsulateChildren();		// Sets anchor and size based on children
+	bool IsPointInsideNode(int x, int y);
 
 	Type type;
 

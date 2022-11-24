@@ -64,8 +64,6 @@ private:
 	uint32_t* lpBitmapBits;
 	HBITMAP screenBitmap;
 
-	DrawSurface* drawSurface;
-
 	uint32_t foregroundColour, backgroundColour;
 	int scissorX1, scissorY1, scissorX2, scissorY2;
 };

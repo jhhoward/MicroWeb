@@ -21,6 +21,7 @@
 #include "Widget.h"
 
 struct Image;
+class DrawSurface;
 
 class VideoDriver
 {
@@ -67,6 +68,8 @@ public:
 	Image* bulletImage;
 
 	bool isTextMode;
+
+	DrawSurface* drawSurface;
 };
 
 class HTTPRequest

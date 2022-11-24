@@ -25,6 +25,8 @@ void BlockNode::BeginLayoutContext(Layout& layout, Node* node)
 
 void BlockNode::EndLayoutContext(Layout& layout, Node* node)
 {
+	NodeHandler::EndLayoutContext(layout, node);
+
 	BlockNode::Data* data = static_cast<BlockNode::Data*>(node->data);
 
 	layout.PopLayout();

@@ -1,7 +1,7 @@
 bin = MicroWeb.exe
 SRC_PATH = ..\..\src
 OBJDIR=obj
-objects = MicroWeb.obj App.obj Parser.obj Renderer.obj Tags.obj Platform.obj CGA.obj EGA.obj Hercules.obj TextMode.obj Font.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj Layout.obj Node.obj Text.obj Section.obj ImgNode.obj Block.obj StyNode.obj LinkNode.obj Break.obj
+objects = MicroWeb.obj App.obj Parser.obj Renderer.obj Tags.obj Platform.obj CGA.obj EGA.obj Hercules.obj TextMode.obj Font.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj Layout.obj Node.obj Text.obj Section.obj ImgNode.obj Block.obj StyNode.obj LinkNode.obj Break.obj Render.obj Button.obj Field.obj DataPack.obj Surf1bpp.obj
 memory_model = -ml
 CC = wpp
 CFLAGS = -zq -0 -ot -bt=DOS -w2 $(memory_model) -fi=$(SRC_PATH)\Defines.h
@@ -41,6 +41,9 @@ Parser.obj: $(SRC_PATH)\Parser.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 Renderer.obj: $(SRC_PATH)\Renderer.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+Render.obj: $(SRC_PATH)\Render.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 Tags.obj: $(SRC_PATH)\Tags.cpp
@@ -85,6 +88,15 @@ Section.obj: $(SRC_PATH)\Nodes\Section.cpp
 Text.obj: $(SRC_PATH)\Nodes\Text.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
+Field.obj: $(SRC_PATH)\Nodes\Field.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+Button.obj: $(SRC_PATH)\Nodes\Button.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+DataPack.obj: $(SRC_PATH)\DataPack.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
 CGA.obj: $(SRC_PATH)\DOS\CGA.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
@@ -102,6 +114,9 @@ DOSInput.obj: $(SRC_PATH)\DOS\DOSInput.cpp
 
 DOSNet.obj: $(SRC_PATH)\DOS\DOSNet.cpp
 	 $(CC) -fo=$@ $(CFLAGS) -i=$(tcp_h_dir) -DCFG_H="tcp.cfg" $<
+
+Surf1bpp.obj: $(SRC_PATH)\Draw\Surf1bpp.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
 
 clean: .symbolic
     del *.obj

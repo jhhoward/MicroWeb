@@ -13,11 +13,6 @@ Node* BreakNode::Construct(Allocator& allocator, int breakPadding, bool displayB
 	return nullptr;
 }
 
-void BreakNode::Draw(Page& page, Node* element)
-{
-	//printf("\n");
-}
-
 void BreakNode::GenerateLayout(Layout& layout, Node* node)
 {
 	layout.BreakNewLine();

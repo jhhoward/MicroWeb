@@ -20,8 +20,9 @@
 #include <stdint.h>
 #include "../Image.h"
 #include "EGA.h"
-#include "DefData.h"
+#include "../DataPack.h"
 #include "../Interface.h"
+#include "../Draw/Surf1bpp.h"
 
 #define EGA_BASE_VRAM_ADDRESS (uint8_t*) MK_FP(0xA000, 0)
 
@@ -72,8 +73,13 @@ void EGADriver::SetupVars(int inScreenMode, int inScreenHeight)
 	scissorY2 = SCREEN_HEIGHT;
 	invertScreen = false;
 	clearMask = invertScreen ? 0 : 0xffff;
-	imageIcon = &Default_ImageIcon;
-	bulletImage = &Default_Bullet;
+	
+	//imageIcon = &Default_ImageIcon;
+	//bulletImage = &Default_Bullet;
+
+	imageIcon = NULL;
+	bulletImage = NULL;
+
 	isTextMode = false;
 }
 
@@ -81,6 +87,15 @@ void EGADriver::Init()
 {
 	startingScreenMode = GetScreenMode();
 	SetScreenMode(screenModeToUse);
+
+	Assets.Load("DEFAULT.DAT");
+
+	DrawSurface_1BPP* drawSurface1BPP = new DrawSurface_1BPP(screenWidth, screenHeight);
+	for (int y = 0; y < screenHeight; y++)
+	{
+		drawSurface1BPP->lines[y] = (EGA_BASE_VRAM_ADDRESS)+(80 * y);
+	}
+	drawSurface = drawSurface1BPP;
 }
 
 void EGADriver::Shutdown()
@@ -292,6 +307,8 @@ void EGADriver::DrawString(const char* text, int x, int y, int size, FontStyle::
 
 Font* EGADriver::GetFont(int fontSize, FontStyle::Type style)
 {
+	return Assets.GetFont(fontSize, style);
+	/*
 	if (style & FontStyle::Monospace)
 	{
 		switch (fontSize)
@@ -318,6 +335,7 @@ Font* EGADriver::GetFont(int fontSize, FontStyle::Type style)
 	default:
 		return &Default_RegularFont;
 	}
+	*/
 }
 
 void EGADriver::HLine(int x, int y, int count)
@@ -544,7 +562,8 @@ void EGADriver::VLine(int x, int y, int count)
 
 MouseCursorData* EGADriver::GetCursorGraphic(MouseCursor::Type type)
 {
-	switch (type)
+	return Assets.GetMouseCursorData(type);
+/*	switch (type)
 	{
 	default:
 	case MouseCursor::Pointer:
@@ -553,7 +572,7 @@ MouseCursorData* EGADriver::GetCursorGraphic(MouseCursor::Type type)
 		return &Default_MouseCursorHand;
 	case MouseCursor::TextSelect:
 		return &Default_MouseCursorTextSelect;
-	}
+	}*/
 }
 
 int EGADriver::GetGlyphWidth(char c, int fontSize, FontStyle::Type style)

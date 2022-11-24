@@ -540,7 +540,7 @@ void Page::BreakTextLine()
 
 void Page::SetTitle(const char* inTitle)
 {
-	app.renderer.SetTitle(inTitle);
+	app.ui.SetTitle(inTitle);
 }
 
 Widget* Page::GetWidget(int x, int y)
@@ -575,13 +575,13 @@ void Page::SetFormData(WidgetFormData* inFormData)
 	formData = inFormData;
 }
 
-void Page::DebugDraw(Node* node)
+void Page::DebugDraw(DrawContext& context, Node* node)
 {
 	while (node)
 	{
-		node->Handler().Draw(*this, node);
+		node->Handler().Draw(context, node);
 
-		DebugDraw(node->firstChild);
+		DebugDraw(context, node->firstChild);
 
 		node = node->next;
 	}
@@ -661,17 +661,17 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 	case Node::SubText:
 		{
 			TextElement::Data* data = static_cast<TextElement::Data*>(node->data);
-			printf("<%s> %s\n", nodeTypeNames[node->type], data->text);
+			printf("<%s> [%d,%d:%d,%d] %s\n", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y, data->text);
 		}
 		break;
 	case Node::Section:
 		{
 			SectionElement::Data* data = static_cast<SectionElement::Data*>(node->data);
-			printf("<%s> %s\n", nodeTypeNames[node->type], sectionTypeNames[data->type]);
+			printf("<%s> [%d,%d:%d,%d] %s\n", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y, sectionTypeNames[data->type]);
 		}
 		break;
 	default:
-		printf("<%s>\n", nodeTypeNames[node->type]);
+		printf("<%s> [%d,%d:%d,%d]\n", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y);
 		break;
 	}
 
@@ -679,4 +679,9 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 	{
 		DebugDumpNodeGraph(child, depth + 1);
 	}
+}
+
+int Page::GetPageWidth()
+{
+	return app.ui.windowRect.width;
 }

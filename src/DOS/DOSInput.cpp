@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include "DOSInput.h"
 #include "../Keycodes.h"
+#include "../DataPack.h"
 
 void DOSInputDriver::Init()
 {
@@ -92,7 +93,7 @@ void DOSInputDriver::SetMouseCursor(MouseCursor::Type type)
 	{
 		return;
 	}
-	MouseCursorData* cursor = Platform::video->GetCursorGraphic(type);
+	MouseCursorData* cursor = Assets.GetMouseCursorData(type);
 	if (cursor)
 	{
 		SetMouseCursorASM(cursor->data, cursor->hotSpotX, cursor->hotSpotY);

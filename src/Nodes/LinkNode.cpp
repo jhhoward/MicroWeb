@@ -15,3 +15,4 @@ Node* LinkNode::Construct(Allocator& allocator)
 	}
 	return nullptr;
 }
+

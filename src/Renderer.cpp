@@ -34,9 +34,9 @@ void Renderer::Init()
 	Platform::input->HideMouse();
 	Platform::video->ClearWindow();
 	RedrawScrollBar();
-	app.ui.DrawInterfaceWidgets();
-	SetTitle("MicroWeb");
-	SetStatus(" ");
+	//app.ui.DrawInterfaceWidgets();
+	//SetTitle("MicroWeb");
+	//SetStatus(" ");
 	Platform::input->ShowMouse();
 }
 
