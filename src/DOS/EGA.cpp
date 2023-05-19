@@ -21,7 +21,7 @@
 #include "../Image.h"
 #include "EGA.h"
 #include "DefData.h"
-#include "../Interface.h"
+#include "../GUI.h"
 
 #define EGA_BASE_VRAM_ADDRESS (uint8_t*) MK_FP(0xA000, 0)
 

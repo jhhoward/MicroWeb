@@ -21,7 +21,7 @@
 #include "../Image.h"
 #include "Hercules.h"
 #include "DefData.h"
-#include "../Interface.h"
+#include "../GUI.h"
 
 #define BASE_VRAM_ADDRESS (uint8_t*) MK_FP(0xB000, 0)
 

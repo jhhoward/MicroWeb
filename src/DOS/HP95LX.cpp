@@ -21,7 +21,7 @@
 #include "../Image.h"
 #include "HP95LX.h"
 #include "DefData.h"
-#include "../Interface.h"
+#include "../GUI.h"
 
 #define USE_EGA_PREVIS 0
 
