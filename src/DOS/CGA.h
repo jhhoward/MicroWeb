@@ -67,9 +67,9 @@ protected:
 	int scissorX1, scissorY1, scissorX2, scissorY2;
 
 private:
-	void ClearHLine(int x, int y, int count);
-	void HLineInternal(int x, int y, int count);
-	void InvertLine(int x, int y, int count);
+	virtual void ClearHLine(int x, int y, int count);
+	virtual void HLineInternal(int x, int y, int count);
+	virtual void InvertLine(int x, int y, int count);
 };
 
 class OlivettiDriver : public CGADriver
@@ -81,6 +81,8 @@ public:
 
 	virtual void ClearScreen();
 	virtual void InvertScreen();
+
+	virtual void ArrangeAppInterfaceWidgets(AppInterface& app);
 
 	virtual void DrawImage(Image* image, int x, int y);
 	virtual void DrawString(const char* text, int x, int y, int size = 1, FontStyle::Type style = FontStyle::Regular);
@@ -97,9 +99,9 @@ public:
 	virtual void ScaleImageDimensions(int& width, int& height);
 
 private:
-	void ClearHLine(int x, int y, int count);
-	void HLineInternal(int x, int y, int count);
-	void InvertLine(int x, int y, int count);
+	virtual void ClearHLine(int x, int y, int count);
+	virtual void HLineInternal(int x, int y, int count);
+	virtual void InvertLine(int x, int y, int count);
 
 	int videoMode;
 };

@@ -574,6 +574,39 @@ void OlivettiDriver::ClearWindow()
 	ClearRegion(WINDOW_VRAM_TOP_3, (WINDOW_HEIGHT / 4), clearMask);
 }
 
+void OlivettiDriver::ArrangeAppInterfaceWidgets(AppInterface& app)
+{
+	app.addressBar.x = ADDRESS_BAR_X;
+	app.addressBar.y = ADDRESS_BAR_Y;
+	app.addressBar.width = ADDRESS_BAR_WIDTH;
+	app.addressBar.height = ADDRESS_BAR_HEIGHT;
+
+	app.scrollBar.x = SCREEN_WIDTH - SCROLL_BAR_WIDTH;
+	app.scrollBar.y = WINDOW_TOP;
+	app.scrollBar.width = SCROLL_BAR_WIDTH;
+	app.scrollBar.height = WINDOW_HEIGHT;
+
+	app.backButton.x = BACK_BUTTON_X;
+	app.backButton.y = ADDRESS_BAR_Y;
+	app.backButton.width = NAVIGATION_BUTTON_WIDTH;
+	app.backButton.height = NAVIGATION_BUTTON_HEIGHT;
+
+	app.forwardButton.x = FORWARD_BUTTON_X;
+	app.forwardButton.y = ADDRESS_BAR_Y;
+	app.forwardButton.width = NAVIGATION_BUTTON_WIDTH;
+	app.forwardButton.height = NAVIGATION_BUTTON_HEIGHT;
+
+	app.statusBar.x = 0;
+	app.statusBar.y = SCREEN_HEIGHT - STATUS_BAR_HEIGHT;
+	app.statusBar.width = SCREEN_WIDTH;
+	app.statusBar.height = STATUS_BAR_HEIGHT;
+
+	app.titleBar.x = 0;
+	app.titleBar.y = 1;
+	app.titleBar.width = SCREEN_WIDTH;
+	app.titleBar.height = TITLE_BAR_HEIGHT;
+}
+
 void OlivettiDriver::ScaleImageDimensions(int& width, int& height)
 {
 	// Scale to 4:3
