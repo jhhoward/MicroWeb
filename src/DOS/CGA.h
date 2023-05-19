@@ -74,6 +74,7 @@ private:
 
 class OlivettiDriver : public CGADriver
 {
+public:
 	OlivettiDriver(int _videoMode);
 
 	virtual void Init();
