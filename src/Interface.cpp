@@ -13,7 +13,7 @@
 //
 
 #include "Platform.h"
-#include "GUI.h"
+#include "Interface.h"
 #include "App.h"
 #include "KeyCodes.h"
 
