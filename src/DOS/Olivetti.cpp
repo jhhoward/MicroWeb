@@ -63,21 +63,12 @@
 OlivettiDriver::OlivettiDriver(int _videoMode)
 	: videoMode(_videoMode)
 {
-	screenWidth = SCREEN_WIDTH;
 	screenHeight = SCREEN_HEIGHT;
-	windowWidth = screenWidth - 16;
 	windowHeight = WINDOW_HEIGHT;
-	windowX = 0;
 	windowY = WINDOW_TOP;
-	scissorX1 = 0;
-	scissorY1 = 0;
-	scissorX2 = SCREEN_WIDTH - SCROLL_BAR_WIDTH;
 	scissorY2 = SCREEN_HEIGHT;
-	invertScreen = false;
-	clearMask = invertScreen ? 0 : 0xffff;
 	imageIcon = &Default_ImageIcon;
 	bulletImage = &Default_Bullet;
-	isTextMode = false;
 }
 
 void OlivettiDriver::Init()
@@ -124,7 +115,7 @@ void OlivettiDriver::DrawImage(Image* image, int x, int y)
 	}
 	if (y + imageHeight > scissorY2)
 	{
-		imageHeight = (scissorY2 - y);
+		imageHeight = scissorY2 - y;
 	}
 
 	uint16_t firstLine = 0;
@@ -135,7 +126,9 @@ void OlivettiDriver::DrawImage(Image* image, int x, int y)
 	}
 
 	uint8_t far* VRAM = (uint8_t far*) CGA_BASE_VRAM_ADDRESS;
+	uint8_t interlace = y & 3;
 	VRAM += (y >> 2) * BYTES_PER_LINE;
+	VRAM += 0x2000 * interlace;
 
 	uint16_t imageWidthBytes = image->width >> 3;
 
@@ -147,8 +140,6 @@ void OlivettiDriver::DrawImage(Image* image, int x, int y)
 
 	uint8_t* imageData = image->data + firstLine * imageWidthBytes;
 	uint8_t far* VRAMptr = VRAM + (x >> 3);
-	int interlace = (y & 3);
-	VRAMptr += 0x2000 * interlace;
 
 	for (uint8_t j = firstLine; j < imageHeight; j++)
 	{
@@ -158,13 +149,13 @@ void OlivettiDriver::DrawImage(Image* image, int x, int y)
 		{
 			uint8_t glyphPixels = *imageData++;
 
-			VRAMptr[i] ^= (glyphPixels >> writeOffset);
-			VRAMptr[i + 1] ^= (glyphPixels << (8 - writeOffset));
+			VRAMptr[i] ^= glyphPixels >> writeOffset;
+			VRAMptr[i + 1] ^= glyphPixels << (8 - writeOffset);
 		}
 
 		if (interlace == 3)
 		{
-			VRAMptr -= (0x6000 - BYTES_PER_LINE);
+			VRAMptr -= 0x6000 - BYTES_PER_LINE;
 		}
 		else
 		{
@@ -205,8 +196,8 @@ void OlivettiDriver::DrawString(const char* text, int x, int y, int size, FontSt
 	}
 
 	uint8_t far* VRAM = (uint8_t far*) CGA_BASE_VRAM_ADDRESS;
-	VRAM += (y >> 2) * BYTES_PER_LINE;
 	uint8_t interlace = y & 3;
+	VRAM += (y >> 2) * BYTES_PER_LINE;
 	VRAM += 0x2000 * interlace;
 
 	while (*text)
@@ -256,7 +247,7 @@ void OlivettiDriver::DrawString(const char* text, int x, int y, int size, FontSt
 
 			if (interlace == 3)
 			{
-				VRAMptr -= (0x6000 - BYTES_PER_LINE);
+				VRAMptr -= 0x6000 - BYTES_PER_LINE;
 			}
 			else
 			{
@@ -322,7 +313,7 @@ void OlivettiDriver::HLineInternal(int x, int y, int count)
 
 	VRAMptr += (y >> 2) * BYTES_PER_LINE;
 	VRAMptr += (y & 3) * 0x2000;
-	VRAMptr += (x >> 3);
+	VRAMptr += x >> 3;
 
 	uint8_t data = *VRAMptr;
 	uint8_t mask = ~(0x80 >> (x & 7));
@@ -354,7 +345,7 @@ void OlivettiDriver::ClearHLine(int x, int y, int count)
 
 	VRAMptr += (y >> 2) * BYTES_PER_LINE;
 	VRAMptr += (y & 3) * 0x2000;
-	VRAMptr += (x >> 3);
+	VRAMptr += x >> 3;
 
 	uint8_t data = *VRAMptr;
 	uint8_t mask = (0x80 >> (x & 7));
@@ -386,7 +377,7 @@ void OlivettiDriver::InvertLine(int x, int y, int count)
 
 	VRAMptr += (y >> 2) * BYTES_PER_LINE;
 	VRAMptr += (y & 3) * 0x2000;
-	VRAMptr += (x >> 3);
+	VRAMptr += x >> 3;
 
 	uint8_t data = *VRAMptr;
 	uint8_t mask = (0x80 >> (x & 7));
@@ -451,13 +442,12 @@ void OlivettiDriver::VLine(int x, int y, int count)
 	}
 
 	uint8_t far* VRAMptr = (uint8_t far*) CGA_BASE_VRAM_ADDRESS;
+	uint8_t interlace = y & 3;
 	uint8_t mask = ~(0x80 >> (x & 7));
 
 	VRAMptr += (y >> 2) * BYTES_PER_LINE;
-	VRAMptr += (x >> 3);
-
-	uint8_t interlace = y & 3;
 	VRAMptr += 0x2000 * interlace;
+	VRAMptr += x >> 3;
 
 	if (invertScreen)
 	{
@@ -568,10 +558,10 @@ void OlivettiDriver::ScrollWindow(int amount)
 
 void OlivettiDriver::ClearWindow()
 {
-	ClearRegion(WINDOW_VRAM_TOP_0, (WINDOW_HEIGHT / 4), clearMask);
-	ClearRegion(WINDOW_VRAM_TOP_1, (WINDOW_HEIGHT / 4), clearMask);
-	ClearRegion(WINDOW_VRAM_TOP_2, (WINDOW_HEIGHT / 4), clearMask);
-	ClearRegion(WINDOW_VRAM_TOP_3, (WINDOW_HEIGHT / 4), clearMask);
+	ClearRegion(WINDOW_VRAM_TOP_0, WINDOW_HEIGHT / 4, clearMask);
+	ClearRegion(WINDOW_VRAM_TOP_1, WINDOW_HEIGHT / 4, clearMask);
+	ClearRegion(WINDOW_VRAM_TOP_2, WINDOW_HEIGHT / 4, clearMask);
+	ClearRegion(WINDOW_VRAM_TOP_3, WINDOW_HEIGHT / 4, clearMask);
 }
 
 void OlivettiDriver::ArrangeAppInterfaceWidgets(AppInterface& app)
