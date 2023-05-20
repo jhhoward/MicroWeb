@@ -21,7 +21,7 @@
 #include "../Image.h"
 #include "CGA.h"
 #include "CGAData.inc"
-#include "../GUI.h"
+#include "../Interface.h"
 
 #define CGA_BASE_VRAM_ADDRESS (uint8_t*) MK_FP(0xB800, 0)
 

@@ -19,7 +19,7 @@
 #include "Page.h"
 #include "Renderer.h"
 #include "URL.h"
-#include "GUI.h"
+#include "Interface.h"
 
 #define MAX_PAGE_URL_HISTORY 5
 

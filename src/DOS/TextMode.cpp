@@ -21,7 +21,7 @@
 #include "../Image.h"
 #include "TextMode.h"
 #include "TextData.inc"
-#include "../GUI.h"
+#include "../Interface.h"
 
 #define NAVIGATION_BUTTON_WIDTH 3
 #define NAVIGATION_BUTTON_HEIGHT 1
