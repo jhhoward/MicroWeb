@@ -103,12 +103,6 @@ void CGADriver::SetScreenMode(int screenMode)
 	int86(0x10, &inreg, &outreg);
 }
 
-static void FastMemSet(void far* mem, uint8_t value, unsigned int count);
-#pragma aux FastMemSet = \
-	"rep stosb" \
-	modify [di cx] \	
-	parm[es di][al][cx];
-
 void CGADriver::InvertScreen()
 {
 	int count = 0x4000;
@@ -651,65 +645,6 @@ int CGADriver::GetLineHeight(int fontSize, FontStyle::Type style)
 	return GetFont(fontSize, style)->glyphHeight + 1;
 }
 
-void DrawScrollBarBlock(uint8_t far* ptr, int top, int middle, int bottom);
-#pragma aux DrawScrollBarBlock = \
-	"cmp bx, 0" \
-	"je _startMiddle" \	
-	"mov ax, 0xfe7f" \
-	"_loopTop:" \
-	"stosw" \
-	"add di, 78" \
-	"dec bx"\
-	"jnz _loopTop" \
-	"_startMiddle:" \
-	"mov ax, 0x0660" \
-	"_loopMiddle:" \
-	"stosw" \
-	"add di, 78" \
-	"dec cx"\
-	"jnz _loopMiddle" \
-	"mov ax, 0xfe7f" \
-	"cmp dx, 0" \
-	"je _end" \
-	"_loopBottom:" \
-	"stosw" \
-	"add di, 78" \
-	"dec dx"\
-	"jnz _loopBottom" \
-	"_end:" \
-	modify [di ax bx cx dx] \	
-parm[es di][bx][cx][dx];
-
-void DrawScrollBarBlockInverted(uint8_t far* ptr, int top, int middle, int bottom);
-#pragma aux DrawScrollBarBlockInverted = \
-	"cmp bx, 0" \
-	"je _startMiddle" \	
-	"mov ax, 0x0180" \
-	"_loopTop:" \
-	"stosw" \
-	"add di, 78" \
-	"dec bx"\
-	"jnz _loopTop" \
-	"_startMiddle:" \
-	"mov ax, 0xf99f" \
-	"_loopMiddle:" \
-	"stosw" \
-	"add di, 78" \
-	"dec cx"\
-	"jnz _loopMiddle" \
-	"mov ax, 0x0180" \
-	"cmp dx, 0" \
-	"je _end" \
-	"_loopBottom:" \
-	"stosw" \
-	"add di, 78" \
-	"dec dx"\
-	"jnz _loopBottom" \
-	"_end:" \
-	modify [di ax bx cx dx] \	
-parm[es di][bx][cx][dx];
-
-
 void CGADriver::DrawScrollBar(int position, int size)
 {
 	position >>= 1;
@@ -744,60 +679,6 @@ void CGADriver::DrawButtonRect(int x, int y, int width, int height)
 	VLine(x, y + 1, height - 2);
 	VLine(x + width - 1, y + 1, height - 2);
 }
-
-void ScrollRegionUp(int dest, int src, int count);
-#pragma aux ScrollRegionUp = \
-	"push ds" \
-	"push es" \
-	"mov ax, 0xb800" \
-	"mov ds, ax" \
-	"mov es, ax" \
-	"_loopLine:" \
-	"mov cx, 39" \
-	"rep movsw" \
-	"add di, 2" \
-	"add si, 2" \
-	"dec dx" \
-	"jnz _loopLine" \
-	"pop es" \
-	"pop ds" \
-	modify [ax cx dx di si] \
-	parm [di][si][dx]
-
-void ScrollRegionDown(int dest, int src, int count);
-#pragma aux ScrollRegionDown = \
-	"push ds" \
-	"push es" \
-	"mov ax, 0xb800" \
-	"mov ds, ax" \
-	"mov es, ax" \
-	"_loopLine:" \
-	"mov cx, 39" \
-	"rep movsw" \
-	"sub di, 158" \
-	"sub si, 158" \
-	"dec dx" \
-	"jnz _loopLine" \
-	"pop es" \
-	"pop ds" \
-	modify [ax cx dx di si] \
-	parm [di][si][dx]
-
-void ClearRegion(int offset, int count, uint16_t clearMask);
-#pragma aux ClearRegion = \
-	"push es" \
-	"mov ax, 0xb800" \
-	"mov es, ax" \
-	"mov ax, bx" \
-	"_loopLine:" \
-	"mov cx, 39" \
-	"rep stosw" \
-	"add di, 2" \
-	"dec dx" \
-	"jnz _loopLine" \
-	"pop es" \
-	modify [cx di ax cx dx] \
-	parm [di] [dx] [bx]
 
 void CGADriver::ScrollWindow(int amount)
 {

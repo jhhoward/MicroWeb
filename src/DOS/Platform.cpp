@@ -187,6 +187,14 @@ void Platform::Init(int argc, char* argv[])
 		{
 			video = new CGADriver();
 		}
+		if (!stricmp(argv[n], "-o") && !video)
+		{
+			video = new OlivettiDriver(0x40);
+		}
+		if (!stricmp(argv[n], "-t3100") && !video)
+		{
+			video = new OlivettiDriver(0x74);
+		}
 		if (!stricmp(argv[n], "-h") && !video)
 		{
 			video = new HerculesDriver();

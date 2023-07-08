@@ -33,13 +33,15 @@ You can use a URL as an argument to load a specific page on startup. This can al
 
 MicroWeb will try to automatically choose the most appropriate display mode on startup, but it is possible to manually select a video mode by using a command line switch
 
-Option | Effect
--------|-------
- -c    | Force to run in 640x200 CGA mode
- -h    | Force to run in 720x348 Hercules mode
- -e    | Force to run in 640x350 EGA mode
- -v    | Force to run in 640x480 VGA mode
- -i    | Start with inverted screen colours (useful for some LCD monitors)
+Option  | Effect
+------- |-------
+ -c     | Force to run in 640x200 CGA mode
+ -h     | Force to run in 720x348 Hercules mode
+ -e     | Force to run in 640x350 EGA mode
+ -v     | Force to run in 640x480 VGA mode
+ -o     | Run in 640x400 Olivetti M24 mode
+ -t3100 | Run in 640x400 Toshiba T3100 mode
+ -i     | Start with inverted screen colours (useful for some LCD monitors)
  
 For example `MICROWEB -c http://68k.news` will start in CGA 640x200 mode and load the 68k.news website
 
