@@ -1,8 +1,7 @@
-
 /*
 
    mTCP FtpUsr.cpp
-   Copyright (C) 2009-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2009-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -360,16 +359,19 @@ int FtpUser::createUserRec( char *input, FtpUser *buffer ) {
     strupr( tmpPermToken );
 
     if ( strcmp( tmpPermToken, "ALL" ) == 0 ) {
-      buffer->cmd_DELE = 1; buffer->cmd_MKD = 1; buffer->cmd_RMD = 1; buffer->cmd_RNFR = 1;
-      buffer->cmd_STOR = 1; buffer->cmd_APPE = 1; buffer->cmd_STOU = 1;
+      buffer->setPermission( cmd_DELE ); buffer->setPermission( cmd_MKD );
+      buffer->setPermission( cmd_RMD ); buffer->setPermission( cmd_RNFR );
+      buffer->setPermission( cmd_STOR ); buffer->setPermission( cmd_APPE );
+      buffer->setPermission( cmd_STOU ); buffer->setPermission( cmd_SITEQUIT );
     }
-    else if ( strcmp( tmpPermToken, "DELE" ) == 0 ) { buffer->cmd_DELE = 1; }
-    else if ( strcmp( tmpPermToken, "MKD" ) == 0 )  { buffer->cmd_MKD = 1; }
-    else if ( strcmp( tmpPermToken, "RMD" ) == 0 )  { buffer->cmd_RMD = 1; }
-    else if ( strcmp( tmpPermToken, "RNFR" ) == 0 ) { buffer->cmd_RNFR = 1; }
-    else if ( strcmp( tmpPermToken, "STOR" ) == 0 ) { buffer->cmd_STOR = 1; }
-    else if ( strcmp( tmpPermToken, "APPE" ) == 0 ) { buffer->cmd_APPE = 1; }
-    else if ( strcmp( tmpPermToken, "STOU" ) == 0 ) { buffer->cmd_STOU = 1; }
+    else if ( strcmp( tmpPermToken, "DELE" ) == 0 )     { buffer->setPermission( cmd_DELE ); }
+    else if ( strcmp( tmpPermToken, "MKD" ) == 0 )      { buffer->setPermission( cmd_MKD ); }
+    else if ( strcmp( tmpPermToken, "RMD" ) == 0 )      { buffer->setPermission( cmd_RMD ); }
+    else if ( strcmp( tmpPermToken, "RNFR" ) == 0 )     { buffer->setPermission( cmd_RNFR ); }
+    else if ( strcmp( tmpPermToken, "STOR" ) == 0 )     { buffer->setPermission( cmd_STOR ); }
+    else if ( strcmp( tmpPermToken, "APPE" ) == 0 )     { buffer->setPermission( cmd_APPE ); }
+    else if ( strcmp( tmpPermToken, "STOU" ) == 0 )     { buffer->setPermission( cmd_STOU ); }
+    else if ( strcmp( tmpPermToken, "SITEQUIT" ) == 0 ) { buffer->setPermission( cmd_SITEQUIT ); }
     else {
       return 2;
     }

@@ -1,8 +1,7 @@
-
 /*
 
    mTCP Screen.cpp
-   Copyright (C) 2008-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2008-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -36,7 +35,6 @@
 
 
 
-#include <bios.h>
 #include <ctype.h>
 #include <conio.h>
 #include <dos.h>
@@ -158,6 +156,25 @@ int8_t Screen::init( char *userInputBuffer_p, uint8_t *switchToSession_p ) {
     turnOffEgaBlink( );
 
   }
+
+
+  // Horrible back to support non-standard displays.  We've already gone
+  // through the work to detect MDA, CGA, EGA or VGA.  This hack allows
+  // you to override what we think the row count is.
+  //
+  // This is useful when you have something that has a standard video
+  // buffer, but supports more lines.  As long as the memory addressing
+  // is linear, it works.  An example of this is the MDSI Genius Display,
+  // which reports as MDA but allows for 80x66.  See
+  // http://www.seasip.info/VintagePC/mdsi_genius.html for details.
+  //
+  // Added 2022-11-20 for Compu85, who has one of these displays.
+  //
+  // Note: this can also be used to reduce the number of rows used as
+  // well.
+
+  char *tmpRows = getenv( "MTCP_SCREEN_ROWS" );
+  if ( tmpRows != NULL ) { screenRows = atoi(tmpRows); }
 
 
   separatorRow = screenRows - INPUT_ROWS - 1;
@@ -318,7 +335,7 @@ Screen::InputActions Screen::getInput2( void ) {
 
   gotoxy( cur_x, cur_y2 );
 
-  uint16_t key = bioskey(0);
+  uint16_t key = biosKeyRead( );
 
   if ( eatNextChar == true ) {
     eatNextChar = false;

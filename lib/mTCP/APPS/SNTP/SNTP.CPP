@@ -1,7 +1,7 @@
 /*
 
    mTCP Sntp.cpp
-   Copyright (C) 2010-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2010-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -22,20 +22,23 @@
 
 
    Description: Your typical run-of-the-mill SNTP (simple network time
-     protocol client) ...
+     protocol client).  DOS is kind of limited by the system timer,
+     which only has a resolution of 55ms.  So don't go overboard on
+     the accuracy because it just doesn't matter.  Getting to within
+     a few dozen milliseconds of a public NTP server is more than
+     good enough.
 
    Changes:
 
    2011-05-27: Initial release as open source software
    2015-01-18: Minor change to Ctrl-Break and Ctrl-C handling.
+   2022-01-22: Use the NTP fractional seconds to set the time just
+               a little more accurately.
 
 */
 
 
 
-
-
-#include <bios.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,15 +50,29 @@
 #include "utils.h"
 #include "packet.h"
 #include "arp.h"
-#include "udp.h"
 #include "dns.h"
 #include "timer.h"
 
+#include "sntp.h"
+#include "sntplib.h"
 
 
-#define UNIX_OFFSET (2208988800ul)
 #define SERVER_ADDR_NAME_LEN (80)
 
+
+
+// Return codes
+
+#define MAIN_RC_GOOD               (0)
+#define MAIN_RC_OTHER_ERROR        (1)
+#define MAIN_RC_USAGE_ERROR        (2)
+#define MAIN_RC_CONFIG_FAIL        (3)
+#define MAIN_RC_NO_TIMEZONE        (4)
+#define MAIN_RC_NETWORK_INIT_FAIL  (5)
+#define MAIN_RC_USER_ABORT         (6)
+#define MAIN_RC_DNS_FAIL           (7)
+#define MAIN_RC_ERROR_SETTING_TIME (8)
+#define MAIN_RC_SERVER_TIMEOUT     (9)
 
 
 char     ServerAddrName[ SERVER_ADDR_NAME_LEN ];
@@ -63,13 +80,15 @@ IpAddr_t ServerAddr;
 uint16_t ServerPort = 123;
 
 uint16_t TimeoutSecs = 3;
-uint16_t Retries = 2;
+uint16_t Retries = 3;
 uint8_t  Verbose = 0;
+uint8_t  Mode =    0;
 uint8_t  SetTime = 0;
 
-time_t   TargetTime = 0;
+SntpLib::Callback_data_t SntpCallbackResponse;
+NTP_packet_t SntpPacket;
 
-
+int SetDosTimeRC;
 
 
 // Ctrl-Break and Ctrl-C handler.  Check the flag once in a while to see if
@@ -83,115 +102,44 @@ void __interrupt __far ctrlBreakHandler( ) {
 
 
 
-
-typedef struct {
-
-  UdpPacket_t udpHdr;   // Space for Ethernet, IP and UDP headers
-
-  uint8_t  mode;
-  uint8_t  stratum;
-  uint8_t  poll;
-  uint8_t  precision;
-
-  uint32_t rootDelay;
-  uint32_t rootDispersion;
-
-  uint32_t refId;
-
-  uint32_t refTimeSecs;
-  uint32_t refTimeFrac;
-
-  uint32_t origTimeSecs;  // Client: put time here
-  uint32_t origTimeFrac;
-
-  uint32_t recvTimeSecs;
-  uint32_t recvTimeFrac;
-
-  uint32_t transTimeSecs; 
-  uint32_t transTimeFrac;
-
-} NTP_packet_t;
-
-
-
-NTP_packet_t Outgoing;
-
-
 // Function prototypes
 
+void callback( SntpLib::Callback_data_t d );
+void printResponse( SntpLib::Callback_data_t d );
 void parseArgs( int argc, char *argv[] );
 void shutdown( int rc );
-
-int8_t sendRequest( void );
-void ntpUdpHandler( const unsigned char *packet, const UdpHeader *udp );
+void continuous( void );
 
 
 
 
-char printTimeStampBuffer[40];
+bool checkUserExit( void ) {
 
-char * printTimeStamp( uint32_t ts, uint16_t local ) {
-
-  time_t ts1 = ts;
-
-  struct tm tmbuf;
-
-  if ( local ) {
-    _localtime( &ts1, &tmbuf );
-  }
-  else {
-    _gmtime( &ts1, &tmbuf );
+  if ( CtrlBreakDetected ) {
+    puts( "\nCtrl-Break detected: aborting\n" );
+    return true;
   }
 
-  sprintf( printTimeStampBuffer, "%04d-%02d-%02d %02d:%02d:%02d",
-          tmbuf.tm_year+1900, tmbuf.tm_mon+1, tmbuf.tm_mday,
-          tmbuf.tm_hour, tmbuf.tm_min, tmbuf.tm_sec );
+  if ( biosIsKeyReady( ) ) {
+    char c = biosKeyRead( );
+    if ( (c == 27) || (c == 3) ) {
+      puts( "\nCtrl-C or ESC detected: aborting\n" );
+      return true;
+    }
+  }
 
-  return printTimeStampBuffer;
-
+  return false;
 }
 
 
 
-
-int16_t setDosDateTime( void ) {
-
-  struct dosdate_t dos_date;
-  struct dostime_t dos_time;
-
-
-  time_t ts1 = TargetTime;
-
-  struct tm tmbuf;
-  _localtime( &ts1, &tmbuf );
-
-  dos_date.year = tmbuf.tm_year + 1900;
-  dos_date.month = tmbuf.tm_mon+1;
-  dos_date.day = tmbuf.tm_mday;
-
-  int rc1 = _dos_setdate( &dos_date );
-
-  dos_time.hour = tmbuf.tm_hour;
-  dos_time.minute = tmbuf.tm_min;
-  dos_time.second = tmbuf.tm_sec;
-  dos_time.hsecond = 50;
-
-  int rc2 = _dos_settime( &dos_time );
-
-  if (rc1 || rc2 ) return 1;
-
-  return 0;
-}
-
-
-
-static char CopyrightMsg1[] = "mTCP SNTP Client by M Brutman (mbbrutman@gmail.com) (C)opyright 2009-2020\n";
+static char CopyrightMsg1[] = "mTCP SNTP Client by M Brutman (mbbrutman@gmail.com) (C)opyright 2009-2023\n";
 static char CopyrightMsg2[] = "Version: " __DATE__ "\n\n";
 
 
 int main( int argc, char *argv[] ) {
 
-  int mainRc = 1;
+  int mainRc = MAIN_RC_OTHER_ERROR;
 
   printf( "%s  %s", CopyrightMsg1, CopyrightMsg2 );
 
@@ -201,14 +149,15 @@ int main( int argc, char *argv[] ) {
 
   // Initialize TCP/IP
   if ( Utils::parseEnv( ) != 0 ) {
-    exit( 1 );
+    exit( MAIN_RC_CONFIG_FAIL );
   }
 
 
   char *tzStr = getenv( "TZ" );
   if ( tzStr == NULL ) {
-    puts( "Warning: the TZ environment variable is not set.  Assuming\n"
-          "Eastern Standard Time.  See SNTP.TXT for how to set it properly.\n" );
+    puts( "Error: The TZ environment variable must be set.  See the mTCP\n"
+          "documentation for how to set it properly for your time zone.\n" );
+    exit( MAIN_RC_NO_TIMEZONE );
   }
 
   tzset( );
@@ -222,8 +171,8 @@ int main( int argc, char *argv[] ) {
 
   // No sockets, no buffers TCP buffers
   if ( Utils::initStack( 0, 0, ctrlBreakHandler, ctrlBreakHandler ) ) {
-    puts( "Failed to initialize TCP/IP - exiting" );
-    exit( 1 );
+    puts( "Failed to initialize the network." );
+    exit( MAIN_RC_NETWORK_INIT_FAIL );
   }
 
 
@@ -237,29 +186,15 @@ int main( int argc, char *argv[] ) {
   int8_t rc = Dns::resolve( ServerAddrName, ServerAddr, 1 );
   if ( rc < 0 ) {
     puts( "Error resolving server" );
-    shutdown( 1 );
+    shutdown( MAIN_RC_DNS_FAIL );
   }
-
-
-  uint8_t userEarlyExit = 0;
 
   clockTicks_t startTime = TIMER_GET_CURRENT( );
 
   while ( 1 ) {
 
-    if ( CtrlBreakDetected ) {
-      puts( "Ctrl-Break detected: aborting\n" );
-      userEarlyExit = 1;
-      break;
-    }
-
-    if ( bioskey(1) != 0 ) {
-      char c = bioskey(0);
-      if ( (c == 27) || (c == 3) ) {
-        puts( "Ctrl-C or ESC detected: aborting\n" );
-        userEarlyExit = 1;
-        break;
-      }
+    if ( checkUserExit( ) ) {
+      shutdown( MAIN_RC_USER_ABORT );
     }
 
     if ( !Dns::isQueryPending( ) ) break;
@@ -270,54 +205,72 @@ int main( int argc, char *argv[] ) {
 
   }
 
-  if ( userEarlyExit ) {
-    shutdown( 1 );
-  }
-
-
-  // Query is no longer pending or we bailed out of the loop.
-  rc = Dns::resolve( ServerAddrName, ServerAddr, 0 );
-
-  if ( rc != 0 ) {
-    puts( "Error resolving server name - exiting" );
-    shutdown( 1 );
+  // Query is no longer pending.  Did we get an answer?
+  if ( Dns::resolve( ServerAddrName, ServerAddr, 0 ) != 0 ) {
+    puts( "Error resolving server name" );
+    shutdown( MAIN_RC_DNS_FAIL );
   }
 
   uint32_t t = Timer_diff( startTime, TIMER_GET_CURRENT( ) ) * TIMER_TICK_LEN;
-
   printf( "NTP server ip address is: %d.%d.%d.%d, resolved in %ld.%02ld seconds\n",
            ServerAddr[0], ServerAddr[1], ServerAddr[2], ServerAddr[3],
            (t/1000), (t%1000)
         );
 
 
-  // Register UDP Handler - should never fail
-  Udp::registerCallback( 1024, ntpUdpHandler );
 
+  // By this point we have resolved the server address and are ready to send the query.
+
+  SntpLib::init( ServerAddr, ServerPort, callback );
+
+
+  if ( Mode == 1 ) {
+    continuous( );
+    // Never returns.
+  }
+
+
+
+  // At this point we can fail if the user cancels the request, if we can't
+  // send the UDP request for some reason, or if we timeout.
+  //
+  // Assume that we are going to timeout.  If we get a response then we'll fix
+  // the return code.
+
+  mainRc = MAIN_RC_SERVER_TIMEOUT;
 
   for ( int i=0; i < Retries; i++ ) {
+
+    if ( checkUserExit( ) ) {
+      shutdown( MAIN_RC_USER_ABORT );
+    }
 
     if ( Verbose ) {
       printf( "\nSending request # %d\n", i );
     }
 
-    int rc = sendRequest( );
+    uint32_t outTime, outTimeFrac;
+    int rc = SntpLib::sendSNTPRequest( true, &outTime, &outTimeFrac );
 
-    if ( rc == 1 ) {
-      // We timed out ... try again
-      continue;
-    } else if ( rc == -1 ) {
-      puts( "Error: Unable to send UDP packets!" );
-      break;
+    if ( Verbose ) {
+      printf( "Outgoing transmit time: %s\n",
+              SntpLib::printTimeStamp( outTime, outTimeFrac, false ) );
     }
-      
+
+    if ( rc < 0 ) {
+      if ( rc == -2 ) {
+        // ARP timeout or error sending a UDP packet.  Try again.
+        puts( "Warning: ARP timeout sending request - check your gateway setting" );
+      }
+      continue;
+    }
 
 
-    // Spin again until we get a response
+    // Spin until we get a response
 
     clockTicks_t startTime = TIMER_GET_CURRENT( );
 
-    while ( TargetTime == 0 ) {
+    while ( !SntpLib::replyReceived( ) ) {
 
       if ( Timer_diff( startTime, TIMER_GET_CURRENT( ) ) > TIMER_MS_TO_TICKS( TimeoutSecs ) ) {
         TRACE_WARN(( "Sntp: Timeout waiting for sntp response\n" ));
@@ -330,23 +283,33 @@ int main( int argc, char *argv[] ) {
 
     }
 
-    if ( TargetTime ) break;
+    // Did we get a timestamp?
+    if ( SntpLib::replyReceived( ) ) {
+      mainRc = MAIN_RC_GOOD;
+      break;
+    }
 
   }
   
 
-  if ( TargetTime && SetTime ) {
-    int rc = setDosDateTime( );
-    if ( rc == 0 ) {
-      printf( "\nSystem time set to new value\n" );
-      mainRc = 0;
+  if ( mainRc == MAIN_RC_GOOD ) {
+
+    // We got a reponse back.  Print the details.
+    printResponse( SntpCallbackResponse );
+
+    if ( SetTime ) {
+      if ( SetDosTimeRC == 0 ) {
+        puts( "\nSystem time set to new value" );
+      }
+      else {
+        puts( "\nError setting system time!" );
+        mainRc = MAIN_RC_ERROR_SETTING_TIME;
+      }
     }
     else {
-      printf( "\nError setting system time!\n" );
+      puts( "\nSystem time not updated; use the -set option if you want that." );
     }
-  }
-  else {
-    puts( "\nSystem time has not been updated" );
+
   }
 
 
@@ -358,28 +321,26 @@ int main( int argc, char *argv[] ) {
 
 
 
-char *HelpText[] = {
-  "\nsntp [options] <ipaddr>\n",
-  "Options:",
-  "  -help          Shows this help",
-  "  -port <n>      Contact server on port <n> (default=123)",
-  "  -retries <n>   Number of times to retry if no answer (default=1)",
-  "  -set           Set the system time (default is not to)",
-  "  -timeout <n>   Seconds to wait for a server response (default=3)",
-  NULL
-};
+char *HelpText = 
+  "\nsntp [options] <ipaddr>\n\n"
+  "Options:\n"
+  "  -help          Shows this help\n"
+  "  -port <n>      Contact server on port <n> (default=123)\n"
+  "  -retries <n>   Number of times to retry if no answer (default=1)\n"
+  "  -set           Set the system time (default is not to)\n"
+  "  -timeout <n>   Seconds to wait for a server response (default=3)\n"
+  "  -verbose       Turn on verbose messages\n"
+  "  -continuous    Send queries once a second. (Press ESC to end)\n";
 
 
 
 
+// Default return code if usage( ) is called.
+static int usageRc = MAIN_RC_USAGE_ERROR;
 
-void usage( void ) {
-  uint8_t i=0;
-  while ( HelpText[i] != NULL ) {
-    puts( HelpText[i] );
-    i++;
-  }
-  exit( 1 );
+void usage( ) {
+  puts( HelpText );
+  exit( usageRc );
 }
 
 
@@ -392,6 +353,7 @@ void parseArgs( int argc, char *argv[] ) {
     if ( argv[i][0] != '-' ) break;
 
     if ( stricmp( argv[i], "-help" ) == 0 ) {
+      usageRc = 0;
       usage( );
     }
     else if ( stricmp( argv[i], "-port" ) == 0 ) {
@@ -433,6 +395,9 @@ void parseArgs( int argc, char *argv[] ) {
     else if ( stricmp( argv[i], "-verbose" ) == 0 ) {
       Verbose = 1;
     }
+    else if ( stricmp( argv[i], "-continuous" ) == 0 ) {
+      Mode = 1;
+    }
     else {
       printf( "Unknown option %s\n", argv[i] );
       usage( );
@@ -460,107 +425,98 @@ void shutdown( int rc ) {
 
 
 
-int8_t sendRequest( void ) {
 
-  // Setup outgoing packet
-  memset( &Outgoing, 0, sizeof(Outgoing) );
+// This gets called from the UDP handler while it is still holding onto the
+// received response packet.  Copy the data so that we can return quickly.
+// (That is not really necessary for this program, but it is good practice.)
 
-  Outgoing.mode = 0xdb;
-  Outgoing.transTimeSecs = time( NULL );
+void callback( SntpLib::Callback_data_t d ) {
+
+  // Set the DOS time as close to the response being received as possible.
+  // Printing everything out first will cost us milliseconds on slow machines
+  // and throw off our accuracy even more.
+
+  if ( SetTime ) {
+    SetDosTimeRC = SntpLib::setDosDateTime( );
+  }
+
+  // Copy the returned structure, the underlying packet, and ensure the pointer
+  // points to our new copy of the underlying packet, not into the buffer that
+  // will soon be freed.
+  SntpPacket = *d.ntp;
+  SntpCallbackResponse = d;
+  SntpCallbackResponse.ntp = &SntpPacket;
+
+}
+
+
+
+
+void printResponse( SntpLib::Callback_data_t d ) {
 
   if ( Verbose ) {
-    printf( "Outgoing transmit time: %s\n", printTimeStamp( Outgoing.transTimeSecs, 0 ) );
+    printf( "\nReponse packet from ntp server: \n" );
+    printf( "  Leap indicator: %d\n", (d.ntp->mode & 0xc0) >> 6 );
+    printf( "  Version number: %d\n", (d.ntp->mode & 0x38) >> 3 );
+    printf( "  Stratum:        %d\n", d.ntp->stratum );
+    printf( "  Reference ts:   %s UTC\n", SntpLib::printTimeStamp( ntohl( d.ntp->refTimeSecs ) - NTP_OFFSET, ntohl(d.ntp->refTimeFrac), false ) );
+    printf( "  Original ts:    %s UTC\n", SntpLib::printTimeStamp( ntohl( d.ntp->origTimeSecs ) - NTP_OFFSET, ntohl(d.ntp->origTimeFrac), false ) );
+    printf( "  Receive ts:     %s UTC\n", SntpLib::printTimeStamp( ntohl( d.ntp->recvTimeSecs ) - NTP_OFFSET, ntohl(d.ntp->recvTimeFrac), false ) );
+    printf( "  Transmit ts:    %s UTC\n", SntpLib::printTimeStamp( ntohl( d.ntp->transTimeSecs ) - NTP_OFFSET, ntohl(d.ntp->transTimeFrac), false ) );
   }
 
-  Outgoing.transTimeSecs = htonl( Outgoing.transTimeSecs +  UNIX_OFFSET );
+  printf( "\nYour selected timezone is: %s\n", tzname[0] );
 
-  uint16_t reqLen = sizeof( Outgoing ) - sizeof( UdpPacket_t );
+  printf( "\nCurrent system time is: %s\n", SntpLib::printTimeStamp( d.currentTime, d.currentTimeFrac , true ) );
+  printf( "Time should be set to:  %s\n\n", SntpLib::printTimeStamp( d.targetTime, d.targetTimeFrac, true ) );
 
-  clockTicks_t startTime = TIMER_GET_CURRENT( );
-
-  int rc = Udp::sendUdp( ServerAddr, 1024, ServerPort, reqLen,
-                         (uint8_t *)&Outgoing, 1 );
-
-  if ( rc == -1 ) return -1;
-
-  // Spin and process packets until we can resolve ARP and send our request
-  while ( rc == 1 ) {
-
-    if ( Timer_diff( startTime, TIMER_GET_CURRENT( ) ) > TIMER_MS_TO_TICKS( 2000 ) ) {
-      TRACE_WARN(( "Sntp: Arp timeout sending request\n" ));
-      puts( "Warning: ARP timeout sending request - check your gateway setting" );
-      return -1;
-    }
-
-    PACKET_PROCESS_SINGLE;
-    Arp::driveArp( );
-
-    rc = Udp::sendUdp( ServerAddr, 1024, ServerPort, reqLen,
-                       (uint8_t *)&Outgoing, 1 );
-
-    if ( rc == -1 ) return -1;
-
+  if ( ((d.diffSecs * 1000) + d.diffMs) < 600000 ) {
+    printf( "Difference between suggested time and system time is: %lu.%03u seconds\n", d.diffSecs, d.diffMs );
+  }
+  else {
+    puts( "Difference between suggested time and system time is greater than 10 minutes!" );
   }
 
-  return 0;
-
+  puts( "(Remember, the smallest increment of time for DOS is 55 milliseconds.)" );
 }
 
 
 
+void continuous( void ) {
 
-void ntpUdpHandler( const unsigned char *packet, const UdpHeader *udp ) {
+  while ( 1 ) {
 
-  NTP_packet_t *ntp = (NTP_packet_t *)(packet);
-
-  // Quick sanity check
-
-  if ( (ntohs(udp->src) == ServerPort) && (ntohs(udp->dst) == 1024) && ( (ntp->mode & 0x7) == 4 ) ) {
-
-    if ( Verbose ) {
-
-      printf( "\nReponse packet from ntp server: \n" );
-      printf( "  Leap indicator: %d\n", (ntp->mode & 0xc0) >> 6 );
-      printf( "  Version number: %d\n", (ntp->mode & 0x38) >> 3 );
-      printf( "  Stratum:        %d\n", ntp->stratum );
-      printf( "  Reference ts:   %s UTC\n", printTimeStamp( ntohl( ntp->refTimeSecs ) - UNIX_OFFSET, 0 ) );
-      printf( "  Original ts:    %s UTC\n", printTimeStamp( ntohl( ntp->origTimeSecs ) - UNIX_OFFSET, 0 ) );
-      printf( "  Receive ts:     %s UTC\n", printTimeStamp( ntohl( ntp->recvTimeSecs ) - UNIX_OFFSET, 0 ) );
-      printf( "  Transmit ts:    %s UTC\n", printTimeStamp( ntohl( ntp->transTimeSecs ) - UNIX_OFFSET, 0 ) );
-
-    }
- 
-    TargetTime = ntohl( ntp->transTimeSecs ) - UNIX_OFFSET;
-
-
-    time_t timeDifference;
-    time_t currentTime = time( NULL );
-
-    printf( "\nYour selected timezone is: %s\n", tzname[0] );
-
-    printf( "\nCurrent system time is: %s\n", printTimeStamp( currentTime, 1 ) );
-    printf( "Time should be set to:  %s\n\n", printTimeStamp(  TargetTime, 1 ) );
-
-    if ( currentTime > TargetTime ) {
-      timeDifference = currentTime - TargetTime;
-    }
-    else {
-      timeDifference = TargetTime - currentTime;
+    if ( checkUserExit( ) ) {
+      shutdown( MAIN_RC_USER_ABORT );
     }
 
-    if ( timeDifference < 600 ) {
-      printf( "Difference between suggested time and system time is: %lu seconds\n", timeDifference );
+    uint32_t outTime, outTimeFrac;
+    int rc = SntpLib::sendSNTPRequest( true, &outTime, &outTimeFrac );
+
+    // Spin until we get a response
+
+    clockTicks_t startTime = TIMER_GET_CURRENT( );
+
+    while ( !SntpLib::replyReceived( ) ) {
+      if ( Timer_diff( startTime, TIMER_GET_CURRENT( ) ) > TIMER_MS_TO_TICKS( TimeoutSecs ) ) {
+        break;
+      }
+      PACKET_PROCESS_SINGLE;
+      Arp::driveArp( );
+
     }
-    else {
-      puts( "Difference between suggested time and system time is greater than 10 minutes!" );
+
+    if ( SntpLib::replyReceived( ) ) {
+      printf( "Delta between local and server time: %lu.%03u seconds\n", SntpCallbackResponse.diffSecs, SntpCallbackResponse.diffMs );
+    } else {
+      puts( "Timeout waiting for server response" );
     }
 
 
+    // Consume the rest of the second so that we send a request once a second
+    while ( Timer_diff( startTime, TIMER_GET_CURRENT( ) ) < TIMER_MS_TO_TICKS( 1000 ) ) { }
   }
 
-  // We are done processing this packet.  Remove it from the front of
-  // the queue and put it back on the free list.
-  Buffer_free( packet );
-
 }
+
 

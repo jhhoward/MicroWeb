@@ -1,7 +1,7 @@
 /*
 
    mTCP Trace.H
-   Copyright (C) 2006-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2006-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -92,7 +92,10 @@ extern FILE *Trace_Stream;
 extern char  Trace_Severity;
 
 extern uint16_t Trace_Debugging;
-extern char    Trace_LogFile[];
+
+// Points to the logfilename in the process environment, if
+// the user set it.
+extern char *Trace_LogFile;
 
 
 

@@ -1,7 +1,7 @@
 /*
 
    mTCP Telnet.cpp
-   Copyright (C) 2009-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2009-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -53,13 +53,11 @@
 
    Todo:
 
-     Interpret Unicode characters
      Perf improvement: Minimize use of ScOffset in insline and delline
 */
 
 
 
-#include <bios.h>
 #include <dos.h>
 #include <conio.h>
 #include <ctype.h>
@@ -87,6 +85,10 @@
 #include "telnet.h"
 #include "telnetsc.h"
 #include "keys.h"
+
+#ifdef TELNET_UNICODE
+#include "unicode.h"
+#endif
 
 #ifdef FILEXFER
 #include "ymodem.h"
@@ -147,6 +149,10 @@ static uint16_t processCSISeq( uint8_t *buffer, uint16_t len );
 inline void     processAnsiCommand( uint8_t commandLetter );
 static void     processDecPrivateControl( uint8_t commandLetter );
 static void     processNonCSIEscSeq( uint8_t ch );
+
+#ifdef RLE_GRAPHICS
+static uint16_t processSocket_RLE( uint8_t *recvBuffer, uint16_t len );
+#endif
 
        int16_t  processTelnetCmds( uint8_t *cmdStr, uint8_t cmdSize );
 static int16_t  processSingleTelnetCmd( uint8_t *cmdStr, uint8_t inputBufLen, uint8_t *outputBuf, uint16_t *outputBufLen );
@@ -213,7 +219,7 @@ TelnetOpts MyTelnetOpts;
 
 Screen s;
 
-enum StreamStates { Normal = 0, ESC_SEEN, CSI_SEEN, IAC_SEEN };
+enum StreamStates { Normal = 0, ESC_SEEN, CSI_SEEN, IAC_SEEN, RLE, UTF_START, UTF_MORE };
 StreamStates StreamState;
 
 
@@ -244,6 +250,7 @@ uint8_t reverse=0;
 
 int16_t saved_cursor_x = 0, saved_cursor_y = 0;
 
+uint8_t Strict_DOS_Mode = 0;
 
 
 uint8_t ColorScheme = 0;  // 0 default, 1 = CGA_MONO
@@ -316,13 +323,29 @@ uint8_t scErr;          // Error messages
 
 
 
+uint8_t UTF_chars[4];
+uint8_t UTF_len;
+uint8_t UTF_expected_len;
+
+// Take the first byte and and with 0x38.  (Not 0xF8 because the high
+// two bits is always on.)  Shift >> 3, then do the table lookup.
+uint8_t UTF_remaining_chars_table[] = {
+  1, // 1000 
+  1, // 1001
+  1, // 1010
+  1, // 1011
+  2, // 1100
+  2, // 1101
+  3, // 1110
+  0, // 1111 is invalid
+};
 
 static char tmpBuf[160];
 
 
 
 
-static char CopyrightMsg1[] = "mTCP Telnet by M Brutman (mbbrutman@gmail.com) (C)opyright 2009-2020\r\n";
+static char CopyrightMsg1[] = "mTCP Telnet by M Brutman (mbbrutman@gmail.com) (C)opyright 2009-2023\r\n";
 static char CopyrightMsg2[] = "Version: " __DATE__ "\r\n\r\n";
 
 int main( int argc, char *argv[] ) {
@@ -338,6 +361,15 @@ int main( int argc, char *argv[] ) {
   }
 
   getCfgOpts( );
+
+  #ifdef TELNET_UNICODE
+  // This will move to a config parameter one day, but I want something
+  // easy for now.
+  char *unicodeMap = getenv( "MTCP_UNICODE_MAP" );
+  if ( unicodeMap != NULL ) {
+    Unicode::loadXlateTable( unicodeMap );
+  }
+  #endif
 
 
   if ( Utils::initStack( 1, TCP_SOCKET_RING_SIZE, ctrlBreakHandler, ctrlCHandler ) ) {
@@ -367,11 +399,16 @@ int main( int argc, char *argv[] ) {
   #endif
 
 
+  // Cheap hack to change behavior without making yet another configuration parameter.
+
+  if ( getenv("TELNET_STRICT_DOS") ) {
+    Strict_DOS_Mode = 1;
+  }
   
 
 
 
-  if ( s.isColorCard( ) && (ColorScheme ==0) ) {
+  if ( (s.getCardType( ) > 0) && (ColorScheme ==0) ) {
     fgColorMap = fgColorMap_CGA;
     bgColorMap = bgColorMap_CGA;
   }
@@ -383,7 +420,7 @@ int main( int argc, char *argv[] ) {
 
 
   // Set color palette up
-  if ( s.isColorCard( ) ) {
+  if ( s.getCardType( ) > 0 ) {
     if ( ColorScheme == 0 ) {
       scNormal       = 0x07; // White on black
       scBright       = 0x0F; // Bright White on black
@@ -433,8 +470,8 @@ int main( int argc, char *argv[] ) {
 
 
   sprintf( tmpBuf, "Connected to %s (%d.%d.%d.%d) on port %u\r\n\r\n",
-	   serverAddrName, serverAddr[0], serverAddr[1],
-	   serverAddr[2], serverAddr[3], serverPort );
+           serverAddrName, serverAddr[0], serverAddr[1],
+           serverAddr[2], serverAddr[3], serverPort );
   s.add( tmpBuf );
 
 
@@ -497,6 +534,11 @@ int main( int argc, char *argv[] ) {
           bytesInBuffer = processSocket_Upload( recvBuffer, bytesInBuffer );
         }
         #endif
+        #ifdef RLE_GRAPHICS
+        else if ( SocketInputMode == SocketInputMode_t::RLE ) {
+          bytesInBuffer = processSocket_RLE( recvBuffer, bytesInBuffer );
+        }
+        #endif
 
       } else {
         break;
@@ -519,6 +561,11 @@ int main( int argc, char *argv[] ) {
       }
       else if ( SocketInputMode == SocketInputMode_t::Upload ) {
         bytesInBuffer = processSocket_Upload( recvBuffer, bytesInBuffer );
+      }
+      #endif
+      #ifdef RLE_GRAPHICS
+      else if ( SocketInputMode == SocketInputMode_t::RLE ) {
+        bytesInBuffer = processSocket_RLE( recvBuffer, bytesInBuffer );
       }
       #endif
     }
@@ -558,11 +605,11 @@ int main( int argc, char *argv[] ) {
 
     // If a keystroke is waiting process it
 
-    if ( bioskey(1) ) {
+    if ( biosIsKeyReady( ) ) {
 
-      Key_t key=getKey( );
+      Key_t key = getKey( );
 
-      if ( key.specialKey != K_NoKey ) {
+      if ( key.action != K_NoKey ) {
 
         switch ( UserInputMode ) {
 
@@ -582,6 +629,26 @@ int main( int argc, char *argv[] ) {
             s.paint( );
             s.updateVidBufPtr( );
             break;
+
+          #ifdef RLE_GRAPHICS
+
+          case UserInputMode_t::RLEScreen:
+            UserInputMode = UserInputMode_t::Telnet;
+            StreamState = Normal;
+
+            // SocketInputMode should be back to Telnet by now.  Either way,
+            // force it.  This protects us against RLEs that are not properly
+            // terminated.
+            SocketInputMode = SocketInputMode_t::Telnet;
+
+            s.restoreTextMode( );
+            setBlockCursor( );
+
+            s.paint( );
+            s.updateVidBufPtr( );
+            break;
+
+          #endif
 
           #ifdef FILEXFER
 
@@ -631,6 +698,17 @@ int main( int argc, char *argv[] ) {
 
   }
 
+  if ( UserInputMode == UserInputMode_t::RLEScreen ) {
+
+    // Whoops - lost the connection while in graphics mode.
+    // Just restore the text screen.
+
+    s.restoreTextMode( );
+    setBlockCursor( );
+
+    s.paint( );
+    s.updateVidBufPtr( );
+  }
 
   s.curAttr = 0x07;
   s.add( "\r\nConnection closed - have a great day!\r\n" );
@@ -691,17 +769,17 @@ static void toggleOffSound( void ) {
 
 uint8_t processUserInput_TelnetLocal( Key_t key ) {
 
-  if ( key.specialKey == K_PageUp ) {
+  if ( key.action == K_PageUp ) {
     s.paint( s.terminalLines );
   }
-  else if ( key.specialKey == K_PageDown ) {
+  else if ( key.action == K_PageDown ) {
     s.paint( 0 - s.terminalLines );
   }
-  else if ( key.specialKey == K_Alt_R ) {
+  else if ( key.action == K_Alt_R ) {
     s.clearConsole( ); // Flash the screen so they know we did something
     s.paint( );
   }
-  else if ( key.specialKey == K_Alt_W ) {
+  else if ( key.action == K_Alt_W ) {
     s.toggleWrapMode( );
     if ( s.isWrapModeOn( ) ) {
       toggleOnSound( );
@@ -710,7 +788,7 @@ uint8_t processUserInput_TelnetLocal( Key_t key ) {
       toggleOffSound( );
     }
   }
-  else if ( key.specialKey == K_Alt_E ) {
+  else if ( key.action == K_Alt_E ) {
     LocalEcho = !LocalEcho;
     if ( LocalEcho ) {
       toggleOnSound( );
@@ -719,12 +797,12 @@ uint8_t processUserInput_TelnetLocal( Key_t key ) {
       toggleOffSound( );
     }
   }
-  else if ( key.specialKey == K_Alt_N ) {
+  else if ( key.action == K_Alt_N ) {
     NewLineMode++;
     if ( NewLineMode == 5 ) NewLineMode = 0;
     toggleOnSound( );
   }
-  else if ( key.specialKey == K_Alt_B ) {
+  else if ( key.action == K_Alt_B ) {
     SendBsAsDel = !SendBsAsDel;
     if ( SendBsAsDel ) {
       toggleOnSound( );
@@ -733,25 +811,25 @@ uint8_t processUserInput_TelnetLocal( Key_t key ) {
       toggleOffSound( );
     }
   }
-  else if ( key.specialKey == K_Alt_H ) {
+  else if ( key.action == K_Alt_H ) {
     doHelp( );
   }
-  else if ( key.specialKey == K_Alt_X ) {
+  else if ( key.action == K_Alt_X ) {
     return 1;
   }
   #ifdef FILEXFER
-  else if ( key.specialKey == K_Alt_D ) {
+  else if ( key.action == K_Alt_D ) {
     drawProtocolMenu( );
     UserInputMode  = UserInputMode_t::ProtocolSelect_Download;
     s.doNotUpdateRealScreen( );
   }
-  else if ( key.specialKey == K_Alt_U ) {
+  else if ( key.action == K_Alt_U ) {
     drawProtocolMenu( );
     UserInputMode  = UserInputMode_t::ProtocolSelect_Upload;
     s.doNotUpdateRealScreen( );
     // This space for rent.
   }
-  else if ( key.specialKey == K_Alt_F ) {
+  else if ( key.action == K_Alt_F ) {
     s.clearConsole( );
     s.myCprintf( 0, 0, scTitle, "mTCP Telnet DOS Shell" );
     s.myCprintf( 0, 2, scErr, "Warning! TCP/IP packets are not being processed.  Do not take too long or your" );
@@ -794,26 +872,63 @@ void processUserInput_TelnetNonLocal( Key_t key ) {
 
   buf->b.dataLen = 0;
 
-  uint8_t sk = key.specialKey;
+  #ifdef TELNET_UNICODE
+  bool unicodeChar = false;
+  #endif
+
+  uint8_t sk = key.action;
 
   switch ( sk ) {
 
     case K_NormalKey: {
 
+      // A K_NormalKey is an 8 bit character generated on the keyboard.
+      // If the generated character has the high bit on and Unicode is enabled
+      // then send the proper Unicode code point via UTF-8.
+
       if ( SendBsAsDel ) {
         if ( key.normalKey == 8 ) {
-	  key.normalKey = 127;
-	}
-	else if ( key.normalKey == 127 ) {
-	  key.normalKey = 8;
-	}
+          key.normalKey = 127;
+        }
+        else if ( key.normalKey == 127 ) {
+          key.normalKey = 8;
+        }
       }
 
+      #ifdef TELNET_UNICODE
+      if ( (key.normalKey > 0x7f) && (Unicode::XlateTableLoaded( ) == true) ) {
+        small_cp_t cp = Unicode::charToUnicode( key.normalKey );
+        buf->b.dataLen = Unicode::encodeUTF8( cp, (uint8_t *)buf->data );
+        unicodeChar = true;
+      } else {
+        buf->b.dataLen = 1;
+        buf->data[0] = key.normalKey;
+      }
+      #else
       buf->b.dataLen = 1;
       buf->data[0] = key.normalKey;
+      #endif
+
       break;
 
     }
+
+
+    #ifdef TELNET_UNICODE
+    // A K_Unicode_CP is a Unicode codepoint entered using the compose mode,
+    // allowing the user to generate any Unicode codepoint in addition to what
+    // the keyboard might be able to provide.  If we get one of these the
+    // display char is also provided.
+
+    case K_Unicode_CP: {
+      if ( Unicode::XlateTableLoaded( ) == true ) {
+        buf->b.dataLen = Unicode::encodeUTF8( key.unicode_cp, (uint8_t *)buf->data );
+        unicodeChar = true;
+      }
+      break;
+    }
+    #endif
+
 
     case K_Enter: {
 
@@ -923,9 +1038,20 @@ void processUserInput_TelnetNonLocal( Key_t key ) {
     // We don't do local echo ANSI strings.  Right now all of
     // our ANSI strings (and only them) are three bytes long,
     // so this is an easy way to detect them.
+
+    #ifdef TELNET_UNICODE
+    if ( unicodeChar == true ) {
+      s.addPrintableChar( key.normalKey );
+    } else {
+      if ( buf->b.dataLen != 3 ) {
+        s.add( (char *)buf->data, buf->b.dataLen );
+      }
+    }
+    #else
     if ( buf->b.dataLen != 3 ) {
       s.add( (char *)buf->data, buf->b.dataLen );
     }
+    #endif
 
   }
 
@@ -962,7 +1088,7 @@ void errorResolvingServer( void ) {
 
 void checkForUserExit( void ) {
 
-  if ( bioskey(1) ) {
+  if ( biosIsKeyReady( ) ) {
     char c = getch( );
     if ( c == 3 || c == 27 ) {
       s.add( "[Ctrl-C] or [Esc] pressed - quitting.\r\n" );
@@ -1086,7 +1212,7 @@ void sendInitialTelnetOpts( void ) {
     // MyTelnetOpts.setWillOrWontPending( TELOPT_BIN );
 
     uint8_t output[] = { TEL_IAC, TELCMD_DO, TELOPT_ECHO,
-			 TEL_IAC, TELCMD_DO, TELOPT_SGA };
+                         TEL_IAC, TELCMD_DO, TELOPT_SGA };
     //                   TEL_IAC, TELCMD_DO, TELOPT_BIN,
     //                   TEL_IAC, TELCMD_WILL, TELOPT_BIN };
 
@@ -1176,7 +1302,6 @@ HelpMenu_t HelpMenu[] = {
   {16,  9, &scNormal,     "Send [Enter] as CR/NUL, CR/LF, CR or LF" },
   { 0, 11, &scNormal,     "Virtual buffer pages:    Echo:       Wrap:      Term type:" },
   { 0, 12, &scNormal,     "Send Backspace As Delete:      Send [Enter] as:"},
-  { 0, 17, &scBright,     "Press a key to go back to your session ..." },
   {99,  0, 0, ""}
 };
 
@@ -1195,7 +1320,11 @@ void doHelp( void ) {
   UserInputMode = UserInputMode_t::Help;
 
   uint16_t *start = (uint16_t far *)(s.Screen_base + 2*s.terminalCols);
+  #ifdef TELNET_UNICODE
+  for ( int i = 0; i < 19; i++ ) {
+  #else
   for ( int i = 0; i < 17; i++ ) {
+  #endif
     if ( s.isPreventSnowOn( ) & ((i & 0x1) == 0) ) { waitForCGARetraceLong( ); }
     fillUsingWord( start, (scNormal<<8|32), s.terminalCols );
     start += s.terminalCols;
@@ -1216,15 +1345,36 @@ void doHelp( void ) {
   s.myCprintf( 26, 12, scToggleStatus, "%s", (SendBsAsDel?"On":"Off") );
   s.myCprintf( 48, 12, scToggleStatus, NewLineModes[NewLineMode] );
 
-  s.myCprintf( 0, 14, scNormal, "Tcp: Sent %lu Rcvd %lu Retrans %lu Seq/Ack errs %lu Dropped %lu",
+  uint8_t row = 14;
+
+  #ifdef TELNET_UNICODE
+
+  s.myCprintf( 0, row, scNormal, "Unicode mapping: " );
+  if ( Unicode::XlateTableLoaded( ) ) {
+    s.myCprintf( 17, row, scToggleStatus, "Loaded, %d mappings present", Unicode::getXlateTableMappings( ) );
+  } else {
+    s.myCprintf( 17, row, scToggleStatus, "Not loaded" );
+  }
+
+  row += 2;
+
+  #endif
+
+  s.myCprintf( 0, row, scNormal, "Tcp: Sent %lu Rcvd %lu Retrans %lu Seq/Ack errs %lu Dropped %lu",
                Tcp::Packets_Sent, Tcp::Packets_Received, Tcp::Packets_Retransmitted,
                Tcp::Packets_SeqOrAckError, Tcp::Packets_DroppedNoSpace );
-  s.myCprintf( 0, 15, scNormal, "Packets: Sent: %lu Rcvd: %lu Dropped: %lu SendErrs: LowFreeBufs: %u",
-	   Packets_sent, Packets_received, Packets_dropped, Packets_send_errs, Buffer_lowFreeCount );
+  row++;
+  s.myCprintf( 0, row, scNormal, "Packets: Sent: %lu Rcvd: %lu Dropped: %lu SendErrs: LowFreeBufs: %u",
+           Packets_sent, Packets_received, Packets_dropped, Packets_send_errs, Buffer_lowFreeCount );
 
-  s.repeatCh( 0, 18, scBorder, 205, s.terminalCols );
+  row += 2;
 
-  gotoxy( 43, 17 );
+  s.myCprintf( 0, row, scBright, "Press a key to go back to your session ..." );
+
+  row++;
+  s.repeatCh( 0, row, scBorder, 205, s.terminalCols );
+
+  gotoxy( 43, row-1 );
 }
 
 
@@ -1280,20 +1430,20 @@ static void parseArgs( int argc, char *argv[] ) {
     else if ( stricmp( argv[i], "-sessiontype" ) == 0 ) {
       i++;
       if ( i == argc ) {
-	puts( "Must specify a session type with the -sessiontype option" );
-	usage( );
+        puts( "Must specify a session type with the -sessiontype option" );
+        usage( );
       }
       if ( stricmp( argv[i], "raw" ) == 0 ) {
-	RawOrTelnet = false;
-	RawOrTelnetForced = true;
+        RawOrTelnet = false;
+        RawOrTelnetForced = true;
       }
       else if ( stricmp( argv[i], "telnet" ) == 0 ) {
-	RawOrTelnet = true;
-	RawOrTelnetForced = true;
+        RawOrTelnet = true;
+        RawOrTelnetForced = true;
       }
       else {
-	puts( "Unknown session type specified on the -sessiontype option" );
-	usage( );
+        puts( "Unknown session type specified on the -sessiontype option" );
+        usage( );
       }
     }
     else {
@@ -1406,6 +1556,32 @@ static void shutdown( int rc ) {
 
 
 
+#ifdef RLE_GRAPHICS
+
+extern uint8_t rotate( uint8_t r, uint8_t c );
+#pragma aux rotate = \
+  "ror al, cl"   \
+  parm [al][cl]  \
+  value [al];
+
+// Global RLE state saved between calls
+
+static uint16_t RLE_x;
+static uint16_t RLE_y;
+static uint16_t RLE_x_max;
+static uint16_t RLE_y_max;
+static int16_t RLE_scan_offset[2];
+static uint8_t far * RLE_sp;
+static uint8_t RLE_b;
+static uint8_t RLE_color;
+static uint8_t RLE_term_seq;
+static uint8_t RLE_initialBitmask;
+static uint8_t RLE_bitsPerPixel;
+static uint8_t RLE_pixelsPerByteShift;
+static uint8_t RLE_pixelsPerByte;
+
+#endif
+
 
 
 // processSocket - read and process the data received from the socket
@@ -1432,13 +1608,18 @@ static uint16_t processSocket( uint8_t *recvBuffer, uint16_t len ) {
         csiParseState = LookForPrivateControl;
         traceBufferLen = 0;
 
-	StreamState = CSI_SEEN;
+        StreamState = CSI_SEEN;
 
       }
+      #ifdef RLE_GRAPHICS
+      else if ( recvBuffer[i] == 'G' ) {
+        StreamState = RLE;
+      }
+      #endif
       else {
-	// Esc char was eaten - return to normal processing.
+        // Esc char was eaten - return to normal processing.
 
-	StreamState = Normal;
+        StreamState = Normal;
 
         // We can handle simple one character escape sequences without
         // too much drama.
@@ -1460,14 +1641,14 @@ static uint16_t processSocket( uint8_t *recvBuffer, uint16_t len ) {
     else if ( StreamState == IAC_SEEN ) {
 
       if ( MyTelnetOpts.isRmtOn( TELOPT_BIN ) && recvBuffer[i] == TEL_IAC ) {
-	// Treat has a normal character.  This is ugly, but should
-	// also be rare.
-	s.add( (char *)(recvBuffer+i), 1 );
+        // Treat has a normal character.  This is ugly, but should
+        // also be rare.
+        s.add( (char *)(recvBuffer+i), 1 );
       }
       else {
 
-	// It really is a telnet command ...
-	int16_t rc = processTelnetCmds( recvBuffer+i, (len-i) );
+        // It really is a telnet command ...
+        int16_t rc = processTelnetCmds( recvBuffer+i, (len-i) );
 
         // If a telnet option is processed move 'i' forward the correct
         // number of chars.  Keep in mind that TEL_IAC has already been
@@ -1487,41 +1668,184 @@ static uint16_t processSocket( uint8_t *recvBuffer, uint16_t len ) {
         // and that will be detected soon enough.
 
         if ( rc == 0 ) {
-	  // Ran out of data in the buffer!
-	  // Move data and break the loop.
-	  memmove( recvBuffer, recvBuffer+i, (len-i) );
-	  break;
+          // Ran out of data in the buffer!
+          // Move data and break the loop.
+          memmove( recvBuffer, recvBuffer+i, (len-i) );
+          break;
         } else if ( rc > 0 ) {
-	  i = i + (rc-1);
-	}
+          i = i + (rc-1);
+        }
 
       }
 
       StreamState = Normal;
     }
 
+    #ifdef RLE_GRAPHICS
+
+    else if ( StreamState == RLE ) {
+
+      // Either going to redirect all socket intput to the RLE processing
+      // routine or go back to normal processing.
+      StreamState = Normal;
+
+      // Setup global variables that have our initial state and state
+      // in between socket processing calls.
+
+      if ( (s.getCardType() > 0) && (recvBuffer[i] == 'H' || recvBuffer[i] == 'M' || recvBuffer[i] == 'S') ) {
+
+        if ( recvBuffer[i] == 'H' ) {    // "Hi-Res"
+          RLE_x_max = 256;
+          RLE_y_max = 192;
+          RLE_scan_offset[0] = -8192 + 16;
+          RLE_scan_offset[1] = 8192 - 64;
+          RLE_initialBitmask = 0xC0;
+          RLE_bitsPerPixel = 2;
+          RLE_pixelsPerByteShift = 2;
+        } else if ( recvBuffer[i] == 'M' ) {
+          RLE_x_max = 128;               // Medium resolution
+          RLE_y_max =  96;
+          RLE_scan_offset[0] = -8192 + 48;
+          RLE_scan_offset[1] = 8192 - 32;
+          RLE_initialBitmask = 0xC0;
+          RLE_bitsPerPixel = 2;
+          RLE_pixelsPerByteShift = 2;
+        } else {
+          RLE_x_max = 640;
+          RLE_y_max = 200;
+          RLE_scan_offset[0] = -8192 + 0;
+          RLE_scan_offset[1] = 8192 - 80;
+          RLE_initialBitmask = 0x80;
+          RLE_bitsPerPixel = 1;
+          RLE_pixelsPerByteShift = 3;
+        }
+
+        RLE_pixelsPerByte = 8 / RLE_bitsPerPixel;
+
+        RLE_color = 0;  // Initial color is black.
+        RLE_x = 0;
+        RLE_y = 0;  
+
+        // Bitmap to use if we are turning on the next pixel.  We light up
+        // two pixels on the screen for each RLE pixel to keep the aspect
+        // ratio normal looking.
+        RLE_b = RLE_initialBitmask;
+
+        RLE_sp = s.Screen_base;
+
+        RLE_term_seq = 0;
+
+        // Set graphics mode: 320x200 color, 4 pixels per byte.
+        setVideoMode( 6 );
+
+        SocketInputMode = SocketInputMode_t::RLE;
+        UserInputMode = UserInputMode_t::RLEScreen;
+        s.doNotUpdateRealScreen( );
+
+        // We are not processing any any more data here.  Remove the bytes
+        // we have already consumed and exit the for loop so that the RLE
+        // processing code can pick up byte processing.
+
+        i++;
+        memmove( recvBuffer, recvBuffer+i, (len-i) );
+        break;
+
+      }
+
+    }
+
+    #endif
+
+
+    #ifdef TELNET_UNICODE
+    else if ( StreamState == UTF_MORE ) {
+
+      if ( (recvBuffer[i] & 0xC0) == 0x80 ) {
+
+        UTF_chars[UTF_len] = recvBuffer[i];
+        UTF_len++;
+        UTF_expected_len--;
+
+        if ( UTF_expected_len == 0 ) {
+          
+          StreamState = Normal;
+
+          // Decode here.
+          unicode_cp_t cp;
+          Unicode::decodeUTF8( (unsigned char const *)UTF_chars, &cp );
+          if ( cp > 0xFFFF ) cp = 0xfffd;
+          uint8_t c = Unicode::findDisplayChar( cp );
+          s.addPrintableChar( c );
+
+        }
+
+      } else {
+
+        // Whoops ..  this was not supposed to happen.
+        //
+        // Back i up one and break out of the loop, which will force us to
+        // reprocess this character again.
+        //
+
+        StreamState = Normal;
+        i--;
+        break;
+      }
+
+    }
+    #endif
 
     else {
 
       if ( (RawOrTelnet) && recvBuffer[i] == TEL_IAC ) {
-	StreamState = IAC_SEEN;
+        StreamState = IAC_SEEN;
       }
 
       else if ( recvBuffer[i] == 27 ) {
         s.suppressOverhang( );
-	StreamState = ESC_SEEN;
+        StreamState = ESC_SEEN;
       }
+
+      #ifdef TELNET_UNICODE
+      else if ( ((recvBuffer[i] & 0xC0) == 0xC0 ) && (Unicode::XlateTableLoaded( ) == true) ) {
+
+        UTF_expected_len = UTF_remaining_chars_table[ (recvBuffer[i] & 0x38) >> 3 ];
+
+        // If it's not legal UTF-8 then just silently ignore this chacter.  There
+        // are only eight characters it can be and this should not happen.
+        //
+
+        if ( UTF_expected_len > 0 ) {
+          UTF_chars[0] = recvBuffer[i];
+          UTF_len = 1;
+          StreamState = UTF_MORE;
+        }
+
+      }
+      #endif
 
       else {
 
-	// Not a telnet or an ESC code.  Do screen handling here.
+        // Not a Telnet, ESC sequence or UTF-8.  Do screen handling here.
 
         // This is a lot of overhead for just one character.  Scan
         // ahead to see if we can do a few characters to improve
         // performance.
 
         uint16_t bufLen = 1;
+
+        #ifdef TELNET_UNICODE
+        if ( Unicode::XlateTableLoaded( ) == false ) {
+          // Scan ahead until you hit ESC or TEL_IAC
+          while ( (i+bufLen < len) && (recvBuffer[i+bufLen] != 27) && (recvBuffer[i+bufLen] != TEL_IAC) ) bufLen++;
+        } else {
+          // Scan ahead until you hit any high-bit character (including TEL IAC)
+          while ( (i+bufLen < len) && (recvBuffer[i+bufLen] != 27) && (recvBuffer[i+bufLen] < 0x80) ) bufLen++;
+        }
+        #else
+        // Scan ahead until you hit ESC or TEL_IAC
         while ( (i+bufLen < len) && (recvBuffer[i+bufLen] != 27) && (recvBuffer[i+bufLen] != TEL_IAC) ) bufLen++;
+        #endif
         s.add( (char *)(recvBuffer+i), bufLen );
         i = i + bufLen - 1;
 
@@ -1536,6 +1860,216 @@ static uint16_t processSocket( uint8_t *recvBuffer, uint16_t len ) {
 
 
 
+#ifdef RLE_GRAPHICS
+
+uint16_t processSocket_RLE( uint8_t *recvBuffer, uint16_t len ) {
+
+  // Reload global state.  (Or if this is the first call, initial state.)
+
+  uint16_t rle_x = RLE_x;
+  uint16_t rle_y = RLE_y;
+  uint16_t rle_x_max = RLE_x_max;
+  uint16_t rle_y_max = RLE_y_max;
+  int16_t scan_offset[2];
+  scan_offset[0] = RLE_scan_offset[0];
+  scan_offset[1] = RLE_scan_offset[1];
+  uint8_t far * sp = RLE_sp;
+  uint8_t b = RLE_b;
+  uint8_t rle_color = RLE_color;
+  uint8_t initialBitmask = RLE_initialBitmask;
+  uint8_t bitsPerPixel = RLE_bitsPerPixel;
+  uint8_t pixelsPerByteShift = RLE_pixelsPerByteShift;
+  uint8_t pixelsPerByte = RLE_pixelsPerByte;
+
+  uint8_t bitTable[2][8] = {
+    { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 },
+    { 0xC0, 0x30, 0x0C, 0x03, 0xC0, 0x30, 0x0C, 0x03 }
+  };
+
+
+  uint16_t index = 0;
+
+  while ( index < len ) {
+
+    // Handle the termination sequence.  In reality once we see an ESC character
+    // we are done, but we want to eat the G and the N to be proper.
+
+    if ( RLE_term_seq > 0 ) {
+
+      if ( RLE_term_seq == 1 ) {
+        if ( recvBuffer[index] == 'G' ) {
+          RLE_term_seq = 2;
+          index++;
+          continue;
+        } else {
+          // Error exit
+          break;
+        }
+      } else if ( RLE_term_seq == 2 ) {
+        // Whether you see an 'N' or not we are leaving.
+        // 'N' would be the happy path.
+        break;
+      }
+
+    }
+
+    if ( recvBuffer[index] == 27 ) {
+      RLE_term_seq = 1;
+      index++;
+      continue;
+    }
+
+    if ( recvBuffer[index] < 32 ) {
+      if ( recvBuffer[index] == '\a' ) {
+        sound(1000); delay(100); nosound( );
+      }
+      index++;
+      continue;
+    }
+
+    if ( rle_y > rle_y_max ) {
+      // Protection against malformed RLEs.
+      //
+      // Just keep consuming bytes without processing them until we get
+      // the ESC sequence or the user hits a key.
+      index++;
+      continue;
+    }
+
+    int16_t x_delta = recvBuffer[index] - 32;
+
+
+    // Optimization; A length of zero means flip the color without any other
+    // work.  You have to do this on long runs of the same color.
+    if ( x_delta == 0 ) {
+      rle_color = !rle_color;
+      index++;
+      continue;
+    }
+
+    if ( !rle_color ) { // Black
+
+      // No actual drawing to be done; just update the screen position.
+
+      // Compute a number of bytes to jump ahead.  If the old bitmask is less
+      // than the new bitmask we crossed an extra byte so add 1 for that.
+
+      if ( x_delta == 1 && ((b & 0x01) == 0) ) {
+        b = b >> bitsPerPixel;
+        rle_x++;
+      } else {
+
+        rle_x = rle_x + x_delta;
+        sp = sp + (x_delta >> pixelsPerByteShift);
+        uint8_t b2 = bitTable[bitsPerPixel-1][rle_x & 0x07 ];
+        if ( b2 > b ) sp++;
+        b = b2;
+
+        if ( rle_x >= rle_x_max ) {
+          rle_x = rle_x - rle_x_max;
+          rle_y++;
+          sp = sp + scan_offset[rle_y & 0x1];
+        }
+
+      }
+
+    } else {
+
+      // Optimization: Get to a byte boundary if we are not on one already.
+
+      if ( b != initialBitmask ) {
+        while ( x_delta > 0 ) {
+          *sp = *sp | b;
+          b = rotate( b, bitsPerPixel );
+          x_delta--;
+          rle_x++;
+          if ( b == initialBitmask ) {
+            sp++;
+            if ( rle_x >= rle_x_max ) {
+                rle_x = 0;
+                rle_y++;
+                sp = sp + scan_offset[rle_y & 0x1];
+            }
+            break;
+          }
+        }
+      }
+
+
+      // Either out of pixels to draw or at a byte boundary now.  Write
+      // full bytes (4 or 8 pixels) as long as possible.
+
+      while ( x_delta >= pixelsPerByte ) {
+        *sp = 255;
+        sp++;
+        x_delta = x_delta -  pixelsPerByte;
+        rle_x = rle_x +  pixelsPerByte;
+        if ( rle_x >= rle_x_max ) {
+          rle_x = 0;
+          rle_y++;
+          sp = sp + scan_offset[rle_y & 0x1];
+        }
+      }
+
+
+      // Less than 8 pixels but not necessarily at a byte boundary.
+      // This is essentially the same loop at he first loop, but we don't
+      // get to stop when we hit a byte boundary.
+      //
+      // If you have not screwed up you can eliminate the previous two loops
+      // and this will still render everything correctly.
+
+      while ( x_delta > 0) {
+        *sp = *sp | b;
+        b = rotate( b, bitsPerPixel );
+        x_delta--;
+        rle_x++;
+        if ( b == initialBitmask ) {
+          sp++;
+          if ( rle_x >= rle_x_max ) {
+            rle_x = 0;
+            rle_y++;
+            sp = sp + scan_offset[rle_y & 0x1];
+          }
+        }
+      }
+
+    } // end of color is white
+
+    rle_color = !rle_color;
+    index++;
+
+  } // end while process bytes loop
+
+
+  // If RLE_term_seq is non-zero we are leaving RLE mode.  This happens for
+  // both the happy path and error paths.
+
+  if ( RLE_term_seq > 0 ) {
+    SocketInputMode = SocketInputMode_t::Telnet;
+
+    // Consume that last char we looked at that got us here.
+    index++;
+
+    memmove( recvBuffer, recvBuffer + index, (len - index) );
+    return ( len - index );
+  }
+
+
+  // We are continuing in RLE mode.  Save state for the next time.
+
+  RLE_x = rle_x;
+  RLE_y = rle_y;
+  RLE_sp = sp;
+  RLE_b = b;
+  RLE_color = rle_color;
+
+  // All bytes consumed
+  return 0;
+}
+
+
+#endif
 
 
 
@@ -1691,32 +2225,32 @@ static int16_t processSingleTelnetCmd( uint8_t *cmdStr, uint8_t inputBytes, uint
       if ( cmdTableIndex >= TEL_OPTIONS ) cmdTableIndex = TEL_OPTIONS-1;
 
       if ( DebugTelnet ) {
-	debugMsgLen = sprintf( debugMsg, "Received WILL %u, ", cmd );
+        debugMsgLen = sprintf( debugMsg, "Received WILL %u, ", cmd );
       }
 
       if ( MyTelnetOpts.isWantRmtOn( cmdTableIndex ) ) {
-	respCmd = TELCMD_DO;
-	MyTelnetOpts.setRmtOn( cmdTableIndex );
+        respCmd = TELCMD_DO;
+        MyTelnetOpts.setRmtOn( cmdTableIndex );
       }
       else {
-	respCmd = TELCMD_DONT;
-	MyTelnetOpts.setRmtOff( cmdTableIndex );
+        respCmd = TELCMD_DONT;
+        MyTelnetOpts.setRmtOff( cmdTableIndex );
       }
 
       if ( MyTelnetOpts.isDoOrDontPending( cmdTableIndex ) ) {
-	MyTelnetOpts.clrDoOrDontPending( cmdTableIndex );
-	if ( DebugTelnet ) {
-	  debugMsgLen += sprintf( debugMsg+debugMsgLen, DoOrDontPendingErrMsg );
-	}
+        MyTelnetOpts.clrDoOrDontPending( cmdTableIndex );
+        if ( DebugTelnet ) {
+          debugMsgLen += sprintf( debugMsg+debugMsgLen, DoOrDontPendingErrMsg );
+        }
       }
       else {
-	outputBuf[0] = TEL_IAC;
-	outputBuf[1] = respCmd;
-	outputBuf[2] = cmd;
-	localOutputBufLen = 3;
-	if ( DebugTelnet ) {
-	  debugMsgLen += sprintf( debugMsg+debugMsgLen, "Sent %s\n", (respCmd==TELCMD_DO?"DO":"DONT") );
-	}
+        outputBuf[0] = TEL_IAC;
+        outputBuf[1] = respCmd;
+        outputBuf[2] = cmd;
+        localOutputBufLen = 3;
+        if ( DebugTelnet ) {
+          debugMsgLen += sprintf( debugMsg+debugMsgLen, "Sent %s\n", (respCmd==TELCMD_DO?"DO":"DONT") );
+        }
       }
 
       break;
@@ -1739,7 +2273,7 @@ static int16_t processSingleTelnetCmd( uint8_t *cmdStr, uint8_t inputBytes, uint
       if ( cmdTableIndex >= TEL_OPTIONS ) cmdTableIndex = TEL_OPTIONS-1;
 
       if ( DebugTelnet ) {
-	debugMsgLen = sprintf( debugMsg, "Received WONT %u, ", cmd );
+        debugMsgLen = sprintf( debugMsg, "Received WONT %u, ", cmd );
       }
 
       // Our only valid response is DONT
@@ -1747,19 +2281,19 @@ static int16_t processSingleTelnetCmd( uint8_t *cmdStr, uint8_t inputBytes, uint
       MyTelnetOpts.setRmtOff( cmdTableIndex );
 
       if ( MyTelnetOpts.isDoOrDontPending( cmdTableIndex ) ) {
-	MyTelnetOpts.clrDoOrDontPending( cmdTableIndex );
-	if ( DebugTelnet ) {
-	  debugMsgLen += sprintf( debugMsg+debugMsgLen, DoOrDontPendingErrMsg );
-	}
+        MyTelnetOpts.clrDoOrDontPending( cmdTableIndex );
+        if ( DebugTelnet ) {
+          debugMsgLen += sprintf( debugMsg+debugMsgLen, DoOrDontPendingErrMsg );
+        }
       }
       else {
-	outputBuf[0] = TEL_IAC;
-	outputBuf[1] = TELCMD_DONT;
-	outputBuf[2] = cmd;
-	localOutputBufLen = 3;
-	if ( DebugTelnet ) {
-	  debugMsgLen += sprintf( debugMsg+debugMsgLen, "Sent DONT\n" );
-	}
+        outputBuf[0] = TEL_IAC;
+        outputBuf[1] = TELCMD_DONT;
+        outputBuf[2] = cmd;
+        localOutputBufLen = 3;
+        if ( DebugTelnet ) {
+          debugMsgLen += sprintf( debugMsg+debugMsgLen, "Sent DONT\n" );
+        }
       }
 
       break;
@@ -1783,45 +2317,45 @@ static int16_t processSingleTelnetCmd( uint8_t *cmdStr, uint8_t inputBytes, uint
       if ( cmdTableIndex >= TEL_OPTIONS ) cmdTableIndex = TEL_OPTIONS-1;
 
       if ( DebugTelnet ) {
-	debugMsgLen = sprintf( debugMsg, "Received DO   %u, ", cmd );
+        debugMsgLen = sprintf( debugMsg, "Received DO   %u, ", cmd );
       }
 
       if ( MyTelnetOpts.isWantLclOn( cmdTableIndex ) ) {
-	respCmd = TELCMD_WILL;
-	MyTelnetOpts.setLclOn( cmdTableIndex );
+        respCmd = TELCMD_WILL;
+        MyTelnetOpts.setLclOn( cmdTableIndex );
       }
       else {
-	respCmd = TELCMD_WONT;
-	MyTelnetOpts.setLclOff( cmdTableIndex );
+        respCmd = TELCMD_WONT;
+        MyTelnetOpts.setLclOff( cmdTableIndex );
       }
 
       if ( MyTelnetOpts.isWillOrWontPending( cmdTableIndex ) ) {
-	MyTelnetOpts.clrWillOrWontPending( cmdTableIndex );
-	if ( DebugTelnet ) {
-	  debugMsgLen += sprintf( debugMsg+debugMsgLen, DoOrDontPendingErrMsg );
-	}
+        MyTelnetOpts.clrWillOrWontPending( cmdTableIndex );
+        if ( DebugTelnet ) {
+          debugMsgLen += sprintf( debugMsg+debugMsgLen, DoOrDontPendingErrMsg );
+        }
       }
       else {
-	outputBuf[0] = TEL_IAC;
-	outputBuf[1] = respCmd;
-	outputBuf[2] = cmd;
-	localOutputBufLen = 3;
-	if ( DebugTelnet ) {
-	  debugMsgLen += sprintf( debugMsg+debugMsgLen, "Sent %s\n", (respCmd==TELCMD_WILL?"WILL":"WONT") );
-	}
+        outputBuf[0] = TEL_IAC;
+        outputBuf[1] = respCmd;
+        outputBuf[2] = cmd;
+        localOutputBufLen = 3;
+        if ( DebugTelnet ) {
+          debugMsgLen += sprintf( debugMsg+debugMsgLen, "Sent %s\n", (respCmd==TELCMD_WILL?"WILL":"WONT") );
+        }
       }
 
       if ( cmd == TELOPT_WINDSIZE && respCmd == TELCMD_WILL ) {
-	outputBuf[3] = TEL_IAC;
-	outputBuf[4] = TELCMD_SUBOPT_BEGIN;
-	outputBuf[5] = TELOPT_WINDSIZE;
-	outputBuf[6] = 0;
-	outputBuf[7] = s.terminalCols;
-	outputBuf[8] = 0;
-	outputBuf[9] = s.terminalLines;
-	outputBuf[10] = TEL_IAC;
-	outputBuf[11] = TELCMD_SUBOPT_END;
-	localOutputBufLen = 12;
+        outputBuf[3] = TEL_IAC;
+        outputBuf[4] = TELCMD_SUBOPT_BEGIN;
+        outputBuf[5] = TELOPT_WINDSIZE;
+        outputBuf[6] = 0;
+        outputBuf[7] = s.terminalCols;
+        outputBuf[8] = 0;
+        outputBuf[9] = s.terminalLines;
+        outputBuf[10] = TEL_IAC;
+        outputBuf[11] = TELCMD_SUBOPT_END;
+        localOutputBufLen = 12;
       }
 
 
@@ -1845,7 +2379,7 @@ static int16_t processSingleTelnetCmd( uint8_t *cmdStr, uint8_t inputBytes, uint
       if ( cmdTableIndex >= TEL_OPTIONS ) cmdTableIndex = TEL_OPTIONS-1;
 
       if ( DebugTelnet ) {
-	debugMsgLen = sprintf( debugMsg, "Received DONT %u, ", cmd );
+        debugMsgLen = sprintf( debugMsg, "Received DONT %u, ", cmd );
       }
 
       // Our only valid response is WONT
@@ -1853,19 +2387,19 @@ static int16_t processSingleTelnetCmd( uint8_t *cmdStr, uint8_t inputBytes, uint
       MyTelnetOpts.setLclOff( cmdTableIndex );
 
       if ( MyTelnetOpts.isWillOrWontPending( cmdTableIndex ) ) {
-	MyTelnetOpts.clrWillOrWontPending( cmdTableIndex );
-	if ( DebugTelnet ) {
-	  debugMsgLen += sprintf( debugMsg+debugMsgLen, DoOrDontPendingErrMsg );
-	}
+        MyTelnetOpts.clrWillOrWontPending( cmdTableIndex );
+        if ( DebugTelnet ) {
+          debugMsgLen += sprintf( debugMsg+debugMsgLen, DoOrDontPendingErrMsg );
+        }
       }
       else {
-	outputBuf[0] = TEL_IAC;
-	outputBuf[1] = TELCMD_WONT;
-	outputBuf[2] = cmd;
-	localOutputBufLen = 3;
-	if ( DebugTelnet ) {
-	  debugMsgLen += sprintf( debugMsg+debugMsgLen, "Sent WONT\n" );
-	}
+        outputBuf[0] = TEL_IAC;
+        outputBuf[1] = TELCMD_WONT;
+        outputBuf[2] = cmd;
+        localOutputBufLen = 3;
+        if ( DebugTelnet ) {
+          debugMsgLen += sprintf( debugMsg+debugMsgLen, "Sent WONT\n" );
+        }
       }
 
       break;
@@ -1880,39 +2414,39 @@ static int16_t processSingleTelnetCmd( uint8_t *cmdStr, uint8_t inputBytes, uint
 
       uint16_t suboptEndIndex = 0;
       for ( uint16_t i=1; i < inputBytes-1; i++ ) {
-	if ( cmdStr[i] == TEL_IAC && cmdStr[i+1] == TELCMD_SUBOPT_END ) {
-	  inputBytesConsumed = i + 2;
-	  suboptEndIndex = i;
-	}
+        if ( cmdStr[i] == TEL_IAC && cmdStr[i+1] == TELCMD_SUBOPT_END ) {
+          inputBytesConsumed = i + 2;
+          suboptEndIndex = i;
+        }
       }
 
       if ( suboptEndIndex < 3 ) return 0;
 
       if ( (suboptEndIndex == 3) && (cmdStr[1] == TELOPT_TERMTYPE) ) {
 
-	if ( cmdStr[2] == 1 && cmdStr[3] == TEL_IAC && cmdStr[4] == TELCMD_SUBOPT_END ) {
-	  outputBuf[0] = TEL_IAC;
-	  outputBuf[1] = TELCMD_SUBOPT_BEGIN;
-	  outputBuf[2] = TELOPT_TERMTYPE;
-	  outputBuf[3] = 0;
+        if ( cmdStr[2] == 1 && cmdStr[3] == TEL_IAC && cmdStr[4] == TELCMD_SUBOPT_END ) {
+          outputBuf[0] = TEL_IAC;
+          outputBuf[1] = TELCMD_SUBOPT_BEGIN;
+          outputBuf[2] = TELOPT_TERMTYPE;
+          outputBuf[3] = 0;
 
-	  localOutputBufLen = 4;
+          localOutputBufLen = 4;
 
           char *tmp = TermType;
           while (*tmp) outputBuf[localOutputBufLen++] = *tmp++;
 
-	  outputBuf[localOutputBufLen++] = TEL_IAC;
-	  outputBuf[localOutputBufLen++] = TELCMD_SUBOPT_END;
-	  if ( DebugTelnet ) {
-	    debugMsgLen = sprintf( debugMsg, "Sent termtype %s\n", TermType );
-	  }
-	}
+          outputBuf[localOutputBufLen++] = TEL_IAC;
+          outputBuf[localOutputBufLen++] = TELCMD_SUBOPT_END;
+          if ( DebugTelnet ) {
+            debugMsgLen = sprintf( debugMsg, "Sent termtype %s\n", TermType );
+          }
+        }
 
       }
       else {
-	if ( DebugTelnet ) {
-	  debugMsgLen += sprintf( debugMsg+debugMsgLen, "Unknown SUBOPT: %u\n", cmdStr[2] );
-	}
+        if ( DebugTelnet ) {
+          debugMsgLen += sprintf( debugMsg+debugMsgLen, "Unknown SUBOPT: %u\n", cmdStr[2] );
+        }
       }
 
       break;
@@ -1928,7 +2462,7 @@ static int16_t processSingleTelnetCmd( uint8_t *cmdStr, uint8_t inputBytes, uint
     case TELCMD_AO:    // Abort output
     {
       if ( DebugTelnet ) {
-	debugMsgLen = sprintf( debugMsg, "Telnet: Ignored command: %u\n", cmdStr[0] );
+        debugMsgLen = sprintf( debugMsg, "Telnet: Ignored command: %u\n", cmdStr[0] );
       }
       break;
     }
@@ -1943,7 +2477,7 @@ static int16_t processSingleTelnetCmd( uint8_t *cmdStr, uint8_t inputBytes, uint
 
     default: {
       if ( DebugTelnet ) {
-	debugMsgLen = sprintf( debugMsg, "Telnet: Unprocessed Command: %u\n", cmdStr[0] );
+        debugMsgLen = sprintf( debugMsg, "Telnet: Unprocessed Command: %u\n", cmdStr[0] );
       }
     }
 
@@ -2034,9 +2568,9 @@ static uint16_t processCSISeq( uint8_t *buffer, uint16_t len ) {
         // If this is the first character of the new parameter initialize
         // the parameter to zero.  (Parameters are always positive integers.)
 
-	if ( parms[ parmsFound ] == CSI_DEFAULT_ARG ) parms[ parmsFound ] = 0;
+        if ( parms[ parmsFound ] == CSI_DEFAULT_ARG ) parms[ parmsFound ] = 0;
 
-	parms[ parmsFound ] = parms[ parmsFound ] * 10 + c - '0';
+        parms[ parmsFound ] = parms[ parmsFound ] * 10 + c - '0';
 
       }
 
@@ -2056,9 +2590,9 @@ static uint16_t processCSISeq( uint8_t *buffer, uint16_t len ) {
 
         if ( csiParseState == ParmsFound && ( parmsFound < CSI_ARGS ) ) parmsFound++;
 
-	commandLetter = c;
+        commandLetter = c;
         i++;
-	break;
+        break;
     }
 
     i++;
@@ -2100,7 +2634,7 @@ static uint16_t processCSISeq( uint8_t *buffer, uint16_t len ) {
 
 
 
-// This can be inline because it is just called from one place.  It saves
+// This can be inlined because it is just called from one place.  It saves
 // some bytes this way.
 
 void processAnsiCommand( uint8_t commandLetter ) {
@@ -2232,8 +2766,8 @@ void processAnsiCommand( uint8_t commandLetter ) {
     case 'I': {
       if ( parms[0] == CSI_DEFAULT_ARG ) parms[0] = 1;
       for ( uint16_t i=0; i < parms[0]; i++ ) {
-	int16_t newCursor_x = (s.cursor_x + 8) & 0xF8;
-	if ( newCursor_x < s.terminalCols ) s.cursor_x = newCursor_x;
+        int16_t newCursor_x = (s.cursor_x + 8) & 0xF8;
+        if ( newCursor_x < s.terminalCols ) s.cursor_x = newCursor_x;
       }
       break;
     }
@@ -2247,17 +2781,17 @@ void processAnsiCommand( uint8_t commandLetter ) {
       if ( parms[0] == CSI_DEFAULT_ARG ) parms[0] = 1;
       for ( uint16_t i=0; i < parms[0]; i++ ) {
 
-	int16_t newCursor_x;
-	if ( ((s.cursor_x & 0xF8) == s.cursor_x) && (s.cursor_x>0) ) {
-	  // Already at a tab stop boundary, go back eight
-	  newCursor_x = s.cursor_x - 8;
-	}
-	else {
-	  // Not on a tab stop boundary - just round down
-	  newCursor_x = s.cursor_x & 0xF8;
-	}
+        int16_t newCursor_x;
+        if ( ((s.cursor_x & 0xF8) == s.cursor_x) && (s.cursor_x>0) ) {
+          // Already at a tab stop boundary, go back eight
+          newCursor_x = s.cursor_x - 8;
+        }
+        else {
+          // Not on a tab stop boundary - just round down
+          newCursor_x = s.cursor_x & 0xF8;
+        }
 
-	if ( newCursor_x >= 0 ) s.cursor_x = newCursor_x;
+        if ( newCursor_x >= 0 ) s.cursor_x = newCursor_x;
       }
       break;
     }
@@ -2271,22 +2805,27 @@ void processAnsiCommand( uint8_t commandLetter ) {
     case 'J': {
       if ( parms[0] == CSI_DEFAULT_ARG ) parms[0] = 0;
       switch ( parms[0] ) {
-	case 0: {
-	  s.clear( s.cursor_x, s.cursor_y, s.terminalCols-1, s.terminalLines-1 );
-	  break;
-	}
-	case 1: {
-	  s.clear( 0, 0, s.cursor_x, s.cursor_y );
-	  break;
-	}
-	case 2: {
-	  s.clear( 0, 0, s.terminalCols-1, s.terminalLines-1 );
+        case 0: {
+          s.clear( s.cursor_x, s.cursor_y, s.terminalCols-1, s.terminalLines-1 );
+          break;
+        }
+        case 1: {
+          s.clear( 0, 0, s.cursor_x, s.cursor_y );
+          break;
+        }
+        case 2: {
+          s.clear( 0, 0, s.terminalCols-1, s.terminalLines-1 );
 
-          // Putty does not seem to home the cursor
-	  // s.cursor_x = 0;
-	  // s.cursor_y = 0;
-	  break;
-	}
+          // Strict ANSI behavior is to clear the screen, which is what Putty
+          // and XTERM do.  DOS ANSI.SYS also homes the cursor.  This is going
+          // to need a chicken switch.
+          if ( Strict_DOS_Mode ) {
+            s.cursor_x = 0;
+            s.cursor_y = 0;
+          }
+
+          break;
+        }
       }
       break;
     }
@@ -2300,18 +2839,18 @@ void processAnsiCommand( uint8_t commandLetter ) {
     case 'K': {
       if ( parms[0] == CSI_DEFAULT_ARG ) parms[0] = 0;
       switch ( parms[0] ) {
-	case 0: {
-	  s.clear( s.cursor_x, s.cursor_y, s.terminalCols-1, s.cursor_y );
-	  break;
-	}
-	case 1: {
-	  s.clear( 0, s.cursor_y, s.cursor_x, s.cursor_y );
-	  break;
-	}
-	case 2: {
-	  s.clear( 0, s.cursor_y, s.terminalCols-1, s.cursor_y );
-	  break;
-	}
+        case 0: {
+          s.clear( s.cursor_x, s.cursor_y, s.terminalCols-1, s.cursor_y );
+          break;
+        }
+        case 1: {
+          s.clear( 0, s.cursor_y, s.cursor_x, s.cursor_y );
+          break;
+        }
+        case 2: {
+          s.clear( 0, s.cursor_y, s.terminalCols-1, s.cursor_y );
+          break;
+        }
       }
       break;
     }
@@ -2365,55 +2904,59 @@ void processAnsiCommand( uint8_t commandLetter ) {
     case 'm': {
 
       if ( parmsFound == 0 ) {
-	parmsFound = 1;
-	parms[0] = 0;
+        parmsFound = 1;
+        parms[0] = 0;
       }
 
       for ( uint16_t p=0; p < parmsFound; p++ ) {
-	if ( parms[p] >= 30 && parms[p] < 40 ) {
-	  fg = fgColorMap[ parms[p] - 30 ];
-	}
-	else if ( parms[p] >= 40 ) {
-	  bg = bgColorMap[ parms[p] - 40 ];
-	}
-	else {
-	  switch ( parms[p] ) {
+        if ( parms[p] >= 30 && parms[p] < 40 ) {
+          fg = fgColorMap[ parms[p] - 30 ];
+        }
+        else if ( parms[p] >= 40 ) {
+          bg = bgColorMap[ parms[p] - 40 ];
+        }
+        else {
+          switch ( parms[p] ) {
 
-	    case 0: {
-	      reverse = bold = blink = bg = 0;
+            case 0: {
+              reverse = bold = blink = bg = 0;
               underline = false;
-	      fg = 7;
+              fg = 7;
               setBlockCursor( );
-	      break;
-	    }
+              break;
+            }
 
-	    case  1: { bold = 1; break; }          // Bold
-	    case  2: { bold = 0; break; }          // Faint
-	    case  3: { break; }                    // Italic
-	    case  4: { underline = true; break; }  // Underline
-	    case  5: { blink = 1; break; }         // Slow blink
-	    case  6: { blink = 1; break; }         // Fast blink
-	    case  7: { reverse = 1; break; }       // Reverse
-	    case  8: { break; }                    // Conceal
-	    case 21: { underline = true; break; }  // Double underline
-	    case 22: { bold = 0; break; }          // Normal intensity
-	    case 24: { underline = false; break; } // No underline
-	    case 25: { blink = 0; break; }         // Blink off
-	    case 27: { reverse = 0; break; }       // Reverse off
-	    case 28: { break; }                    // Conceal off
-	  }
-	}
+            case  1: { bold = 1; break; }          // Bold
+            case  2: { bold = 0; break; }          // Faint
+            case  3: { break; }                    // Italic
+            case  4: { underline = true; break; }  // Underline
+            case  5: { blink = 1; break; }         // Slow blink
+            case  6: { blink = 1; break; }         // Fast blink
+            case  7: { reverse = 1; break; }       // Reverse
+            case  8: { break; }                    // Conceal
+            case 21: { underline = true; break; }  // Double underline
+            case 22: { bold = 0; break; }          // Normal intensity
+            case 24: { underline = false; break; } // No underline
+            case 25: { blink = 0; break; }         // Blink off
+            case 27: { reverse = 0; break; }       // Reverse off
+            case 28: { break; }                    // Conceal off
+          }
+        }
       } // end for
 
       uint8_t newAttr;
       if ( ! reverse ) {
-	newAttr = (blink<<7) | (bg<<4) | (bold<<3) | fg;
+        newAttr = (blink<<7) | (bg<<4) | (bold<<3) | fg;
       }
       else {
-	newAttr = (blink<<7) | (fg<<4) | (bold<<3) | bg;
+        newAttr = (blink<<7) | (fg<<4) | (bold<<3) | bg;
       }
 
-      if ( s.isColorCard( ) && underline ) newAttr = (blink<<7) | (bg<<4) | (bold<<3) | 0x01;
+      if ( (s.getCardType( ) == 0) && (underline) ) {
+        // MDA
+        newAttr = (blink<<7) | (bg<<4) | (bold<<3) | 0x01;
+      }
+
       s.curAttr = newAttr;
       break;
     }
@@ -2440,26 +2983,26 @@ void processAnsiCommand( uint8_t commandLetter ) {
 
       switch( parms[0] ) {
 
-	case 5: {
+        case 5: {
 
-	  strcpy( tmpBuf, "\033[0n" );
-	  send( (uint8_t *)tmpBuf, 4 );
-	  break;
+          strcpy( tmpBuf, "\033[0n" );
+          send( (uint8_t *)tmpBuf, 4 );
+          break;
 
-	}
+        }
 
-	case 6: {
+        case 6: {
 
           int16_t tmpY = s.cursor_y + 1;
 
           // If origin mode is on adjust the row reporting.
           if ( s.originMode == true ) s.cursor_y = s.cursor_y - s.scrollRegion_top;
 
-	  int rcBytes = sprintf( tmpBuf, "\033[%d;%dR", tmpY, (s.cursor_x+1) );
-	  send( (uint8_t *)tmpBuf, rcBytes );
-	  break;
+          int rcBytes = sprintf( tmpBuf, "\033[%d;%dR", tmpY, (s.cursor_x+1) );
+          send( (uint8_t *)tmpBuf, rcBytes );
+          break;
 
-	}
+        }
       }
       break;
     }
@@ -2468,8 +3011,8 @@ void processAnsiCommand( uint8_t commandLetter ) {
       if ( parms[0] == CSI_DEFAULT_ARG ) parms[0] = 1;
 
       if ( parms[0] > s.terminalCols ) {
-	TRACE_WARN(( "Ansi: REP Command: parm (%u) > s.terminalCols\n", parms[0] ));
-	parms[0] = s.terminalCols;
+        TRACE_WARN(( "Ansi: REP Command: parm (%u) > s.terminalCols\n", parms[0] ));
+        parms[0] = s.terminalCols;
       }
 
       memset( tmpBuf, s.lastChar, parms[0] );
@@ -2516,19 +3059,35 @@ void processAnsiCommand( uint8_t commandLetter ) {
     }
 
 
-    case 'r': { // Set scroll window
+    // DECSTBM - Set Top and Bottom Margins (or set scroll region)
+    //
+    // - Parameters are 1 based.
+    // - First parameter is the top margin; Second parameter is the bottom margin
+    // - Default for parms are 1 and the number of lines on the screen.
+    // - Top must be less than the bottom.
+    // - Moves the cursor to col 1, line 1 of the page.  (Absolute top of page,
+    //   not relative to the margins.
+
+    case 'r': {
 
       if ( parms[0] == CSI_DEFAULT_ARG ) {
         parms[0] = 1;
         parms[1] = s.terminalLines;
       }
 
-      // Fixme - sanity check input
+      // Sanity check the input.  
+
+      if ( parms[0] < 1 ) { parms[0] = 1; }
+      if ( parms[1] > s.terminalLines ) { parms[1] = s.terminalLines; }
+      if ( parms[0] > parms[1] ) {
+        // Do nothing; this command is broken.
+        break;
+      }
+
+      // The host sends these as 1 based; we use 0 for a base.
 
       s.scrollRegion_top = parms[0] - 1;
       s.scrollRegion_bottom = parms[1] - 1;
-
-      // The host sends these as 1 based; we use 0 for a base.
 
       s.setHorizontal( 0 );
       s.setVertical( 0 );

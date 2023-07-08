@@ -1,7 +1,7 @@
 /*
 
    mTCP Ymodem.cpp
-   Copyright (C) 2012-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2012-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -725,7 +725,7 @@ Transfer_vars::ParseHeaderRc_t Transfer_vars::parseYmodemHeader( void ) {
 
 void processUserInput_FileProtocol( Key_t key ) {
 
-  if ( key.specialKey != K_NormalKey ) return;
+  if ( key.action != K_NormalKey ) return;
 
   // No matter what happens the filename is going to start fresh
   transferVars.filenameIndex = 0;
@@ -780,7 +780,7 @@ void processUserInput_FileProtocol( Key_t key ) {
 
 void processUserInput_ClobberDialog( Key_t key ) {
 
-  if ( key.specialKey != K_NormalKey ) return;
+  if ( key.action != K_NormalKey ) return;
 
   s.putch( 20, 17, scFileXfer, key.normalKey );  
 
@@ -816,7 +816,7 @@ void processUserInput_ClobberDialog( Key_t key ) {
 // the only conceived usage is to abort the current transfer.
 
 void processUserInput_Transferring( Key_t key ) {
-  if ( (key.specialKey == K_NormalKey) && (key.normalKey == 27) ) {
+  if ( (key.action == K_NormalKey) && (key.normalKey == 27) ) {
     endTransfer( true, true, "Aborted by user!" );
   }
 }
@@ -830,7 +830,7 @@ void processUserInput_Transferring( Key_t key ) {
 
 void processUserInput_Filename( Key_t key ) {
 
-  if ( key.specialKey == K_Enter ) {
+  if ( key.action == K_Enter ) {
 
     transferVars.filename[ transferVars.filenameIndex] = 0;
 
@@ -892,7 +892,7 @@ void processUserInput_Filename( Key_t key ) {
 
   }
 
-  if ( key.specialKey != K_NormalKey ) return;
+  if ( key.action != K_NormalKey ) return;
 
 
   char ch = key.normalKey;

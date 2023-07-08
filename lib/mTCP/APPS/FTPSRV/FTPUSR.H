@@ -1,8 +1,7 @@
-
 /*
 
    mTCP FtpUsr.h
-   Copyright (C) 2009-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2009-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -47,13 +46,24 @@ class FtpUser {
     char sandbox[USR_MAX_PATH_LENGTH];
     char uploaddir[USR_MAX_PATH_LENGTH];
 
-    uint8_t cmd_DELE;
-    uint8_t cmd_MKD;
-    uint8_t cmd_RMD;
-    uint8_t cmd_RNFR;
-    uint8_t cmd_STOR;
-    uint8_t cmd_APPE;
-    uint8_t cmd_STOU;
+    enum UserPermissions {
+      cmd_DELE,
+      cmd_MKD,
+      cmd_RMD,
+      cmd_RNFR,
+      cmd_STOR,
+      cmd_APPE,
+      cmd_STOU,
+      cmd_SITEQUIT
+    };
+
+    inline bool hasPermission( UserPermissions p ) {
+      return (permissions & (1<<p)) == (1<<p);
+    }
+
+    inline void setPermission( UserPermissions p ) {
+      permissions = permissions | (1<<p);
+    }
 
     inline void wipe( void ) { memset( this, 0, sizeof(FtpUser) ); }
     int sanityCheck( char *errMsgOut );
@@ -64,6 +74,10 @@ class FtpUser {
     static int getUserRec( const char *targetUser, FtpUser *buffer );
     static int createUserRec( char *input, FtpUser *buffer );
 
+
+  private:
+
+    uint16_t permissions;
 
 };
 

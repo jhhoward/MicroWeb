@@ -1,7 +1,7 @@
 /*
 
    mTCP Types.H
-   Copyright (C) 2005-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2005-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -155,7 +155,6 @@ typedef struct dosdate_t DosDate_t;
 #define getdate( x ) _dos_getdate( x )
 #define getvect( x ) _dos_getvect( x )
 #define setvect( x, y) _dos_setvect( x, y )
-#define bioskey( x ) _bios_keybrd( x )
 #define findnext( x ) _dos_findnext( x )
 #define outportb( x, y ) outp( x, y )
 
@@ -167,6 +166,19 @@ typedef struct dosdate_t DosDate_t;
 
 
 #endif
+
+
+// Misc: Useful but not worth a file on their own
+
+// According to the DOS 5 manual, a path may be up to 66 characters including
+// the drive letter, colon, and a starting backslash.  It doesn't say anything
+// about a trailing backlash, so I'm going to assume it is in there.  (If I'm
+// wrong this is easy enough to fix.)
+//
+// A max length path including a trailing backslash and an 8.3 filename then
+// require 79 characters, including the terminating null character.
+#define DOS_MAX_PATH_LENGTH     (66+1)
+#define DOS_MAX_PATHFILE_LENGTH (78+1)
 
 
 #endif

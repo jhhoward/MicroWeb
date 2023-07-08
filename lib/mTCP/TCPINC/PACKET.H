@@ -1,7 +1,7 @@
 /*
 
    mTCP Packet.H
-   Copyright (C) 2005-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2005-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -140,6 +140,22 @@ extern uint8_t Buffer_lowFreeCount;
 
 extern uint8_t  Buffer_first;
 extern uint8_t  Buffer_next;
+
+
+// Experimental for the SNTP time server
+//
+// Allows for the tagging of all incoming packets with a timestamp.  This is
+// a hack; the real solution is to create a struct for incoming buffers so the
+// pointer to the struct can be passed around instead of passing the buffer
+// address, length, and timestamp separately.
+#ifdef PACKET_TIMESTAMPS
+typedef struct {
+  time_t coordinatedTime;
+  uint16_t ticks;
+} Packet_Timestamp_t;
+
+extern Packet_Timestamp_t *Buffer_Timestamp;
+#endif
 
 
 #define PACKET_RB_SIZE (PACKET_BUFFERS+1)

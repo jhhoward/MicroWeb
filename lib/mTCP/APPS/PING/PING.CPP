@@ -1,7 +1,7 @@
 /*
 
    mTCP Ping.cpp
-   Copyright (C) 2009-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2009-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -76,6 +76,8 @@ uint16_t PacketPayload = 32;
 
 uint16_t TimeoutSecs = 1;
 
+bool Audible = false;
+
 uint16_t PacketsSent = 0;
 uint16_t RepliesReceived = 0;
 uint16_t RepliesLost = 0;
@@ -100,8 +102,13 @@ void __interrupt __far ctrlBreakHandler( ) {
 
 IcmpEchoPacket_t icmpEchoPacket;
 
-uint8_t ResponseReceived = 0;
+
+// Flag that indicates a new response has arrived.
+bool ResponseReceived = false;
+
+// TTL and IP of the last response
 uint8_t LastTTL = 0;
+IpAddr_t LastIp = { 0, 0, 0, 0 };
 
 
 // Function prototypes
@@ -180,7 +187,7 @@ void ping_unhook( void ) {
 
 
 
-static char *CopyrightMsg= "\nmTCP Ping by M Brutman (mbbrutman@gmail.com) (C)opyright 2009-2020\nVersion: " __DATE__ "\n";
+static char *CopyrightMsg= "\nmTCP Ping by M Brutman (mbbrutman@gmail.com) (C)opyright 2009-2023\nVersion: " __DATE__ "\n";
 
 
 int main( int argc, char *argv[] ) {
@@ -236,6 +243,11 @@ int main( int argc, char *argv[] ) {
     shutdown( 1 );
   }
 
+
+  printf( "Sending ICMP packets to %u.%u.%u.%u\n"
+          "ICMP Packet payload is %u bytes.\n\n",
+          ServerAddr[0], ServerAddr[1], ServerAddr[2], ServerAddr[3],
+          PacketPayload);
 
 
   // Register Icmp handler
@@ -307,8 +319,6 @@ int main( int argc, char *argv[] ) {
   // At this point we ARPed and got a response.  Time to start sending
   // packets.
 
-  printf( "ICMP Packet payload is %u bytes.\n\n", PacketPayload );
-
   sendAndWait( );
 
   if ( PacketCount > 1 ) {
@@ -330,7 +340,7 @@ int main( int argc, char *argv[] ) {
   }
 
   printf( "\nPackets sent: %u, Replies received: %u, Replies lost: %u\n",
-	  PacketsSent, RepliesReceived, RepliesLost );
+          PacketsSent, RepliesReceived, RepliesLost );
 
   if ( RepliesReceived ) {
 
@@ -338,7 +348,7 @@ int main( int argc, char *argv[] ) {
     uint16_t small = ((ReplyTime * 85) / RepliesReceived) % 100;
 
     printf( "Average time for a reply: %u.%02u ms (not counting lost packets)\n",
-	    big, small );
+            big, small );
   }
 
   int rc = 4;
@@ -373,8 +383,9 @@ void icmpHandler( const unsigned char *packet, const IcmpHeader *icmp ) {
       uint16_t icmpPayloadLen = icmpReply->ip.payloadLen( ) - sizeof(IcmpHeader) - sizeof(uint16_t) * 2;
 
       if ( icmpPayloadLen == PacketPayload && memcmp(icmpReply->data, icmpEchoPacket.data, PacketPayload) == 0 ) {
-	  ResponseReceived = 1;
-	  LastTTL = icmpReply->ip.ttl;
+        ResponseReceived = true;
+        LastTTL = icmpReply->ip.ttl;
+        Ip::copy( LastIp, icmpReply->ip.ip_src );
       }
 
     }
@@ -389,7 +400,10 @@ void sendAndWait( ) {
 
   PacketsSent++;
 
-  ResponseReceived = 0;
+  ResponseReceived = false;
+
+  // You can get multiple responses when doing a broadcast ping.
+  int16_t RepliesThisIteration = 0;
 
   // Don't have to worry about a minimul length - icmpEchoPacket is guaranteed to be
   // bigger than 60 bytes.
@@ -412,33 +426,38 @@ void sendAndWait( ) {
       uint16_t elapsedMs = (elapsedTicks * 85) / 100;
       uint16_t elapsedSmall = (elapsedTicks * 85) % 100;
 
-      printf( "Packet sequence number %u received in %u.%02u ms, ttl=%u\n", ntohs( icmpEchoPacket.seq ), elapsedMs, elapsedSmall, LastTTL );
+      printf( "Packet sequence number %u received from %u.%u.%u.%u in %u.%02u ms, ttl=%u\n",
+              ntohs( icmpEchoPacket.seq ),
+              LastIp[0], LastIp[1], LastIp[2], LastIp[3],
+              elapsedMs, elapsedSmall, LastTTL );
+
+      RepliesThisIteration++;
       RepliesReceived++;
       ReplyTime += elapsedTicks;
-      break;
+
+      // Playing this sound costs 50ms, so be careful where you place this code.
+      if (Audible) { sound(500); delay(50); nosound( ); }
+
+      startBios = TIMER_GET_CURRENT( );
+      ResponseReceived = 0;
     }
+
+
+    // Wait a full second for replies to come in.  Reset the timer each time we
+    // get a response so we break the loop one second after the last response
+    // appears, or after one second if no responses appear.
 
     if ( (TIMER_GET_CURRENT( ) - startBios ) > (18*TimeoutSecs) ) {
-      printf( "Packet sequence number %u: timeout!\n", ntohs( icmpEchoPacket.seq ) );
-      RepliesLost++;
+
+      if ( RepliesThisIteration == 0 ) {
+        printf( "Packet sequence number %u: timeout!\n", ntohs( icmpEchoPacket.seq ) );
+        RepliesLost++;
+      }
+
       break;
     }
 
   }
-
-  // Wait for a second
-
-  uint32_t startWait = TIMER_GET_CURRENT( );
-  while ( 1 ) {
-
-    Arp::driveArp( );
-    PACKET_PROCESS_SINGLE;
-
-    if ( (TIMER_GET_CURRENT( ) - startWait ) > 18 ) {
-      break;
-    }
-  }
-
 
 }
 
@@ -448,6 +467,7 @@ void usage( void ) {
   puts( "\nping [options] <ipaddr>\n\n"
         "Options:\n"
         "  -help        Shows this help\n"
+        "  -a           Audible ping\n"
         "  -count <n>   Number of packets to send, default is 4\n"
         "  -size <n>    Size of ICMP payload to send, default is 32\n"
         "  -timeout <n> Number of seconds to wait for a response packet" );
@@ -468,23 +488,23 @@ void parseArgs( int argc, char *argv[] ) {
     else if ( stricmp( argv[i], "-count" ) == 0 ) {
       i++;
       if ( i == argc ) {
-	usage( );
+        usage( );
       }
       PacketCount = atoi( argv[i] );
       if ( PacketCount == 0 ) {
-	puts( "Bad parameter for -count" );
-	usage( );
+        puts( "Bad parameter for -count" );
+        usage( );
       }
     }
     else if ( stricmp( argv[i], "-size" ) == 0 ) {
       i++;
       if ( i == argc ) {
-	usage( );
+        usage( );
       }
       PacketPayload = atoi( argv[i] );
       if ( PacketPayload > ICMP_ECHO_OPT_DATA ) {
-	printf( "Bad parameter for -size: Limit is %u\n", ICMP_ECHO_OPT_DATA );
-	usage( );
+        printf( "Bad parameter for -size: Limit is %u\n", ICMP_ECHO_OPT_DATA );
+        usage( );
       }
     }
     else if ( stricmp( argv[i], "-timeout" ) == 0 ) {
@@ -497,6 +517,9 @@ void parseArgs( int argc, char *argv[] ) {
         puts( "Bad parameter for -timeout: Should be greater than 0" );
         usage( );
       }
+    }
+    else if ( strcmp( argv[i], "-a" ) == 0 ) {
+      Audible = true;
     }
     else {
       printf( "Unknown option: %s\n", argv[i] );

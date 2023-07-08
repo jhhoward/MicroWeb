@@ -26,6 +26,12 @@
 # This code is not performance sensitive.  Do what you can, but don't bloat
 # it out and require us to move to a larger memory model.
 
+# To compile with Unicode support use wmake extra_objs=unicode.obj extra_opts=-DIRCJR_UNICODE.
+# Note: Unicode support is standard now.  Delete the next two lines if you don't want it.
+
+extra_objs = unicode.obj
+extra_opts = -DIRCJR_UNICODE
+
 tcp_h_dir = ..\..\TCPINC\
 tcp_c_dir = ..\..\TCPLIB\
 common_h_dir = ..\..\INCLUDE
@@ -35,7 +41,7 @@ compile_options = -0 $(memory_model) -DCFG_H="irc.cfg" -oh -ok -os -s -oa -ei -z
 compile_options += -i=$(tcp_h_dir) -i=$(common_h_dir)
 
 tcpobjs = packet.obj arp.obj eth.obj ip.obj tcp.obj tcpsockm.obj udp.obj utils.obj dns.obj timer.obj ipasm.obj trace.obj
-objs = irc.obj screen.obj session.obj
+objs = irc.obj screen.obj session.obj $(extra_objs)
 
 all : clean ircjr.exe
 
@@ -55,7 +61,7 @@ patch : .symbolic
   wasm -0 $(memory_model) $[*
 
 .cpp.obj :
-  wpp $[* $(compile_options)
+  wpp $[* $(compile_options) $(extra_opts)
 
 
 ircjr.exe: $(tcpobjs) $(objs)

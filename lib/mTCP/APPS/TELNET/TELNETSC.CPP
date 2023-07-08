@@ -1,7 +1,7 @@
 /*
 
    mTCP TelnetSc.cpp
-   Copyright (C) 2009-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2009-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -90,41 +90,55 @@
 // A function might call another helper function, which might change
 // these flags.
 
-
-
-
 int8_t Screen::init( uint8_t backScrollPages, uint8_t initWrapMode ) {
 
-  preventSnow = false;
+  // Reasonable defaults for any video card.
+  terminalLines = 25;
+  terminalCols = 80;
+  preventSnow = false;  // CGA only
 
-  // This always works:
+  // Read the video mode from the BIOS area.  This always works.
   unsigned char mode = *((unsigned char far *)MK_FP( 0x40, 0x49 ));
 
   if ( mode == 7 ) {
-    colorCard = false;
+    cardType = 0; // MDA
     screenBaseSeg = 0xb000;
   }
   else {
-    colorCard = true;
+
+    // See if we are EGA or VGA.
+    //
+    // 0x1a00 is VGA Get Display Combination.  It returns 0x1a in AL if the
+    // BIOS supports this function, indicating it is a VGA card.
+
+    if ( (videoInt( 0x1a00, 0 ) & 0xFF) == 0x1a ) {
+      cardType = 3; // VGA
+    } else {
+
+      // Not MDA or VGA.  If this does not return 0x10 it is an EGA BIOS.
+      if ( getEgaMemSize( ) != 0x10 ) {
+        cardType = 2; // EGA
+      }
+
+      // Ok, it is a CGA.  Which we already set above.
+      cardType = 1;
+    }
+
+    // We are always using video modes 3 or 6 so this never changes with the card type.
     screenBaseSeg = 0xb800;
-    if ( getenv( "MTCP_NO_SNOW" ) ) preventSnow = true;
+
+    // Only worry about this on CGA cards.
+    if ( cardType == 1 ) {
+      if ( getenv( "MTCP_NO_SNOW" ) ) preventSnow = true;
+    } else {
+      // Only applies to EGA or VGA
+      terminalLines = *((unsigned char far *)MK_FP( 0x40, 0x84 )) + 1;
+      terminalCols = *((unsigned char far *)MK_FP( 0x40, 0x4A ));
+    }
+
   }
+
   Screen_base = (uint8_t far *)MK_FP( screenBaseSeg, 0 );
-
-  if ( getEgaMemSize( ) == 0x10 ) {
-
-    // Failed.  Must be MDA or CGA
-    terminalLines = 25;
-    terminalCols = 80;
-
-  }
-  else {
-
-    terminalLines = *((unsigned char far *)MK_FP( 0x40, 0x84 )) + 1;
-    terminalCols = *((unsigned char far *)MK_FP( 0x40, 0x4A ));
-
-  }
-
 
   bytesPerLine = terminalCols * 2;
 
@@ -165,6 +179,53 @@ int8_t Screen::init( uint8_t backScrollPages, uint8_t initWrapMode ) {
 
   return 0;
 }
+
+
+void Screen::restoreTextMode( void ) {
+
+  if ( terminalLines == 25 ) {
+    if ( cardType == 0 ) {
+      setVideoMode( 7 );
+    } else {
+      // We don't care if this was an CGA, EGA or VGA card ...  this is simple.
+      setVideoMode( 3 );
+    }
+  } else {
+
+    // We support restoring 80x43 or 80x50.  Other modes, well, maybe another time.
+
+    if ( cardType == 2 ) { // EGA
+
+      videoInt( 0x0500, 0 ); // Set video page to 0.
+      setVideoMode( 3 );
+
+      if ( terminalLines == 43 ) {
+        videoInt( 0x1112, 0 );    // Set the 8x8 font
+        *((unsigned char far *)MK_FP( 0x40, 0x87 )) |= 1; // Cursor emulation enabled
+      } else {
+        // Just 25 lines
+        videoInt( 0x1111, 0 );    // Set the 8x14 font
+      }
+
+    } else {
+
+      if ( terminalLines == 43 ) {
+        // Set scan lines for text modes; AL = 1 = 350 scan lines
+        videoInt( 0x1201, 0x0030 );
+      } else {
+        // Set scan lines for text modes; AL = 2 = 400 scan lines
+        videoInt( 0x1202, 0x0030 );
+      }
+
+      setVideoMode( 3 );
+      videoInt( 0x0500, 0 );  // Set video page to 0.
+      videoInt( 0x1112, 0 );  // Set the 8x8 font
+    }
+
+  }
+
+}
+
 
 
 void Screen::resetTerminalState( void ) {
@@ -275,9 +336,9 @@ void Screen::myCprintf_internal( uint8_t x, uint8_t y, uint8_t attr, char *fmt, 
         uint16_t ch = ( attr << 8 | c );
         if ( preventSnow ) {
           writeCharWithoutSnow(screenBaseSeg, FP_OFF(start),  ch  );
-	} else {
+        } else {
           *start = ch;
-	}
+        }
         start++;
         break;
       }
@@ -512,6 +573,72 @@ void Screen::add( char *buf ) {
 // This allows you to put a character in the last column, and then interpret
 // a control code such as Backspace, LF or CR while still on that same line.
 
+void Screen::addPrintableChar( char c ) {
+
+  // Remember this in case we need to repeat the last char for an ANSI op
+  lastChar = c;
+
+  //TRACE(( "Printing char %x, overhang = %u, cursor_x = %u\n", c, overhang, cursor_x ));
+
+  // If the previous cursor position left us in the overhang now we
+  // can wrap (if required) and scroll down.  Do this before printing
+  // the next character.
+
+  if ( overhang == true ) {
+
+    if ( wrapMode ) {
+      vidBufPtr += 2;  // Wrap to the next line.
+      cursor_x = 0;
+      scroll( );
+    }
+    else {
+      cursor_x = terminalCols - 1;
+    }
+
+    overhang = false;
+  }
+
+
+  buffer[ ScrOffset(cursor_x, cursor_y ) ] = c;
+  buffer[ ScrOffset(cursor_x, cursor_y ) + 1 ] = curAttr;
+
+
+  // If you are in the last column do not advance; go into the "overhang"
+  // instead and wait to see what the next character is.
+
+  if ( cursor_x == terminalCols-1 ) {
+    overhang = true;
+  }
+  else {
+    cursor_x++;
+  }
+
+  //TRACE(( "    overhang = %u, cursor_x = %u\n", overhang, cursor_x ));
+
+  if ( updateRealScreen ) {
+
+    uint16_t ch = ( curAttr << 8 | c );
+
+    if ( preventSnow ) {
+      writeCharWithoutSnow( screenBaseSeg, FP_OFF(vidBufPtr), ch );
+    } else {
+      *((uint16_t far *)vidBufPtr) = ch;
+    }
+
+    // If overhang is not set then we can advance.  Otherwise, wait
+    if ( overhang == false ) {
+      vidBufPtr += 2;  // Wrap to the next line.
+    }
+
+  }
+  else {
+    virtualUpdated = 1;
+  }
+
+}
+
+
+
 void Screen::add( char *buf, uint16_t len ) {
 
   // Easier to just always update this here rather than branch if unnecessary
@@ -521,120 +648,76 @@ void Screen::add( char *buf, uint16_t len ) {
 
     uint8_t c = buf[i];
 
-    if ( c == 0 ) {         // Null char
-      // Do nothing
-    }
+    // Fast path: check for printable characters first as these are
+    // the most common.
 
-    else if ( c == '\r' ) { // Carriage Return
-      cursor_x = 0;
-      overhang = false;
-      updateVidBufPtr( );
-    }
-
-    else if ( c == '\n' ) { // Line Feed
-      scroll( );
-      overhang = false;
-      updateVidBufPtr( );
-    }
-
-    else if ( c == '\a' ) { // Attention/Bell
-      sound(1000); delay(100); nosound( );
-    }
-
-    else if ( c == '\t' ) { // Tab
-      overhang = false;
-      uint16_t newCursor_x = (cursor_x + 8) & 0xF8;
-      if ( newCursor_x < terminalCols ) cursor_x = newCursor_x;
-      updateVidBufPtr( );
-    }
-
-    else if ( c == 8 || c == 127 ) { // Backspace or Delete Char
-
-      if ( overhang == true ) {
-        overhang = false;
-      }
-      else {
-
-        // Fixme: If this was delete char we really should blank it out.
-
-        // Backspace across columns works in putty so we'll do it here.
-        // The good news is that if we are in the home position we don't
-        // have to scroll the screen down.
-
-        if ( cursor_x > 0 ) {
-          cursor_x--;
-        }
-        else {
-          cursor_x = terminalCols - 1;
-          if ( cursor_y > 0 ) cursor_y--;
-        }
-        updateVidBufPtr( );
-      }
-
+    if ( (c > 31) && (c != 127) ) {
+      addPrintableChar( c );
     }
 
     else {
 
-      // Remember this in case we need to repeat the last char for an ANSI op
-      lastChar = c;
+      switch ( c ) {
 
-      //TRACE(( "Printing char %x, overhang = %u, cursor_x = %u\n", c, overhang, cursor_x ));
-
-      // If the previous cursor position left us in the overhang now we
-      // can wrap (if required) and scroll down.  Do this before printing
-      // the next character.
-
-      if ( overhang == true ) {
-
-        if ( wrapMode ) {
-          vidBufPtr += 2;  // Wrap to the next line.
+        case '\r': { // Carriage return
           cursor_x = 0;
+          overhang = false;
+          break;
+        }
+
+        case '\n': { // Line feed
           scroll( );
-        }
-        else {
-          cursor_x = terminalCols - 1;
-        }
-
-        overhang = false;
-      }
-
-
-      buffer[ ScrOffset(cursor_x, cursor_y ) ] = c;
-      buffer[ ScrOffset(cursor_x, cursor_y ) + 1 ] = curAttr;
-
-
-      // If you are in the last column do not advance; go into the "overhang"
-      // instead and wait to see what the next character is.
-
-      if ( cursor_x == terminalCols-1 ) {
-        overhang = true;
-      }
-      else {
-        cursor_x++;
-      }
-
-      //TRACE(( "    overhang = %u, cursor_x = %u\n", overhang, cursor_x ));
-
-      if ( updateRealScreen ) {
-
-        uint16_t ch = ( curAttr << 8 | c );
-
-	if ( preventSnow ) {
-	  writeCharWithoutSnow( screenBaseSeg, FP_OFF(vidBufPtr), ch );
-	} else {
-	  *((uint16_t far *)vidBufPtr) = ch;
-	}
-
-        // If overhang is not set then we can advance.  Otherwise, wait
-        if ( overhang == false ) {
-          vidBufPtr += 2;  // Wrap to the next line.
+          overhang = false;
+          break;
         }
 
-      }
-      else {
-        virtualUpdated = 1;
-      }
+        case '\a': { // Attention/Bell
+          sound(1000); delay(100); nosound( );
+          break;
+        }
 
+        case '\t': { // Tab
+          overhang = false;
+          uint16_t newCursor_x = (cursor_x + 8) & 0xF8;
+          if ( newCursor_x < terminalCols ) cursor_x = newCursor_x;
+          break;
+        }
+
+        case 8:   // Backspace
+        case 127: { // Delete
+
+          if ( overhang == true ) {
+            overhang = false;
+          }
+          else {
+
+            // Fixme: If this was delete char we really should blank it out.
+
+            // Backspace across columns works in putty so we'll do it here.
+            // The good news is that if we are in the home position we don't
+            // have to scroll the screen down.
+
+            if ( cursor_x > 0 ) {
+              cursor_x--;
+            }
+            else {
+              cursor_x = terminalCols - 1;
+              if ( cursor_y > 0 ) cursor_y--;
+            }
+          }
+
+          break;
+        }
+
+      } // end switch
+
+      // If it was in the control character range and we didn't recognize it
+      // then don't worry about it.  Those are supposed to be non-printable.
+
+      // Update the pointer into the video buffer assuming that processing the
+      // control characters requires it.  Not all control characters do, but
+      // this is cleaner that duplicating the code many times.
+      updateVidBufPtr( );
     }
 
   } // end for
@@ -911,9 +994,9 @@ void Screen::delChars( uint16_t len ) {
   // Slide the line in the virtual buffer first.
   if ( bytesToMove ) {
     memmove( buffer + ScrOffset( cursor_x, cursor_y ),
-	     buffer + ScrOffset( cursor_x + len, cursor_y ),
-	     bytesToMove
-	   );
+             buffer + ScrOffset( cursor_x + len, cursor_y ),
+             bytesToMove
+           );
   }
 
   // Clear will update both the virtual buffer and possibly the real screen.
@@ -971,9 +1054,9 @@ void Screen::insChars( uint16_t len ) {
   // Slide the line in the virtual buffer first.
   if ( bytesToMove ) {
     memmove( buffer + ScrOffset( cursor_x+len, cursor_y ),
-	     buffer + ScrOffset( cursor_x, cursor_y ),
-	     bytesToMove
-	   );
+             buffer + ScrOffset( cursor_x, cursor_y ),
+             bytesToMove
+           );
   }
 
 

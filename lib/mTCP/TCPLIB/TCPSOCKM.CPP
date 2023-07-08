@@ -1,8 +1,7 @@
-
 /*
 
    mTCP TcpSockM.cpp
-   Copyright (C) 2008-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2008-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -120,7 +119,7 @@ int8_t TcpSocketMgr::init( uint8_t maxSockets ) {
   MSS_to_advertise = MyMTU - (sizeof(IpHeader) + sizeof(TcpHeader));
 
   TRACE_TCP(( "Tcp: Allocated %u sockets, MTU is %u, My MSS is %u\n",
-	  allocatedSockets, MyMTU, MSS_to_advertise ));
+          allocatedSockets, MyMTU, MSS_to_advertise ));
 
   return TCP_RC_GOOD;
 };
@@ -205,15 +204,15 @@ TcpSocket *TcpSocketMgr::accept( void ) {
 
       if ( Timer_diff( socketTable[i]->lastActivity, TIMER_GET_CURRENT( ) ) > TIMER_MS_TO_TICKS(TCP_PA_TIMEOUT) ) {
 
-	TRACE_TCP_WARN(( "Tcp: (%08lx) Was pending accept, timed out\n", socketTable[i] ));
+        TRACE_TCP_WARN(( "Tcp: (%08lx) Was pending accept, timed out\n", socketTable[i] ));
 
-	// Probably should attempt a close first, then a destroy, but
-	// I'm not wasting the extra code on it.
+        // Probably should attempt a close first, then a destroy, but
+        // I'm not wasting the extra code on it.
 
-	socketTable[i]->destroy( );
+        socketTable[i]->destroy( );
 
-	// Just changed the order of the socket table ..  break out.
-	break;
+        // Just changed the order of the socket table ..  break out.
+        break;
       }
 
     }
@@ -229,15 +228,15 @@ TcpSocket *TcpSocketMgr::accept( void ) {
 
     for ( uint8_t i=0; i < activeSockets; i++ ) {
       if ( (socketTable[i]->pendingAccept) && (socketTable[i]->state >= TCP_STATE_ESTABLISHED) ) {
-	rc = socketTable[i];
-	socketTable[i]->pendingAccept = 0;
-	pendingAccepts--;
+        rc = socketTable[i];
+        socketTable[i]->pendingAccept = 0;
+        pendingAccepts--;
 
         rc->lastActivity = TIMER_GET_CURRENT( );
 
-	TRACE_TCP(( "Tcp: (%08lx) Accepted new socket, pendingAccepts=%u\n",
-		    rc, pendingAccepts ));
-	break;
+        TRACE_TCP(( "Tcp: (%08lx) Accepted new socket, pendingAccepts=%u\n",
+                    rc, pendingAccepts ));
+        break;
       }
     }
 

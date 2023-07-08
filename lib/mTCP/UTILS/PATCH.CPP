@@ -1,8 +1,7 @@
-
 /*
 
    mTCP Patch.cpp
-   Copyright (C) 2010-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2010-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -192,7 +191,7 @@ int main( int argc, char *argv[] ) {
       buffer[0] = 0xcb;
       puts( "  Patching with a far return" );
     }
-    else if ( stricmp( argv[3], "-mc" ) == 0 ) {
+    else if ( (stricmp( argv[3], "-mc" ) == 0) || (stricmp( argv[3], "-ms" ) == 0) ) {
       buffer[0] = 0xc3;
       puts( "  Patching with a near return" );
     }
@@ -241,7 +240,7 @@ int main( int argc, char *argv[] ) {
       buffer[3] = 0xcb;
       puts( "  Patching with a far return" );
     }
-    else if ( stricmp( argv[3], "-mc" ) == 0 ) {
+    else if ( (stricmp( argv[3], "-mc" ) == 0) || (stricmp( argv[3], "-ms" ) == 0) ) {
       buffer[3] = 0xc3;
       puts( "  Patching with a near return" );
     }

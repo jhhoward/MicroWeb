@@ -1,7 +1,7 @@
 /*
 
    mTCP FtpSrv.h
-   Copyright (C) 2011-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2011-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -56,14 +56,6 @@
 // With a 1K client output buffer 800 bytes for MOTD is plenty.
 #define MOTD_MAX_SIZE (OUTPUTBUFFER_SIZE-200)
 
-
-
-// DOS limits
-//   drive letter + colon + path + null = 67
-//   above, plus filename = 79
-//
-#define DOS_MAX_PATH_LENGTH     (67)
-#define DOS_MAX_PATHFILE_LENGTH (79)
 
 // For user paths we express the drive letter as /DRIVE_X instead of X: .
 // That is longer, so give them longer paths

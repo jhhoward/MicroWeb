@@ -1,7 +1,7 @@
 /*
 
    mTCP Ip.cpp
-   Copyright (C) 2005-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2005-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -60,10 +60,13 @@
 
 // Initial values are chosen so that they are either easily spotted
 // as not set or are safe to use.
+//
+// Do not set MyIpAddr or Netmask directly - use the methods.
+// They must be kept in sync with the _u versions of them.
 
 char     MyHostname[20] = "DOSRULES";
 IpAddr_t MyIpAddr  = { 255, 255, 255, 255 };  // Bad except for DHCP
-IpAddr_t Netmask   = { 255, 255, 255, 255 };  // Bad value - must be set
+IpAddr_t Netmask   = { 255, 255, 255, 255 };  // Default value forces everything through the gateway.
 IpAddr_t Gateway   = { 0,     0,   0,   0 };  // Safe default
 
 uint32_t MyIpAddr_u = 0xfffffffful;
@@ -71,8 +74,8 @@ uint32_t Netmask_u = 0xfffffffful;
 
 
 // Constants
-IpAddr_t IpBroadcast   = { 255, 255, 255, 255 };
-IpAddr_t IpThisMachine = { 0, 0, 0, 0 }; // This network and This host
+const IpAddr_t IpBroadcastNonRoutable = { 255, 255, 255, 255 };
+const IpAddr_t IpInvalid = { 0, 0, 0, 0 };
 
 
 
@@ -1155,6 +1158,11 @@ void IpHeader::set( uint8_t protocol_p, const IpAddr_t dstHost,
 
 int8_t IpHeader::setDestEth( EthAddr_t ethTarget ) {
 
+  // Is this a broadcast to the local network?
+  if ( Ip::isSame(ip_dest, IpBroadcastNonRoutable) ) {
+    Eth::copy( ethTarget, Eth::Eth_Broadcast );
+    return 0;
+  }
 
   // Historically we've always had IP addresses as char[4], which is easy
   // to work with and keeps it in the correct byte order in memory.
@@ -1167,12 +1175,6 @@ int8_t IpHeader::setDestEth( EthAddr_t ethTarget ) {
 
   uint32_t destIpAddr_u = *(uint32_t *)(&ip_dest);
 
-  // Is this a global broadcast?
-  if ( destIpAddr_u == 0xfffffffful ) {
-    Eth::copy( ethTarget, Eth::Eth_Broadcast );
-    return 0;
-  }
-
 
   // Probably the only program that does not have ARP compiled in is the DHCP
   // client.  If you need ARP and you fail to compile it in you are going to
@@ -1183,12 +1185,29 @@ int8_t IpHeader::setDestEth( EthAddr_t ethTarget ) {
 
   #ifdef COMPILE_ARP
 
+    // Handling a netmask that is 255.255.255.255 ...  You would think that
+    // is invalid because it makes the machine an island, but we're going
+    // to interpret that as send everything through the router.  Hosting
+    // environments often use it to signify it is a point-to-point
+    // connection, and traffic should never be broadcast or sent on the
+    // local network.
+
     int rc;
 
     if ( (MyIpAddr_u & Netmask_u) != (destIpAddr_u & Netmask_u) ) {
+      // Going to another network.
       rc = Arp::resolve( Gateway, ethTarget );
     }
     else {
+
+      // Staying on our network.  But if the host portion is all
+      // ones, it is a local broadcast.
+
+      if ( (destIpAddr_u & (~Netmask_u)) == (~Netmask_u) ) {
+        Eth::copy( ethTarget, Eth::Eth_Broadcast );
+        return 0;
+      } 
+
       rc = Arp::resolve( ip_dest, ethTarget );
     }
 

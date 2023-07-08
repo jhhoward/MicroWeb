@@ -1,7 +1,7 @@
 /*
 
    mTCP Ip.H
-   Copyright (C) 2005-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2005-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -93,20 +93,19 @@ extern uint32_t MyIpAddr_u;
 extern uint32_t Netmask_u;
 
 
-
-extern IpAddr_t IpBroadcast;
-extern IpAddr_t IpThisMachine;
+extern const IpAddr_t IpBroadcastNonRoutable;
+extern const IpAddr_t IpInvalid;
 
 
 #ifdef __TURBOC__
 extern "C" uint16_t ipchksum( uint16_t far *data, uint16_t len );
-extern "C" uint16_t ip_p_chksum( IpAddr_t src, IpAddr_t target, uint16_t *udpPacket, uint8_t protocol, uint16_t len );
+extern "C" uint16_t ip_p_chksum( const IpAddr_t src, const IpAddr_t target, uint16_t *udpPacket, uint8_t protocol, uint16_t len );
 #else
 extern "C" uint16_t cdecl ipchksum( uint16_t far *data, uint16_t len );
-extern "C" uint16_t cdecl ip_p_chksum( IpAddr_t far src, IpAddr_t far target, uint16_t far *data, uint8_t protocol, uint16_t len );
+extern "C" uint16_t cdecl ip_p_chksum( const IpAddr_t far src, const IpAddr_t far target, uint16_t far *data, uint8_t protocol, uint16_t len );
 
 // len is the header length; len2 is the data length
-extern "C" uint16_t cdecl ip_p_chksum2( IpAddr_t far src, IpAddr_t far target, uint16_t far *data, uint8_t protocol, uint16_t len, uint16_t far *data2, uint16_t len2 );
+extern "C" uint16_t cdecl ip_p_chksum2( const IpAddr_t far src, const IpAddr_t far target, uint16_t far *data, uint8_t protocol, uint16_t len, uint16_t far *data2, uint16_t len2 );
 #endif
 
 

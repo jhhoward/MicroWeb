@@ -1,7 +1,7 @@
 /*
 
    mTCP FtpSrv.cpp
-   Copyright (C) 2009-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2009-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -54,7 +54,6 @@
 // RFC 1579 - Firewall-Friendly FTP
 
 
-#include <bios.h>
 #include <ctype.h>
 #include <direct.h>
 #include <dos.h>
@@ -73,6 +72,7 @@
 #include "utils.h"
 #include "packet.h"
 #include "arp.h"
+#include "dns.h"
 #include "tcp.h"
 #include "tcpsockm.h"
 #include "telnet.h"
@@ -131,7 +131,7 @@ static char Msg_550_Error_Removing_v[] =     "550 Error removing %s" _NL_;
 
 static char *Msg_214_Help[] = {
   "214-Welcome to the mTCP FTP server, Version: " __DATE__ _NL_,
-  " USER  PASS  REIN  ACCT  REST" _NL_, 
+  " USER  PASS  QUIT  REIN  ACCT  REST" _NL_, 
   " RNFR  RNTO  DELE" _NL_, 
   " CWD   XCWD  CDUP  XCUP  PWD   XPWD  MKD   XMKD  RMD   XRMD" _NL_, 
   " PASV  PORT  ABOR  LIST  NLST  RETR  STOR  STOU  APPE" _NL_, 
@@ -156,6 +156,8 @@ static void scanValidDrives( void );      // Populate the table of valid drive l
 static int  readConfigParms( void );      // Read configuration parms for the server
 static int  initSrv( void );              // Initialize the server
 static void shutdown( int rc );           // Clean mTCP shutdown
+
+static int8_t resolveAddr( void );
 
 static unsigned _my_dos_findfirst( const char *path, unsigned attributes, struct find_t *buffer );
 static unsigned _my_dos_findnext( struct find_t *buffer );
@@ -272,7 +274,18 @@ uint16_t FtpSrv_Clients = 3;
 
 uint16_t FtpSrv_Control_Port = 21;
 
-IpAddr_t Pasv_IpAddr;
+
+// PASV needs an IP address.  If FTPSrv is behind a NAT firewall then it has
+// to be told the external IP address to use.  That can be a problem if it
+// changes.
+//
+// Support taking either an IP address that is assumed not to change, or a
+// fully qualified name that we can query using DNS.  The second option allows
+// us to use dynamic DNS and detect changes to the external IP address.
+
+IpAddr_t Pasv_IpAddr = { 0, 0, 0, 0 };
+char     Pasv_Name[60] = "";
+
 uint16_t Pasv_Base = 2048;
 uint16_t Pasv_Ports = 1024;
 
@@ -307,7 +320,7 @@ char *MotdBuffer = NULL;
 
 // Toggles
 //
-uint8_t Sound = 1;
+uint8_t Sound = 0;
 
 
 
@@ -385,9 +398,16 @@ int doesExist( const char *realPath ) {
 
 
 
+// Set to 1 when the user hits Ctrl-C or Alt-X the first time,
+// Set to 2 when the user hits Ctrl-C or Alt-X the second time or some other
+// shutdown mechanism is triggered.
+
+int ShutdownRequested = 0;
 
 
-static char CopyrightMsg1[] = "mTCP FtpSrv by M Brutman (mbbrutman@gmail.com) (C)opyright 2010-2020\n";
+static char ConfirmEndMsg[] = "Press Ctrl-C or Alt-X one more time to shut down or another key to cancel.\n";
+
+static char CopyrightMsg1[] = "mTCP FtpSrv by M Brutman (mbbrutman@gmail.com) (C)opyright 2010-2023\n";
 static char CopyrightMsg2[] = "Version: " __DATE__ "\n\n";
 
 int main( int argc, char *argv[] ) {
@@ -417,7 +437,8 @@ int main( int argc, char *argv[] ) {
 
 
   clockTicks_t lastTimeoutSweep = TIMER_GET_CURRENT( );
-  clockTicks_t lastKeyboardCheck = TIMER_GET_CURRENT( );
+  clockTicks_t lastKeyboardCheck = lastTimeoutSweep;
+  clockTicks_t lastDnsCheck = lastTimeoutSweep;
 
 
   // Main loop
@@ -429,6 +450,27 @@ int main( int argc, char *argv[] ) {
     PACKET_PROCESS_MULT( PacketsPerPoll );
     Arp::driveArp( );
     Tcp::drivePackets( );
+
+
+    // Every five minutes check to see if we have to resolve the external IP address.
+    // (We don't do this if the external IP address was provided directly as numbers.)
+    // If it changes or fails to resolve put a message on the screen.
+
+    if ( Pasv_Name[0] ) {
+      if ( Timer_diff( lastDnsCheck, TIMER_GET_CURRENT( ) ) > TIMER_MS_TO_TICKS( 300000ul ) ) {
+
+        lastDnsCheck = TIMER_GET_CURRENT( );
+
+        int rc = resolveAddr( );
+        if ( rc == 1 ) {
+          addToScreen( 1, "%s now resolves to %d.%d.%d.%d\n", Pasv_Name,
+                       Pasv_IpAddr[0], Pasv_IpAddr[1], Pasv_IpAddr[2], Pasv_IpAddr[3] );
+        } else if ( rc < 0 ) {
+          addToScreen( 1, "Warning: Failed to resolve %s\n", Pasv_Name );
+        }
+
+      }
+    }
 
 
     // Check for client inactivity every 10 seconds
@@ -484,23 +526,26 @@ int main( int argc, char *argv[] ) {
       }
       else {
 
-        int shutdownRequested = 0;
-
         // Check the keyboard
 
         if ( CtrlBreakDetected ) {
-          shutdownRequested++;
+          // Ctrl-Break: Go straight to shutdown, they don't have to hit it twice.
+          ShutdownRequested = 2;
         }
         else {
 
-          if ( bioskey(1) ) {
+          if ( biosIsKeyReady( ) ) {
 
-            uint16_t key = bioskey(0);
+            uint16_t key = biosKeyRead( );
 
             if ( (key & 0xff) == 0 ) {
 
               // Function key
               key = key >> 8;
+
+              // Pressed Alt-X to shutdown once already; did they do it again?
+              // If not, reset the counter.
+              if ( (ShutdownRequested == 1) && (key != 45) ) ShutdownRequested = 0;
 
               if ( key == 22 ) {        // Alt-U, Users
                 doConsoleShowUsers( );
@@ -512,7 +557,12 @@ int main( int argc, char *argv[] ) {
                 doConsoleHelp( );
               }
               else if ( key == 45 ) {   // Alt-X, EndProgram
-                shutdownRequested++;
+                // Use ++ here in case another mechanism has already triggered a shutdown.
+                // Those shold not be reset by the user entering something.
+                ShutdownRequested++;
+                if ( ShutdownRequested == 1 ) {
+                  addToScreen( 1, ConfirmEndMsg );
+                }
               }
               else if ( key == 48 ) {   // Alt-B, BeepToggle
                 Sound = !Sound;
@@ -525,8 +575,17 @@ int main( int argc, char *argv[] ) {
               // Normal key
               key = key & 0xff;
 
+              // Pressed Alt-X to shutdown once already; did they do it again?
+              // If not, reset the counter.
+              if ( (ShutdownRequested == 1) && (key != 3) ) ShutdownRequested = 0;
+
               if ( key == 3 ) {
-                shutdownRequested++;
+                // Use ++ here in case another mechanism has already triggered a shutdown.
+                // Those shold not be reset by the user entering something.
+                ShutdownRequested++;
+                if ( ShutdownRequested == 1 ) {
+                  addToScreen( 1, ConfirmEndMsg );
+                }
               }
 
             }
@@ -535,7 +594,7 @@ int main( int argc, char *argv[] ) {
 
         }
 
-        if ( shutdownRequested ) {
+        if ( ShutdownRequested > 1 ) {
           addToScreen( 1, "Shutdown requested\n" );
           // Start an involuntary close on everything
           for ( uint16_t i=0; i < FtpClient::activeClients; i++ ) {
@@ -1260,7 +1319,7 @@ void doStat( FtpClient *client, char *nextTokenPtr ) {
       }
     }
 
-    client->noMoreData = _my_dos_findfirst( fullpath, (_A_NORMAL | _A_SUBDIR), &client->fileinfo);
+    client->noMoreData = _my_dos_findfirst( fullpath, (_A_NORMAL | _A_SUBDIR | _A_HIDDEN | _A_SYSTEM), &client->fileinfo);
 
     if ( client->noMoreData ) {
       _dos_findclose( &client->fileinfo );
@@ -1330,10 +1389,22 @@ void doSite( FtpClient *client, char *nextTokenPtr ) {
     doSiteWho( client );
   }
   else if ( stricmp( siteCmd, "help" ) == 0 ) {
-    client->addToOutput( "211 Site commands: HELP DISKFREE STATS WHO" _NL_ );
+    client->addToOutput( "211 Site commands: HELP DISKFREE QUIT STATS WHO" _NL_ );
   }
   else if ( stricmp( siteCmd, "diskfree" ) == 0 ) {
     doSiteDiskFree( client, nextTokenPtr );
+  }
+  else if ( stricmp( siteCmd, "quit" ) == 0 ) {
+
+    // Permission check
+    if ( !client->user.hasPermission(FtpUser::cmd_SITEQUIT) ) {
+      client->addToOutput( Msg_550_Permission_Denied );
+      return;
+    }
+
+    ShutdownRequested = 2;
+    client->addToOutput_var( "211-Server shutting down" _NL_ "211 OK" _NL_ );
+
   }
   else {
     client->addToOutput( "500 Unknown SITE command" _NL_ );
@@ -1685,7 +1756,7 @@ void doMdtm( FtpClient *client, char *nextTokenPtr ) {
 void doDele( FtpClient *client, char *nextTokenPtr ) {
 
   // Permission check
-  if ( client->user.cmd_DELE == 0 ) {
+  if ( !client->user.hasPermission(FtpUser::cmd_DELE) ) {
     client->addToOutput( Msg_550_Permission_Denied );
     return;
   }
@@ -1738,7 +1809,7 @@ void doDele( FtpClient *client, char *nextTokenPtr ) {
 void doRmd( FtpClient *client, char *nextTokenPtr ) {
 
   // Permission check
-  if ( client->user.cmd_RMD == 0 ) {
+  if ( !client->user.hasPermission(FtpUser::cmd_RMD) ) {
     client->addToOutput( Msg_550_Permission_Denied );
     return;
   }
@@ -1788,7 +1859,7 @@ void doRmd( FtpClient *client, char *nextTokenPtr ) {
 void doMkd( FtpClient *client, char *nextTokenPtr ) {
 
   // Permission check
-  if ( client->user.cmd_MKD == 0 ) {
+  if ( !client->user.hasPermission(FtpUser::cmd_MKD) ) {
     client->addToOutput( Msg_550_Permission_Denied );
     return;
   }
@@ -1848,7 +1919,7 @@ void doMkd( FtpClient *client, char *nextTokenPtr ) {
 void doRnfr( FtpClient *client, char *nextTokenPtr ) {
 
   // Permission check
-  if ( client->user.cmd_RNFR == 0 ) {
+  if ( !client->user.hasPermission(FtpUser::cmd_RNFR) ) {
     client->addToOutput( Msg_550_Permission_Denied );
     return;
   }
@@ -2352,9 +2423,9 @@ void doXfer( FtpClient *client, char *nextTokenPtr, FtpClient::DataXferType list
 
   // Permission checks
 
-  if ( ( (listType == FtpClient::Stor)  && (client->user.cmd_STOR == 0) )
-    || ( (listType == FtpClient::StorA) && (client->user.cmd_APPE == 0) )
-    || ( (listType == FtpClient::StorU) && (client->user.cmd_STOU == 0) ) )
+  if ( ( (listType == FtpClient::Stor)  && (!client->user.hasPermission(FtpUser::cmd_STOR)) )
+    || ( (listType == FtpClient::StorA) && (!client->user.hasPermission(FtpUser::cmd_APPE)) )
+    || ( (listType == FtpClient::StorU) && (!client->user.hasPermission(FtpUser::cmd_STOU)) ) )
   {
     client->addToOutput( Msg_550_Permission_Denied );
     return;
@@ -2622,7 +2693,7 @@ void doDataXfer( FtpClient *client, char *parms ) {
           }
         }
 
-        client->noMoreData = _my_dos_findfirst( fullpath, (_A_NORMAL | _A_SUBDIR), &client->fileinfo);
+        client->noMoreData = _my_dos_findfirst( fullpath, (_A_NORMAL | _A_SUBDIR | _A_HIDDEN | _A_SYSTEM), &client->fileinfo);
 
         break;
       }
@@ -3445,15 +3516,25 @@ static int readConfigParms( void ) {
   }
 
 
-  if ( Utils::getAppValue( "FTPSRV_EXT_IPADDR", tmpBuffer, 20 ) == 0 ) {
+  if ( Utils::getAppValue( "FTPSRV_EXT_IPADDR", Pasv_Name, 60 ) == 0 ) {
+
     uint16_t tmp1, tmp2, tmp3, tmp4;
-    int rc = sscanf( tmpBuffer, "%d.%d.%d.%d\n", &tmp1, &tmp2, &tmp3, &tmp4 );
-    if ( rc != 4 ) {
-      addToScreen( 1, "Bad IP address format on FTPSRV_EXT_IPADDR\n" );
-      return 1;
-    }
-    Pasv_IpAddr[0] = tmp1; Pasv_IpAddr[1] = tmp2;
-    Pasv_IpAddr[2] = tmp3; Pasv_IpAddr[3] = tmp4;
+    int rc = sscanf( Pasv_Name, "%d.%d.%d.%d\n", &tmp1, &tmp2, &tmp3, &tmp4 );
+
+    // If they passed in an IP address, we use that forever.
+    // If they passed in a name we have to periodically resolve it.
+    if ( rc == 4 ) {
+      Pasv_IpAddr[0] = tmp1; Pasv_IpAddr[1] = tmp2;
+      Pasv_IpAddr[2] = tmp3; Pasv_IpAddr[3] = tmp4;
+
+      // Wipe out the Name field so we don't try to resolve it again.
+      Pasv_Name[0] = 0;
+    } 
+
+    // If you got here it was not an IP address.  We will assume it is a name
+    // that needs to be resolved.  A startup check will fail if it can not
+    // be resolved so there is nothing else to check here.
+
   }
 
   if ( Utils::getAppValue( "FTPSRV_PASV_BASE", tmpBuffer, 10 ) == 0 ) {
@@ -3739,6 +3820,24 @@ static int initSrv( void ) {
   // exit because we have the timer interrupt hooked.
 
 
+  // If the config specified a server name for a PASV response we have to
+  // resolve it.  If it is bad we need to exit early which sucks because now we
+  // have to tear down the TCP stack too.
+
+  if ( Pasv_Name[0] ) {
+
+    int rc = resolveAddr( );
+
+    if ( rc < 0 ) {
+      addToScreen( 1, "\nFailed to resolve %s - exiting\n", Pasv_Name );
+      Utils::endStack( );
+      if ( LogFile != NULL ) fclose( LogFile );
+      return 1;
+    }
+
+  }
+
+
   uint16_t dosv = dosVersion( );
   DOS_major = dosv & 0xff;
   DOS_minor = dosv >> 8;
@@ -3841,6 +3940,53 @@ static unsigned _my_dos_findnext( struct find_t *buffer ) {
   else {
     // Not for us - let DOS handle it.
     return _dos_findnext( buffer );
+  }
+}
+
+
+
+// If the user specified a server name to use on PASV responses (and
+// not an IP address) then it might be a dynamic DNS setup.  We can't
+// use the name directly on a PASV response, so periodically resolve it.
+//
+// Return -1 on error, 0 for no change, and 1 for a detected change.
+
+int8_t resolveAddr( void ) {
+
+  // To ensure that we actually send the query we need to purge it from the
+  // cache.  And hopefully the user didn't put the name in the hosts file.
+  Dns::deleteFromCache( Pasv_Name );
+
+  IpAddr_t newAddr;
+  int8_t rc = Dns::resolve( Pasv_Name, newAddr, 1 );
+  if ( rc < 0 ) {
+    return -1;
+  }
+
+  clockTicks_t startTime = TIMER_GET_CURRENT( );
+
+  bool done = false;
+
+  while ( !done ) {
+    if ( !Dns::isQueryPending( ) ) break;
+    PACKET_PROCESS_SINGLE;
+    Arp::driveArp( );
+    Tcp::drivePackets( );
+    Dns::drivePendingQuery( );
+  }
+
+  // Query is no longer pending or we bailed out of the loop.
+  rc = Dns::resolve( Pasv_Name, newAddr, 0 );
+
+  if ( rc != 0 ) {
+    return -1;
+  }
+
+  if ( Ip::isSame( Pasv_IpAddr, newAddr) ) {
+    return 0;
+  } else {
+    Ip::copy( Pasv_IpAddr, newAddr );
+    return 1;
   }
 }
 
@@ -4054,7 +4200,7 @@ void initScreen( void ) {
 
 
 void showRealIpAddr( int writeLog ) {
-  addToScreen( writeLog, "Real IP address: %d.%d.%d.%d, Pasv response IP addr: %d.%d.%d.%d\n",
+  addToScreen( writeLog, "mTCP IP address: %d.%d.%d.%d, Pasv response IP address: %d.%d.%d.%d\n",
                MyIpAddr[0], MyIpAddr[1], MyIpAddr[2], MyIpAddr[3],
                Pasv_IpAddr[0], Pasv_IpAddr[1], Pasv_IpAddr[2], Pasv_IpAddr[3] );
 }

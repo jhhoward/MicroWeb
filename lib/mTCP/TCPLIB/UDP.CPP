@@ -1,7 +1,7 @@
 /*
 
    mTCP Udp.cpp
-   Copyright (C) 2005-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2005-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -26,6 +26,8 @@
    Changes:
 
    2011-05-27: Initial release as open source software
+   2022-01-05: UDP checksums are optional in IPv4.  Don't throw the packet
+               away if the checksum was not used.
 
 */
 
@@ -74,8 +76,8 @@
 uint8_t   Udp::callbackPorts = 0;
 uint16_t  Udp::callbackList[ UDP_MAX_CALLBACKS ];
 void    (*Udp::callbackFunctions[ UDP_MAX_CALLBACKS ])
-				(const unsigned char *packet,
-				 const UdpHeader *udp);
+                                (const unsigned char *packet,
+                                 const UdpHeader *udp);
 
 
 uint32_t Udp::Packets_Sent = 0;
@@ -92,6 +94,40 @@ void Udp::dumpStats( FILE *stream ) {
 }
 
 
+
+
+// Udp::getUnusedCallbackPort
+//
+// Return a somewhat random port that can be used for a callback that is not
+// already in use.
+
+uint16_t Udp::getUnusedCallbackPort( void ) {
+
+  while ( 1 ) {
+
+    // Too lazy to use the random number generator so lets use the low
+    // 16 bits of the BIOS time of day counter.
+    uint16_t proposedPort = *((uint16_t far *)(MK_FP(0x40, 0x6C)));
+    if ( proposedPort < 1024 ) proposedPort += 1024;
+
+    bool found = false;
+    for (uint8_t i=0; i < callbackPorts; i++ ) {
+      if ( callbackList[i] == proposedPort ) {
+        found = true;
+        break;
+      }
+    }
+
+    if ( found == false ) {
+      return proposedPort;
+    }
+
+  }
+
+}
+
+
+
 // Udp::registerCallback
 //
 // 
@@ -99,8 +135,8 @@ void Udp::dumpStats( FILE *stream ) {
 // Return 0 if successful, -1 if not.
 
 int8_t Udp::registerCallback( uint16_t port,
-			      void (*f)(const unsigned char *packet,
-			      const UdpHeader *udp) ) {
+                              void (*f)(const unsigned char *packet,
+                              const UdpHeader *udp) ) {
 
   if ( callbackPorts == UDP_MAX_CALLBACKS ) {
     return -1;
@@ -178,11 +214,11 @@ int8_t Udp::unregisterCallback( uint16_t port ) {
 // you passed in an odd data length.  The current code doesn't have this
 // restriction.
 
-int8_t Udp::sendUdp( IpAddr_t host, uint16_t srcPort, uint16_t dstPort,
-	      uint16_t payloadLen, uint8_t *data, uint8_t preAlloc ) {
+int8_t Udp::sendUdp( const IpAddr_t host, uint16_t srcPort, uint16_t dstPort,
+              uint16_t payloadLen, uint8_t *data, uint8_t preAlloc ) {
 
   TRACE_UDP(( "Udp: Send: Ip: %d.%d.%d.%d SrcPort: %u DstPort: %u PayloadLen: %u PreAlloc: %d\n",
-	      host[0], host[1], host[2], host[3],
+              host[0], host[1], host[2], host[3],
               srcPort, dstPort, payloadLen, preAlloc ));
 
 
@@ -267,7 +303,7 @@ int8_t Udp::sendUdp( IpAddr_t host, uint16_t srcPort, uint16_t dstPort,
 
 #ifdef IP_SEND_UDP_FRAGS
 
-int8_t Udp::sendUdpFragments( IpAddr_t host, uint16_t srcPort,
+int8_t Udp::sendUdpFragments( const IpAddr_t host, uint16_t srcPort,
                               uint16_t dstPort, uint16_t payloadLen,
                               uint8_t *data, uint8_t preAlloc ) {
 
@@ -422,36 +458,30 @@ void Udp::process( const unsigned char *packet, IpHeader *ip ) {
   uint16_t dstPort = ntohs( udp->dst );
 
   TRACE_UDP(( "Udp: Process: SrcPort: %u  DstPort: %u   Len: %u\n",
-	      srcPort, dstPort, udpLen ));
+              srcPort, dstPort, udpLen ));
 
 
-  // Check the incoming chksum.
-  //
-  // During the DHCP process we may not know what our IP address is
-  // yet, so skip the incoming checksum check.
+  // Check the incoming chksum.  UDP checksums are optional in IPv4.
 
-  #ifndef DHCP_CLIENT
+  if ( udp->chksum != 0 ) {
 
-  // uint16_t myChksum = Ip::pseudoChecksum( ip->ip_src, MyIpAddr,
-  //                       ((uint16_t *)udp), 17, udpLen );
+    uint16_t myChksum = ip_p_chksum( ip->ip_src, ip->ip_dest,
+                                     ((uint16_t *)udp),
+                                     IP_PROTOCOL_UDP, udpLen );
 
-  uint16_t myChksum = ip_p_chksum( ip->ip_src, ip->ip_dest,
-                                   ((uint16_t *)udp),
-                                   IP_PROTOCOL_UDP, udpLen );
+    if ( myChksum ) {
+      TRACE_UDP_WARN(( "Udp: Bad chksum from %d.%d.%d.%d:%u to port %u len: %u\n",
+                       ip->ip_src[0], ip->ip_src[1], ip->ip_src[2], ip->ip_src[3],
+                       srcPort, dstPort, udpLen ));
+      ChecksumErrors++;
+      Buffer_free( packet );
+      return;
+    }
 
-  if ( myChksum ) {
-    TRACE_UDP_WARN(( "Udp: Bad chksum from %d.%d.%d.%d:%u to port %u len: %u\n",
-                     ip->ip_src[0], ip->ip_src[1], ip->ip_src[2], ip->ip_src[3],
-                     srcPort, dstPort, udpLen ));
-    ChecksumErrors++;
-    Buffer_free( packet );
-    return;
   }
 
-  #endif
 
-
-  // Find the registered function to call for htis port.
+  // Find the registered function to call for this port.
   uint8_t i;
   for ( i=0; i < callbackPorts; i++ ) {
     if ( callbackList[i] == dstPort ) {

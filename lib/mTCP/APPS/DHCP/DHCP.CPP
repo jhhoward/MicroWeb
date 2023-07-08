@@ -1,7 +1,7 @@
 /*
 
    mTCP Dhcp.cpp
-   Copyright (C) 2008-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2008-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -41,6 +41,9 @@
    2019-09-01: Enable warnings for trailing white space in the config file.
                Make usage of stderr more consistent.  Small refactors to
                try to claim back some executable size.
+   2022-04-03: Bug fix: need to parse options on the DHCP ACK message;
+               Clean up trace messages and make them more consistent;
+               Add a config parameter for requesting a specific lease time.
 
 */
 
@@ -51,7 +54,6 @@
 // here.
 
 
-#include <bios.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -71,15 +73,6 @@
 
 
 
-// A maximum DOS pathname is 64 characters, excluding the drive letter and
-// colon.  Add two bytes for that, and one byte for the null terminator to
-// get 67 bytes for a path.  Then add 12 bytes for the 8.3 format filename
-// to get 79 bytes for a complete drive, path, and filename buffer.
-
-#define DOS_MAX_PATH_LENGTH     (67)
-#define DOS_MAX_PATHFILE_LENGTH (79)
-
-
 
 // Storage for the outgoing request.  This gets used on the initial
 // DHCP_DISCOVER and reused on the DHCP_REQUEST.  This is global
@@ -87,22 +80,33 @@
 
 Dhcp_t req;
 
-DhcpStatus_t DhcpStatusFlag;        // DHCP conversation status
 
+// State we need to keep during the process
+
+DhcpStatus_t DhcpStatusFlag;        // DHCP conversation status
+IpAddr_t     ServerIdentity;        // Needed for the DHCPREQUEST packet
+
+
+// mTCP Config filename from the process environment.
 
 char *CfgFilename;
 
 
-// Parameters that will be written to stdout
+// Parameters that will be written to the config file.
 
-IpAddr_t newIpAddr;
-IpAddr_t subnetMask;
-IpAddr_t gatewayAddr;
-IpAddr_t nameServer;
-IpAddr_t preferredNameServer;
-uint32_t offeredLeaseTime = 0;
+IpAddr_t NewIpAddr;
+IpAddr_t SubnetMask;
+IpAddr_t GatewayAddr;
+IpAddr_t NameServer;
+IpAddr_t PreferredNameServer;
+uint32_t OfferedLeaseTime = 0;
 
-bool preferredNameServer_set = false;
+
+// These are responses from the router.  Interesting, but we don't do anything
+// with them.
+char Domain_assigned[40] = "";
+char Hostname_assigned[40] = "";
+
 
 
 // Command line parameters
@@ -113,8 +117,11 @@ uint32_t TimeoutMs = 10000ul;
 
 
 
+// Misc config parameter handling.
 
-IpAddr_t serverIdentity;        // Needed for the DHCPREQUEST packet
+bool PreferredNameServer_set = false;
+
+uint32_t RequestedLeaseSecs = 28800; // Eight hours
 
 
 
@@ -128,12 +135,9 @@ uint16_t     setupReqPacket( void );
 DhcpStatus_t makeAttempt( int i );
 int8_t       createNewCfg( void );
 
-
-
-
 void udpHandler(const unsigned char *packet, const UdpHeader *udp );
 void udpHandler2( Dhcp_t *resp );
-
+void sendDhcpRequestMsg( void );
 
 
 
@@ -154,10 +158,21 @@ int printIpAddr( FILE *stream, const char *name, IpAddr_t addr ) {
 
 
 
+const char *DhcpMsgName[] = {
+  "",
+  "Discover",
+  "Offer",
+  "Request",
+  "Decline",
+  "Ack",
+  "NAck",
+  "Release",
+  "Inform"
+};
+
 const char *CheckYourCabling_msg = "Check your cabling and packet driver settings, including the hardware IRQ.";
 
-
-static char *CopyrightMsg = "mTCP DHCP Client by M Brutman (mbbrutman@gmail.com) (C)opyright 2008-2020\nVersion: " __DATE__ "\n\n";
+static char *CopyrightMsg = "mTCP DHCP Client by M Brutman (mbbrutman@gmail.com) (C)opyright 2008-2023\nVersion: " __DATE__ "\n\n";
 
 
 
@@ -194,8 +209,9 @@ int main( int argc, char *argv[] ) {
   }
 
   printf( "Timeout per request: %u seconds, Retry attempts: %u\n"
+          "Requesting a %lu second lease\n"
           "Sending DHCP requests, Press [ESC] to abort.\n\n",
-          Timeout, Retries );
+          Timeout, Retries, RequestedLeaseSecs );
 
   // Delay 1 second; helps with some packet drivers that are not quite
   // ready to run by the time we send a packet out.
@@ -243,11 +259,18 @@ int main( int argc, char *argv[] ) {
 
       puts( "\nGood news everyone!\n" );
 
+      printf( "%s %s\n",   Parm_Hostname,   MyHostname );
+      printf( "%s %s\n",   Parm_Domain,     Domain_assigned );
       printIpAddr( stdout, Parm_IpAddr,     MyIpAddr );
       printIpAddr( stdout, Parm_Netmask,    Netmask );
       printIpAddr( stdout, Parm_Gateway,    Gateway );
-      printIpAddr( stdout, Parm_Nameserver, nameServer );
-      printf( "LEASE_TIME %lu seconds\n", offeredLeaseTime );
+      printIpAddr( stdout, Parm_Nameserver, NameServer );
+      printf( "LEASE_TIME %lu seconds\n",   OfferedLeaseTime );
+
+      if ( stricmp( MyHostname, Hostname_assigned ) != 0 ) {
+        printf("\nWarning: Your DHCP server may not have honored your hostname request.\n" );
+        printf("Requested hostname: \"%s\", Assigned hostname: \"%s\"\n", MyHostname, Hostname_assigned );
+      }
 
       printf( "\nSettings written to '%s'\n", CfgFilename );
 
@@ -297,10 +320,8 @@ DhcpStatus_t makeAttempt( int i ) {
   // This does not fail at ARP resolution because we are using the IP broadcast
   // address which in turn becomes the local Ethernet broadcast address, and
   // thus ARP resolution is not attempted.
-  //
-  // It can fail for out of memory.  If it does it won't be obvious but a debug
-  // trace will show it.
-  Udp::sendUdp( IpBroadcast, DHCP_REPLY_PORT, DHCP_REQUEST_PORT, reqLen, (uint8_t *)&req, 1 );
+
+  Udp::sendUdp( IpBroadcastNonRoutable, DHCP_REPLY_PORT, DHCP_REQUEST_PORT, reqLen, (uint8_t *)&req, 1 );
 
 
   printf( "DHCP request sent, attempt %d: ", i+1 );
@@ -315,8 +336,8 @@ DhcpStatus_t makeAttempt( int i ) {
       DhcpStatusFlag = Dhcp_UserAbort;
     }
 
-    if ( bioskey(1) != 0 ) {
-      char c = bioskey(0);
+    if ( biosIsKeyReady( ) ) {
+      char c = biosKeyRead( );
       if ( (c == 27) || (c == 3) ) {
         DhcpStatusFlag = Dhcp_UserAbort;
       }
@@ -433,8 +454,10 @@ int8_t createNewCfg( void ) {
          (stricmp( parmName, Parm_Gateway ) == 0)    ||
          (stricmp( parmName, Parm_Netmask ) == 0)    ||
          (stricmp( parmName, Parm_Nameserver ) == 0) ||
-         (stricmp( parmName, "DHCPVER" ) == 0) ||
-         (stricmp( parmName, "TIMESTAMP" ) == 0) ||
+         (stricmp( parmName, Parm_Hostname_Assigned ) == 0)   ||
+         (stricmp( parmName, Parm_Domain ) == 0)     ||
+         (stricmp( parmName, "DHCPVER" ) == 0)       ||
+         (stricmp( parmName, "TIMESTAMP" ) == 0)     ||
          (stricmp( parmName, "LEASE_TIME" ) == 0) )
 
     {
@@ -455,24 +478,42 @@ int8_t createNewCfg( void ) {
   }
 
 
-  if ( preferredNameServer_set ) {
+  if ( PreferredNameServer_set ) {
     TRACE(( "Dhcp provided nameserver %u.%u.%u.%u replaced by user with %u.%u.%u.%u\n",
-            nameServer[0], nameServer[1], nameServer[2], nameServer[3],
-            preferredNameServer[0], preferredNameServer[1], preferredNameServer[2], preferredNameServer[3] ));
-    Ip::copy( nameServer, preferredNameServer );
+            NameServer[0], NameServer[1], NameServer[2], NameServer[3],
+            PreferredNameServer[0], PreferredNameServer[1], PreferredNameServer[2], PreferredNameServer[3] ));
+    Ip::copy( NameServer, PreferredNameServer );
   }
 
+
   // Write new values
+
+  if ( Hostname_assigned[0] ) {
+    if ( fprintf( newFile, "%s %s\n", Parm_Hostname_Assigned, Hostname_assigned ) < 0 ) {
+      printErrno( Msg_writing_to_temp_file );
+      return -1;
+    }
+  }
+
+  if ( Domain_assigned[0] ) {
+    if ( fprintf( newFile, "DOMAIN %s\n", Domain_assigned ) < 0 ) {
+      printErrno( Msg_writing_to_temp_file );
+      return -1;
+    }
+  }
+
 
   if ( (printIpAddr( newFile, Parm_IpAddr,     MyIpAddr ) < 0 )   ||
        (printIpAddr( newFile, Parm_Netmask,    Netmask ) < 0 )    ||
        (printIpAddr( newFile, Parm_Gateway,    Gateway ) < 0 )    ||
-       (printIpAddr( newFile, Parm_Nameserver, nameServer ) < 0 ) ||
-       (fprintf( newFile, "LEASE_TIME %lu\n", offeredLeaseTime ) < 0 ) )
+       (printIpAddr( newFile, Parm_Nameserver, NameServer ) < 0 ) ||
+       (fprintf( newFile, "LEASE_TIME %lu\n", OfferedLeaseTime ) < 0 ) )
   {
     printErrno( Msg_writing_to_temp_file );
     return -1;
   }
+
+
 
   if ( fclose( newFile ) ) {
     printErrno( Msg_writing_to_temp_file );
@@ -547,14 +588,14 @@ int8_t parseEnv( void ) {
     if ( stricmp( parmName, Parm_PacketInt ) == 0 ) {
       int rc = sscanf( nextTokenPtr, "%x", &packetInt );
       if ( rc != 1 ) {
-	errorParm = Parm_PacketInt;
+        errorParm = Parm_PacketInt;
       }
     }
 
     else if ( stricmp( parmName, Parm_Hostname ) == 0 ) {
       int rc = sscanf( nextTokenPtr, "%s", MyHostname );
       if ( rc != 1 ) {
-	errorParm = Parm_Hostname;
+        errorParm = Parm_Hostname;
       }
     }
 
@@ -562,7 +603,7 @@ int8_t parseEnv( void ) {
       uint16_t newMtu;
       int rc = sscanf( nextTokenPtr, "%d\n", &newMtu );
       if ( (rc != 1) || (newMtu < ETH_MTU_MIN) || (newMtu > ETH_MTU_MAX) ) {
-	errorParm = Parm_Mtu;
+        errorParm = Parm_Mtu;
       }
       MyMTU = newMtu;
     }
@@ -574,9 +615,18 @@ int8_t parseEnv( void ) {
         errorParm = Parm_Nameserver_preferred;
       }
       else {
-        preferredNameServer[0] = tmp1; preferredNameServer[1] = tmp2;
-        preferredNameServer[2] = tmp3; preferredNameServer[3] = tmp4;
-        preferredNameServer_set = true;
+        PreferredNameServer[0] = tmp1; PreferredNameServer[1] = tmp2;
+        PreferredNameServer[2] = tmp3; PreferredNameServer[3] = tmp4;
+        PreferredNameServer_set = true;
+      }
+
+    }
+
+    else if ( stricmp( parmName, Parm_DHCPLeaseRequest ) == 0 ) {
+
+      int rc = sscanf( nextTokenPtr, "%lu\n", &RequestedLeaseSecs );
+      if ( rc != 1 ) {
+        errorParm = Parm_DHCPLeaseRequest;
       }
 
     }
@@ -660,6 +710,14 @@ uint16_t setupReqPacket( void ) {
   strcpy( (char *)(&req.options[current]), MyHostname );
   current += strlen( MyHostname );
 
+  uint32_t tmp = htonl(RequestedLeaseSecs);
+  req.options[current++] =  51; // Requested lease time
+  req.options[current++] =   4; //      Length
+  req.options[current++] =  ((uint8_t *)&tmp)[0];
+  req.options[current++] =  ((uint8_t *)&tmp)[1];
+  req.options[current++] =  ((uint8_t *)&tmp)[2];
+  req.options[current++] =  ((uint8_t *)&tmp)[3];
+
   req.options[current++] = 255;
 
   return (240 + current);
@@ -720,56 +778,56 @@ void udpHandler2( Dhcp_t *resp ) {
     return;
   }
 
-
-  TRACE(( "Option: %d  Length: %d\n", resp->options[0], resp->options[1] ));
-
   if ( resp->options[0] != 53 ) {
     TRACE_WARN(( "Dhcp: first option was not a Dhcp msg type\n" ));
     return;
   }
 
-  TRACE(( "  Dhcp msg type: %d\n", resp->options[2] ));
+  uint8_t dhcpMsgType = resp->options[2];
 
+  if ( (dhcpMsgType == 0) || (dhcpMsgType > 8) ) {
+    TRACE_WARN(( "Dhcp: Invalid msg type" ));
+    return;
+  }
 
-  switch ( resp->options[2] ) {
+  TRACE(( "Dhcp msg type: %s\n", DhcpMsgName[dhcpMsgType] ));
+
+  switch ( dhcpMsgType ) {
 
     case 2: { // DHCPOFFER
       printf( "Offer received, " );
       DhcpStatusFlag = Dhcp_Offer;
-
-      TRACE(( "Dhcp: Offer received\n" ));
       break;
     }
 
     case 4: { // DHCPDECLINE
       puts( "Declined" );
       DhcpStatusFlag = Dhcp_Declined;
-
-      TRACE_WARN(( "Dhcp: Server declined us.\n" ));
       return;
     }
 
     case 5: { // DHCPACK
       puts( "Acknowledged" );
       DhcpStatusFlag = Dhcp_Ack;
-
-      TRACE(( "Dhcp: All is good - finalize it\n" ));
-      Ip::setMyIpAddr( newIpAddr );
-      Ip::setMyNetmask( subnetMask );
-      Ip::copy( Gateway, gatewayAddr );
-      return;
+      break;
     }
 
     case 6: { // DHCPNAK
       puts( "Negative - Rejected!" );
       DhcpStatusFlag = Dhcp_Nack;
+      return;
+    }
 
-      TRACE(( "Dhcp: Nak - need to start over\n" ));
+    default: {
+      // Discover and Request would be illegal here.
+      // We don't handle Release or Inform.
       return;
     }
 
   }
 
+
+  // Parse the received options.
 
   uint16_t current = 3;
 
@@ -777,66 +835,116 @@ void udpHandler2( Dhcp_t *resp ) {
 
   while ( !done ) {
 
-    TRACE(( "Option type: %d  Length: %d\n", resp->options[current], resp->options[current+1] ));
-
     switch( resp->options[current] ) {
 
       case 51: { // Offered lease time
-	uint32_t tmp = *((uint32_t *)&(resp->options[current+2]));
-	offeredLeaseTime = ntohl( tmp );
-	current += 6;
-	break;
+        uint32_t tmp = *((uint32_t *)&(resp->options[current+2]));
+        OfferedLeaseTime = ntohl( tmp );
+        current += 6;
+        TRACE(( "Dhcp Option:  51 Lease time: %lu seconds\n", OfferedLeaseTime ));
+        break;
       }
 
       case 54: { // Server identity
-	serverIdentity[0] = resp->options[current+2];
-	serverIdentity[1] = resp->options[current+3];
-	serverIdentity[2] = resp->options[current+4];
-	serverIdentity[3] = resp->options[current+5];
-	current += 6;
-	break;
+        ServerIdentity[0] = resp->options[current+2];
+        ServerIdentity[1] = resp->options[current+3];
+        ServerIdentity[2] = resp->options[current+4];
+        ServerIdentity[3] = resp->options[current+5];
+        current += 6;
+        TRACE(( "Dhcp Option:  54 Server: %d.%d.%d.%d\n",
+          ServerIdentity[0], ServerIdentity[1],
+          ServerIdentity[2], ServerIdentity[3] ));
+        break;
+      }
+
+      case 58: { // Renewal Time
+        uint32_t tmp = *((uint32_t *)&(resp->options[current+2]));
+        tmp = ntohl( tmp );
+        current += 6;
+        TRACE(( "Dhcp Option:  58 Lease renewal time: %lu seconds\n", tmp ));
+        break;
+      }
+
+      case 59: { // Rebinding Time
+        uint32_t tmp = *((uint32_t *)&(resp->options[current+2]));
+        tmp = ntohl( tmp );
+        current += 6;
+        TRACE(( "Dhcp Option:  59 Lease rebinding time: %lu seconds\n", tmp ));
+        break;
       }
 
       case 0: { // Pad
-	current++;
-	break;
+        current++;
+        TRACE(( "Dhcp Option:   0 Pad\n" ));
+        break;
       }
 
       case 1: { // Subnet mask
-	subnetMask[0] = resp->options[current+2];
-	subnetMask[1] = resp->options[current+3];
-	subnetMask[2] = resp->options[current+4];
-	subnetMask[3] = resp->options[current+5];
-	current += 6;
-	break;
+        SubnetMask[0] = resp->options[current+2];
+        SubnetMask[1] = resp->options[current+3];
+        SubnetMask[2] = resp->options[current+4];
+        SubnetMask[3] = resp->options[current+5];
+        current += 6;
+        TRACE(( "Dhcp Option:   1 Subnet mask: %d.%d.%d.%d\n",
+          SubnetMask[0], SubnetMask[1],
+          SubnetMask[2], SubnetMask[3] ));
+        break;
       }
 
       case 3: { // Routers (multiple possible, take the first)
-	gatewayAddr[0] = resp->options[current+2];
-	gatewayAddr[1] = resp->options[current+3];
-	gatewayAddr[2] = resp->options[current+4];
-	gatewayAddr[3] = resp->options[current+5];
-	current += 2 + resp->options[current+1];
-	break;
+        GatewayAddr[0] = resp->options[current+2];
+        GatewayAddr[1] = resp->options[current+3];
+        GatewayAddr[2] = resp->options[current+4];
+        GatewayAddr[3] = resp->options[current+5];
+        current += 2 + resp->options[current+1];
+        TRACE(( "Dhcp Option:   3 Router: %d.%d.%d.%d\n",
+          GatewayAddr[0], GatewayAddr[1],
+          GatewayAddr[2], GatewayAddr[3] ));
+        break;
       }
 
       case 6: { // DNS (multiple possible, take the first)
-	nameServer[0] = resp->options[current+2];
-	nameServer[1] = resp->options[current+3];
-	nameServer[2] = resp->options[current+4];
-	nameServer[3] = resp->options[current+5];
-	current += 2 + resp->options[current+1];
-	break;
+        NameServer[0] = resp->options[current+2];
+        NameServer[1] = resp->options[current+3];
+        NameServer[2] = resp->options[current+4];
+        NameServer[3] = resp->options[current+5];
+        current += 2 + resp->options[current+1];
+        TRACE(( "Dhcp Option:   6 Nameserver: %d.%d.%d.%d\n",
+          NameServer[0], NameServer[1],
+          NameServer[2], NameServer[3] ));
+        break;
+      }
+
+      case 12: { // Host name, but not necessarily a DNS host name
+        int l = resp->options[current+1];
+        strncpy( Hostname_assigned, (const char *)&(resp->options[current+2]), 40 );
+        if ( l > 39 ) { l = 39; }
+        Hostname_assigned[l] = 0;
+        current += 2 + resp->options[current+1];
+        TRACE(( "Dhcp Option:  12 Host Name (assigned): %s\n", Hostname_assigned ));
+        break;
+      }
+
+      case 15: { // DNS Domain - info only.
+        int l = resp->options[current+1];
+        strncpy( Domain_assigned, (const char *)&(resp->options[current+2]), 40 );
+        if ( l > 39 ) { l = 39; }
+        Domain_assigned[l] = 0;
+        current += 2 + resp->options[current+1];
+        TRACE(( "Dhcp Option:  15 Domain Name (assigned): %s\n", Domain_assigned ));
+        break;
       }
 
       case 255: { // End of options
-	done = 1;
-	break;
+        done = 1;
+        TRACE(( "Dhcp Option: 255 End of options\n" ));
+        break;
       }
 
 
       default: {
-	current += 2 + resp->options[current+1];
+        TRACE(( "Dhcp Option: %3d Length: %d\n", resp->options[current], resp->options[current+1] ));
+        current += 2 + resp->options[current+1];
       }
 
 
@@ -846,46 +954,79 @@ void udpHandler2( Dhcp_t *resp ) {
   } // end while options
 
 
-  // If we got this far send a DHCPREQUEST back
+  // We also need this, but it is from the message body and not the
+  // DHCP options.
+  NewIpAddr[0] = resp->yourIpAddr[0];
+  NewIpAddr[1] = resp->yourIpAddr[1];
+  NewIpAddr[2] = resp->yourIpAddr[2];
+  NewIpAddr[3] = resp->yourIpAddr[3];
 
-  newIpAddr[0] = resp->yourIpAddr[0];
-  newIpAddr[1] = resp->yourIpAddr[1];
-  newIpAddr[2] = resp->yourIpAddr[2];
-  newIpAddr[3] = resp->yourIpAddr[3];
 
-  current = 0;
+  if ( dhcpMsgType == 2 ) { // DHCP Offer message
+
+    // If we got this far send a DHCPREQUEST back
+    sendDhcpRequestMsg( );
+
+  } else {
+
+    // DHCP ACK message
+    Ip::setMyIpAddr( NewIpAddr );
+    Ip::setMyNetmask( SubnetMask );
+    Ip::copy( Gateway, GatewayAddr );
+
+  }
+
+
+}
+
+void sendDhcpRequestMsg( void ) {
+
+  // We are reusing the request packet.  All of the original header fields
+  // have already been set so we don't need to set them again.  Only set
+  // the options.
+
+  uint16_t current = 0;
 
   req.options[current++] =  53; // DHCP Message type
   req.options[current++] =   1; //      Length
-  req.options[current++] =   3; //      DHCP Discover
+  req.options[current++] =   3; //      DHCP Request
 
   req.options[current++] =  50; // Requested IP Addr
   req.options[current++] =   4; //      Length
-  req.options[current++] =  newIpAddr[0];
-  req.options[current++] =  newIpAddr[1];
-  req.options[current++] =  newIpAddr[2];
-  req.options[current++] =  newIpAddr[3];
+  req.options[current++] =  NewIpAddr[0];
+  req.options[current++] =  NewIpAddr[1];
+  req.options[current++] =  NewIpAddr[2];
+  req.options[current++] =  NewIpAddr[3];
 
   req.options[current++] =  54; // Server identifier
   req.options[current++] =   4; //      Length
-  req.options[current++] =  serverIdentity[0];
-  req.options[current++] =  serverIdentity[1];
-  req.options[current++] =  serverIdentity[2];
-  req.options[current++] =  serverIdentity[3];
+  req.options[current++] =  ServerIdentity[0];
+  req.options[current++] =  ServerIdentity[1];
+  req.options[current++] =  ServerIdentity[2];
+  req.options[current++] =  ServerIdentity[3];
 
   req.options[current++] =  12; // Hostname
   req.options[current++] = strlen( MyHostname ); // Length
   strcpy( (char *)(&req.options[current]), MyHostname );
   current += strlen( MyHostname );
 
+  uint32_t tmp = htonl(RequestedLeaseSecs);
+  req.options[current++] =  51; // Requested lease time
+  req.options[current++] =   4; //      Length
+  req.options[current++] =  ((uint8_t *)&tmp)[0];
+  req.options[current++] =  ((uint8_t *)&tmp)[1];
+  req.options[current++] =  ((uint8_t *)&tmp)[2];
+  req.options[current++] =  ((uint8_t *)&tmp)[3];
+
   req.options[current++] = 255; // End of Options
 
 
-  uint16_t reqLen = 240+current;
+  // 240 is the size of the request, not counting the UdpPacket_t header.
+  // It's everything including the options cookie.
+  uint16_t reqLen = 240 + current;
 
   // This can't fail because we are broadcasting it.
-  // It can only fail if we are out of memory; a debug trace will show that.
-  Udp::sendUdp( IpBroadcast, DHCP_REPLY_PORT, DHCP_REQUEST_PORT, reqLen, (uint8_t *)&req, 1 );
+  Udp::sendUdp( IpBroadcastNonRoutable, DHCP_REPLY_PORT, DHCP_REQUEST_PORT, reqLen, (uint8_t *)&req, 1 );
 }
 
 

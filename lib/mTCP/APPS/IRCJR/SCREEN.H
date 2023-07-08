@@ -1,8 +1,7 @@
-
 /*
 
    mTCP Screen.h
-   Copyright (C) 2008-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2008-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -34,7 +33,6 @@
 #ifndef _SCREEN_H
 #define _SCREEN_H
 
-#include <bios.h>
 #include <stdarg.h>
 
 #include "types.h"
@@ -103,7 +101,7 @@ class Screen {
     // Input handling
 
     static inline InputActions getInput( void ) {
-      if ( bioskey(1) ) return getInput2( ); else return NoAction;
+      if ( biosIsKeyReady( ) ) return getInput2( ); else return NoAction;
     }
 
     static inline void eatOneKeypress( void ) { eatNextChar = true; }
