@@ -157,6 +157,8 @@ void HTagHandler::Close(class HTMLParser& parser) const
 
 void SizeTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
+	parser.PushContext(StyleNode::ConstructFontSize(parser.page.allocator, size), this);
+
 	//WidgetStyle currentStyle = parser.page.GetStyleStackTop();
 	//currentStyle.fontSize = size;
 	//parser.page.PushStyle(currentStyle);
@@ -164,6 +166,8 @@ void SizeTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 
 void SizeTagHandler::Close(class HTMLParser& parser) const
 {
+	parser.PopContext(this);
+
 	//parser.page.PopStyle();
 }
 
