@@ -52,6 +52,8 @@ public:
 	Node* GetRootInterfaceNode() { return rootInterfaceNode; }
 	bool IsInterfaceNode(Node* node);
 
+	URL addressBarURL;
+
 	Widget scrollBar;
 	Widget addressBar;
 	Widget backButton;
@@ -82,6 +84,9 @@ private:
 
 	bool IsOverNode(Node* node, int x, int y);
 
+	static void OnBackButtonPressed(App& app, Node* node);
+	static void OnForwardButtonPressed(App& app, Node* node);
+
 	Widget* appInterfaceWidgets[NUM_APP_INTERFACE_WIDGETS];
 	App& app;
 
@@ -91,7 +96,6 @@ private:
 	Widget* hoverWidget;
 	int oldButtons;
 	int oldMouseX, oldMouseY;
-	URL addressBarURL;
 	int scrollBarRelativeClickPositionX;
 	int scrollBarRelativeClickPositionY;
 	int oldPageHeight;

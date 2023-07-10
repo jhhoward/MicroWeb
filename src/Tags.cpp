@@ -29,6 +29,7 @@
 #include "Nodes/Block.h"
 #include "Nodes/Button.h"
 #include "Nodes/Field.h"
+#include "Nodes/Form.h"
 
 static const HTMLTagHandler* tagHandlers[] =
 {
@@ -194,15 +195,17 @@ void LiTagHandler::Close(class HTMLParser& parser) const
 void ATagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
 	AttributeParser attributes(attributeStr);
+	char* url = NULL;
+
 	while(attributes.Parse())
 	{
 		if (!stricmp(attributes.Key(), "href"))
 		{
-			//parser.page.SetWidgetURL(attributes.Value());
+			url = parser.page.allocator.AllocString(attributes.Value());
 		}
 	}
 
-	parser.PushContext(LinkNode::Construct(parser.page.allocator), this);
+	parser.PushContext(LinkNode::Construct(parser.page.allocator, url), this);
 
 	//WidgetStyle currentStyle = parser.page.GetStyleStackTop();
 	//currentStyle.fontStyle = (FontStyle::Type)(currentStyle.fontStyle | FontStyle::Underline);
@@ -373,7 +376,7 @@ void ButtonTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 		}
 	}
 
-	parser.EmitNode(ButtonNode::Construct(parser.page.allocator, title));
+	parser.EmitNode(ButtonNode::Construct(parser.page.allocator, title, NULL));
 }
 
 void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
@@ -416,23 +419,32 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 	case HTMLInputTag::Submit:
 		if (value)
 		{
-			parser.EmitNode(ButtonNode::Construct(parser.page.allocator, value));
+			parser.EmitNode(ButtonNode::Construct(parser.page.allocator, value, FormNode::OnSubmitButtonPressed));
 		}
 		break;
 	case HTMLInputTag::Text:
-		parser.EmitNode(TextFieldNode::Construct(parser.page.allocator, value));
+		{
+			Node* fieldNode = TextFieldNode::Construct(parser.page.allocator, value);
+			if (fieldNode && fieldNode->data)
+			{
+				TextFieldNode::Data* fieldData = static_cast<TextFieldNode::Data*>(fieldNode->data);
+				fieldData->name = name;
+				parser.EmitNode(fieldNode);
+			}
+		}
 		break;
 	}
 }
 
 void FormTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	WidgetFormData* formData = parser.page.allocator.Alloc<WidgetFormData>();
+	Node* formNode = FormNode::Construct(parser.page.allocator);
+	parser.PushContext(formNode, this);
+
+	FormNode::Data* formData = static_cast<FormNode::Data*>(formNode->data);
+
 	if (formData)
 	{
-		formData->action = NULL;
-		formData->method = WidgetFormData::Get;
-
 		AttributeParser attributes(attributeStr);
 		while (attributes.Parse())
 		{
@@ -444,18 +456,16 @@ void FormTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 			{
 				if (!stricmp(attributes.Value(), "post"))
 				{
-					formData->method = WidgetFormData::Post;
+					formData->method = FormNode::Data::Post;
 				}
 			}
 		}
-
-		parser.page.SetFormData(formData);
 	}
 }
 
 void FormTagHandler::Close(HTMLParser& parser) const
 {
-	parser.page.SetFormData(NULL);
+	parser.PopContext(this);
 }
 
 void ImgTagHandler::Open(class HTMLParser& parser, char* attributeStr) const

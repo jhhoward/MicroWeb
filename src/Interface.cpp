@@ -957,14 +957,14 @@ void AppInterface::GenerateInterfaceNodes()
 		rootInterfaceNode->AddChild(titleNode);
 	}
 
-	backButtonNode = ButtonNode::Construct(allocator, " < ");
+	backButtonNode = ButtonNode::Construct(allocator, " < ", OnBackButtonPressed);
 	backButtonNode->style = rootInterfaceNode->style;
 	backButtonNode->size = ButtonNode::CalculateSize(backButtonNode);
 	backButtonNode->anchor.x = 1;
 	backButtonNode->anchor.y = titleNode->size.y;
 	rootInterfaceNode->AddChild(backButtonNode);
 
-	forwardButtonNode = ButtonNode::Construct(allocator, " > ");
+	forwardButtonNode = ButtonNode::Construct(allocator, " > ", OnForwardButtonPressed);
 	forwardButtonNode->style = rootInterfaceNode->style;
 	forwardButtonNode->size = ButtonNode::CalculateSize(forwardButtonNode);
 	forwardButtonNode->anchor.x = backButtonNode->anchor.x + backButtonNode->size.x + 2;
@@ -1029,3 +1029,12 @@ void AppInterface::FocusNode(Node* node)
 	}
 }
 
+void AppInterface::OnBackButtonPressed(App& app, Node* node)
+{
+	app.PreviousPage();
+}
+
+void AppInterface::OnForwardButtonPressed(App& app, Node* node)
+{
+	app.NextPage();
+}

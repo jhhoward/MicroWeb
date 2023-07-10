@@ -9,6 +9,7 @@
 #include "Nodes/Block.h"
 #include "Nodes/Button.h"
 #include "Nodes/Field.h"
+#include "Nodes/Form.h"
 
 NodeHandler* Node::nodeHandlers[Node::NumNodeTypes] =
 {
@@ -21,7 +22,8 @@ NodeHandler* Node::nodeHandlers[Node::NumNodeTypes] =
 	new LinkNode(),
 	new BlockNode(),
 	new ButtonNode(),
-	new TextFieldNode()
+	new TextFieldNode(),
+	new FormNode()
 };
 
 Node::Node(Type inType, void* inData)
@@ -116,3 +118,16 @@ void NodeHandler::EndLayoutContext(Layout& layout, Node* node)
 		node->EncapsulateChildren();
 	}
 }
+
+Node* Node::FindParentOfType(Node::Type searchType)
+{
+	for(Node* node = parent; node; node = node->parent)
+	{
+		if (node->type == searchType)
+		{
+			return node;
+		}
+	}
+	return NULL;
+}
+

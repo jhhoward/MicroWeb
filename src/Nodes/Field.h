@@ -11,9 +11,10 @@ public:
 	class Data
 	{
 	public:
-		Data(char* inBuffer, int inBufferSize) : buffer(inBuffer), bufferSize(inBufferSize) {}
+		Data(char* inBuffer, int inBufferSize) : buffer(inBuffer), bufferSize(inBufferSize), name(NULL) {}
 		char* buffer;
 		int bufferSize;
+		char* name;
 	};
 
 	static Node* Construct(Allocator& allocator, const char* buttonText);

@@ -55,6 +55,7 @@ public:
 		Block,
 		Button,
 		TextField,
+		Form,
 		NumNodeTypes
 	};
 
@@ -67,6 +68,7 @@ public:
 	void AddChild(Node* child);
 	void EncapsulateChildren();		// Sets anchor and size based on children
 	bool IsPointInsideNode(int x, int y);
+	Node* FindParentOfType(Node::Type searchType);
 
 	Type type;
 

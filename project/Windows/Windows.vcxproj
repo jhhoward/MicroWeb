@@ -148,6 +148,7 @@
     <ClCompile Include="..\..\src\Nodes\Break.cpp" />
     <ClCompile Include="..\..\src\Nodes\Button.cpp" />
     <ClCompile Include="..\..\src\Nodes\Field.cpp" />
+    <ClCompile Include="..\..\src\Nodes\Form.cpp" />
     <ClCompile Include="..\..\src\Nodes\ImgNode.cpp" />
     <ClCompile Include="..\..\src\Nodes\LinkNode.cpp" />
     <ClCompile Include="..\..\src\Nodes\Section.cpp" />

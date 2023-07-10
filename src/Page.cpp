@@ -21,6 +21,7 @@
 #include "Image.h"
 #include "Nodes/Section.h"
 #include "Nodes/Text.h"
+#include "Nodes/Form.h"
 
 #define TOP_MARGIN_PADDING 1
 
@@ -636,7 +637,10 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 		"Break",
 		"Style",
 		"Link",
-		"Block"
+		"Block",
+		"Button",
+		"TextField",
+		"Form"
 	};
 
 	static const char* sectionTypeNames[] =
@@ -668,6 +672,12 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 		{
 			SectionElement::Data* data = static_cast<SectionElement::Data*>(node->data);
 			printf("<%s> [%d,%d:%d,%d] %s\n", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y, sectionTypeNames[data->type]);
+		}
+		break;
+	case Node::Form:
+		{
+			FormNode::Data* data = static_cast<FormNode::Data*>(node->data);
+			printf("<%s> action: %s\n", nodeTypeNames[node->type], data->action ? data->action : "NONE");
 		}
 		break;
 	default:

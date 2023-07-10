@@ -25,7 +25,7 @@ void ButtonNode::Draw(DrawContext& context, Node* node)
 	}
 }
 
-Node* ButtonNode::Construct(Allocator& allocator, const char* inButtonText)
+Node* ButtonNode::Construct(Allocator& allocator, const char* inButtonText, OnButtonNodeClickedCallback callback)
 {
 	const char* buttonText = NULL;
 	if (inButtonText)
@@ -37,7 +37,7 @@ Node* ButtonNode::Construct(Allocator& allocator, const char* inButtonText)
 		}
 	}
 
-	ButtonNode::Data* data = allocator.Alloc<ButtonNode::Data>(buttonText);
+	ButtonNode::Data* data = allocator.Alloc<ButtonNode::Data>(buttonText, callback);
 	if (data)
 	{
 		return allocator.Alloc<Node>(Node::Button, data);
@@ -95,6 +95,13 @@ bool ButtonNode::HandleEvent(Node* node, const Event& event)
 			DrawContext context;
 			event.app.pageRenderer.GenerateDrawContext(context, node);
 			context.surface->InvertRect(context, node->anchor.x + 1, node->anchor.y + 1, node->size.x - 2, node->size.y - 3);
+			
+			ButtonNode::Data* data = static_cast<ButtonNode::Data*>(node->data);
+			if (data->callback)
+			{
+				data->callback(event.app, node);
+			}
+
 			return true;
 		}
 	default:
