@@ -25,9 +25,9 @@ public:
 
 	static Node* Construct(Allocator& allocator);
 
-	static void SubmitForm(App& app, Node* node);
+	static void SubmitForm(Node* node);
 
-	static void OnSubmitButtonPressed(App& app, Node* node);
+	static void OnSubmitButtonPressed(Node* node);
 
 private:
 	static void BuildAddressParameterList(Node* node, char* address, int& numParams);

@@ -25,7 +25,7 @@ void ButtonNode::Draw(DrawContext& context, Node* node)
 	}
 }
 
-Node* ButtonNode::Construct(Allocator& allocator, const char* inButtonText, OnButtonNodeClickedCallback callback)
+Node* ButtonNode::Construct(Allocator& allocator, const char* inButtonText, NodeCallbackFunction callback)
 {
 	const char* buttonText = NULL;
 	if (inButtonText)
@@ -97,9 +97,9 @@ bool ButtonNode::HandleEvent(Node* node, const Event& event)
 			context.surface->InvertRect(context, node->anchor.x + 1, node->anchor.y + 1, node->size.x - 2, node->size.y - 3);
 			
 			ButtonNode::Data* data = static_cast<ButtonNode::Data*>(node->data);
-			if (data->callback)
+			if (data->onClick)
 			{
-				data->callback(event.app, node);
+				data->onClick(node);
 			}
 
 			return true;

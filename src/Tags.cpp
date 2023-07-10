@@ -424,7 +424,7 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 		break;
 	case HTMLInputTag::Text:
 		{
-			Node* fieldNode = TextFieldNode::Construct(parser.page.allocator, value);
+			Node* fieldNode = TextFieldNode::Construct(parser.page.allocator, value, FormNode::OnSubmitButtonPressed);
 			if (fieldNode && fieldNode->data)
 			{
 				TextFieldNode::Data* fieldData = static_cast<TextFieldNode::Data*>(fieldNode->data);

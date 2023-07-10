@@ -72,6 +72,8 @@ public:
 
 	void ShowErrorPage(const char* message);
 
+	static App& Get() { return *app; }
+
 	Page page;
 	Renderer renderer;
 	PageRenderer pageRenderer;
@@ -91,6 +93,10 @@ private:
 	URL pageHistory[MAX_PAGE_URL_HISTORY];
 	int pageHistorySize;
 	int pageHistoryPos;
+
+	static App* app;
+
 };
+
 
 #endif

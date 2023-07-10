@@ -1,4 +1,6 @@
 #include "Page.h"
+#include "App.h"
+#include "Draw/Surface.h"
 #include "Node.h"
 #include "Nodes/Text.h"
 #include "Nodes/Section.h"
@@ -10,6 +12,7 @@
 #include "Nodes/Button.h"
 #include "Nodes/Field.h"
 #include "Nodes/Form.h"
+#include "Nodes/Status.h"
 
 NodeHandler* Node::nodeHandlers[Node::NumNodeTypes] =
 {
@@ -23,7 +26,8 @@ NodeHandler* Node::nodeHandlers[Node::NumNodeTypes] =
 	new BlockNode(),
 	new ButtonNode(),
 	new TextFieldNode(),
-	new FormNode()
+	new FormNode(),
+	new StatusBarNode()
 };
 
 Node::Node(Type inType, void* inData)
@@ -131,3 +135,13 @@ Node* Node::FindParentOfType(Node::Type searchType)
 	return NULL;
 }
 
+void Node::Redraw()
+{
+	DrawContext context;
+
+	Platform::input->HideMouse();
+	App::Get().pageRenderer.GenerateDrawContext(context, this);
+	Handler().Draw(context, this);
+
+	Platform::input->ShowMouse();
+}

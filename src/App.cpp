@@ -16,9 +16,12 @@
 #include "App.h"
 #include "Platform.h"
 
+App* App::app;
+
 App::App() 
 	: page(*this), renderer(*this), pageRenderer(*this), parser(page), ui(*this)
 {
+	app = this;
 	requestedNewPage = false;
 	pageHistorySize = 0;
 	pageHistoryPos = -1;
@@ -26,14 +29,14 @@ App::App()
 
 App::~App()
 {
-
+	app = NULL;
 }
 
 
 void App::ResetPage()
 {
 	page.Reset();
-	renderer.Reset();
+	//renderer.Reset();
 	parser.Reset();
 	ui.Reset();
 }
@@ -105,7 +108,7 @@ void App::Run(int argc, char* argv[])
 			}
 		}
 		if (loadTask.type == LoadTask::RemoteFile && loadTask.request && loadTask.request->GetStatus() == HTTPRequest::Connecting)
-			renderer.SetStatus(loadTask.request->GetStatusString());
+			ui.SetStatusMessage(loadTask.request->GetStatusString());
 
 		ui.Update();
 	}

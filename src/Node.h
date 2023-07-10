@@ -56,6 +56,7 @@ public:
 		Button,
 		TextField,
 		Form,
+		StatusBar,
 		NumNodeTypes
 	};
 
@@ -69,6 +70,7 @@ public:
 	void EncapsulateChildren();		// Sets anchor and size based on children
 	bool IsPointInsideNode(int x, int y);
 	Node* FindParentOfType(Node::Type searchType);
+	void Redraw();
 
 	Type type;
 
@@ -86,5 +88,8 @@ public:
 protected:
 	static NodeHandler* nodeHandlers[Node::NumNodeTypes];
 };
+
+typedef void(*NodeCallbackFunction)(Node* node);
+
 
 #endif

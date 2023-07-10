@@ -44,9 +44,10 @@ void FormNode::BuildAddressParameterList(Node* node, char* address, int& numPara
 	}
 }
 
-void FormNode::SubmitForm(App& app, Node* node)
+void FormNode::SubmitForm(Node* node)
 {
 	FormNode::Data* data = static_cast<FormNode::Data*>(node->data);
+	App& app = App::Get();
 
 	if (data->method == FormNode::Data::Get)
 	{
@@ -69,11 +70,11 @@ void FormNode::SubmitForm(App& app, Node* node)
 	}
 }
 
-void FormNode::OnSubmitButtonPressed(App& app, Node* node)
+void FormNode::OnSubmitButtonPressed(Node* node)
 {
 	Node* formNode = node->FindParentOfType(Node::Form);
 	if (formNode)
 	{
-		SubmitForm(app, formNode);
+		SubmitForm(formNode);
 	}
 }

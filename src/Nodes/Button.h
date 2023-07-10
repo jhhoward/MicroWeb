@@ -3,20 +3,18 @@
 
 #include "../Node.h"
 
-typedef void(*OnButtonNodeClickedCallback)(App& app, Node* node);
-
 class ButtonNode : public NodeHandler
 {
 public:
 	class Data
 	{
 	public:
-		Data(const char* inButtonText, OnButtonNodeClickedCallback inCallback) : buttonText(inButtonText), callback(inCallback) {}
+		Data(const char* inButtonText, NodeCallbackFunction inOnClick) : buttonText(inButtonText), onClick(inOnClick) {}
 		const char* buttonText;
-		OnButtonNodeClickedCallback callback;
+		NodeCallbackFunction onClick;
 	};
 
-	static Node* Construct(Allocator& allocator, const char* buttonText, OnButtonNodeClickedCallback callback);
+	static Node* Construct(Allocator& allocator, const char* buttonText, NodeCallbackFunction onClick);
 	virtual void GenerateLayout(Layout& layout, Node* node) override;
 	virtual void Draw(DrawContext& context, Node* node) override;
 	virtual bool CanPick(Node* node) { return true; }

@@ -20,6 +20,7 @@
 #include "Nodes/Button.h"
 #include "Nodes/Field.h"
 #include "Nodes/Text.h"
+#include "Nodes/Status.h"
 #include "Draw/Surface.h"
 #include "DataPack.h"
 #include "Event.h"
@@ -165,6 +166,7 @@ void AppInterface::Update()
 
 		{
 			// For debugging picking
+			Platform::input->HideMouse();
 			if (hoverNode)
 			{
 				DrawContext context;
@@ -177,6 +179,7 @@ void AppInterface::Update()
 				app.pageRenderer.GenerateDrawContext(context, oldHoverNode);
 				context.surface->InvertRect(context, oldHoverNode->anchor.x, oldHoverNode->anchor.y, oldHoverNode->size.x, oldHoverNode->size.y);
 			}
+			Platform::input->ShowMouse();
 		}
 
 	}
@@ -252,7 +255,7 @@ void AppInterface::Update()
 		{
 			char tempMessage[50];
 			snprintf(tempMessage, 50, "Allocated: %dK Used: %dK\n", (int)(app.page.allocator.TotalAllocated() / 1024), (int)(app.page.allocator.TotalUsed() / 1024));
-			app.renderer.SetStatus(tempMessage);
+			app.ui.SetStatusMessage(tempMessage);
 		}
 			break;
 
@@ -438,7 +441,7 @@ void AppInterface::ActivateWidget(Widget* widget)
 			if (widget->GetLinkURL())
 			{
 				InvertWidgetsWithLinkURL(widget->GetLinkURL());
-				app.renderer.SetStatus(URL::GenerateFromRelative(app.page.pageURL.url, widget->GetLinkURL()).url);
+				SetStatusMessage(URL::GenerateFromRelative(app.page.pageURL.url, widget->GetLinkURL()).url);
 			}
 			break;
 		}
@@ -817,6 +820,7 @@ void AppInterface::SubmitForm(WidgetFormData* form)
 void AppInterface::UpdateAddressBar(const URL& url)
 {
 	addressBarURL = url;
+	addressBarNode->Redraw();
 	//app.renderer.RedrawWidget(&addressBar);
 }
 
@@ -971,7 +975,7 @@ void AppInterface::GenerateInterfaceNodes()
 	forwardButtonNode->anchor.y = titleNode->size.y;
 	rootInterfaceNode->AddChild(forwardButtonNode);
 
-	addressBarNode = TextFieldNode::Construct(allocator, "http://www.example.com");
+	addressBarNode = TextFieldNode::Construct(allocator, addressBarURL.url, MAX_URL_LENGTH - 1, OnAddressBarSubmit);
 	addressBarNode->style = rootInterfaceNode->style;
 	addressBarNode->anchor.x = forwardButtonNode->anchor.x + forwardButtonNode->size.x + 2;
 	addressBarNode->anchor.y = titleNode->size.y;
@@ -979,12 +983,20 @@ void AppInterface::GenerateInterfaceNodes()
 	addressBarNode->size.y = backButtonNode->size.y;
 	rootInterfaceNode->AddChild(addressBarNode);
 
+	statusBarNode = StatusBarNode::Construct(allocator);
+	statusBarNode->style = rootInterfaceNode->style;
+	statusBarNode->size.x = Platform::video->screenWidth;
+	statusBarNode->size.y = interfaceFont->glyphHeight + 2;
+	statusBarNode->anchor.x = 0;
+	statusBarNode->anchor.y = Platform::video->screenHeight - statusBarNode->size.y;
+	rootInterfaceNode->AddChild(statusBarNode);
+
 	rootInterfaceNode->EncapsulateChildren();
 
 	windowRect.x = 0;
 	windowRect.y = backButtonNode->anchor.y + backButtonNode->size.y + 3;
 	windowRect.width = Platform::video->screenWidth - 16;
-	windowRect.height = Platform::video->screenHeight - windowRect.y;
+	windowRect.height = Platform::video->screenHeight - windowRect.y - statusBarNode->size.y;
 }
 
 void AppInterface::DrawInterfaceNodes(DrawContext& context)
@@ -1029,12 +1041,29 @@ void AppInterface::FocusNode(Node* node)
 	}
 }
 
-void AppInterface::OnBackButtonPressed(App& app, Node* node)
+void AppInterface::OnBackButtonPressed(Node* node)
 {
-	app.PreviousPage();
+	App::Get().PreviousPage();
 }
 
-void AppInterface::OnForwardButtonPressed(App& app, Node* node)
+void AppInterface::OnForwardButtonPressed(Node* node)
 {
-	app.NextPage();
+	App::Get().NextPage();
+}
+
+void AppInterface::OnAddressBarSubmit(Node* node)
+{
+	App& app = App::Get();
+	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
+	app.OpenURL(data->buffer);
+}
+
+void AppInterface::SetStatusMessage(const char* message)
+{
+	StatusBarNode::Data* data = static_cast<StatusBarNode::Data*>(statusBarNode->data);
+	if (strcmp(data->message, message))
+	{
+		strcpy(data->message, message);
+		statusBarNode->Redraw();
+	}
 }

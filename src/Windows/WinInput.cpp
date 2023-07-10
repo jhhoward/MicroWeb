@@ -142,6 +142,10 @@ InputButtonCode WindowsInputDriver::TranslateCode(WPARAM code)
 		return KEYCODE_ARROW_UP;
 	case VK_DOWN:
 		return KEYCODE_ARROW_DOWN;
+	case VK_LEFT:
+		return KEYCODE_ARROW_LEFT;
+	case VK_RIGHT:
+		return KEYCODE_ARROW_RIGHT;
 	case VK_HOME:
 		return KEYCODE_HOME;
 	case VK_END:
@@ -152,6 +156,10 @@ InputButtonCode WindowsInputDriver::TranslateCode(WPARAM code)
 		return KEYCODE_PAGE_DOWN;
 	case VK_RETURN:
 		return KEYCODE_ENTER;
+	case VK_DELETE:
+		return KEYCODE_DELETE;
+	case VK_BACK:
+		return KEYCODE_BACKSPACE;
 	default:
 		return 0;
 	}

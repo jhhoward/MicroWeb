@@ -39,6 +39,7 @@ public:
 	void DrawInterfaceNodes(DrawContext& context);
 	void DrawInterfaceWidgets();
 	void UpdateAddressBar(const URL& url);
+	void SetStatusMessage(const char* message);
 
 	void UpdatePageScrollBar();
 	Widget* GetActiveWidget() { return activeWidget; }
@@ -84,8 +85,10 @@ private:
 
 	bool IsOverNode(Node* node, int x, int y);
 
-	static void OnBackButtonPressed(App& app, Node* node);
-	static void OnForwardButtonPressed(App& app, Node* node);
+	static void OnBackButtonPressed(Node* node);
+	static void OnForwardButtonPressed(Node* node);
+	static void OnAddressBarSubmit(Node* node);
+
 
 	Widget* appInterfaceWidgets[NUM_APP_INTERFACE_WIDGETS];
 	App& app;
@@ -114,6 +117,7 @@ private:
 	Node* backButtonNode;
 	Node* forwardButtonNode;
 	Node* addressBarNode;
+	Node* statusBarNode;
 
 	char titleBuffer[MAX_TITLE_LENGTH];
 };

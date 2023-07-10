@@ -149,13 +149,13 @@ void DrawSurface_1BPP::FillRect(DrawContext& context, int x, int y, int width, i
 		height -= (context.clipTop - y);
 		y = context.clipTop;
 	}
-	if (x + width >= context.clipRight)
+	if (x + width > context.clipRight)
 	{
-		width = context.clipRight - 1 - x;
+		width = context.clipRight - x;
 	}
-	if (y + height >= context.clipBottom)
+	if (y + height > context.clipBottom)
 	{
-		height = context.clipBottom - 1 - y;
+		height = context.clipBottom - y;
 	}
 	if (width <= 0 || height <= 0)
 	{
@@ -376,13 +376,13 @@ void DrawSurface_1BPP::InvertRect(DrawContext& context, int x, int y, int width,
 		height -= (context.clipTop - y);
 		y = context.clipTop;
 	}
-	if (x + width >= context.clipRight)
+	if (x + width > context.clipRight)
 	{
-		width = context.clipRight - 1 - x;
+		width = context.clipRight - x;
 	}
-	if (y + height >= context.clipBottom)
+	if (y + height > context.clipBottom)
 	{
-		height = context.clipBottom - 1 - y;
+		height = context.clipBottom - y;
 	}
 	if (width <= 0 || height <= 0)
 	{

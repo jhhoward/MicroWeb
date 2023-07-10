@@ -11,16 +11,28 @@ public:
 	class Data
 	{
 	public:
-		Data(char* inBuffer, int inBufferSize) : buffer(inBuffer), bufferSize(inBufferSize), name(NULL) {}
+		Data(char* inBuffer, int inBufferSize, NodeCallbackFunction inOnSubmit) : buffer(inBuffer), bufferSize(inBufferSize), name(NULL), onSubmit(inOnSubmit) {}
 		char* buffer;
 		int bufferSize;
 		char* name;
+		NodeCallbackFunction onSubmit;
 	};
 
-	static Node* Construct(Allocator& allocator, const char* buttonText);
+	static Node* Construct(Allocator& allocator, const char* text, NodeCallbackFunction onSubmit = NULL);
+	static Node* Construct(Allocator& allocator, char* buffer, int bufferLength, NodeCallbackFunction onSubmit = NULL);
 	virtual void GenerateLayout(Layout& layout, Node* node) override;
 	virtual void Draw(DrawContext& context, Node* node) override;
 	virtual bool CanPick(Node* node) { return true; }
+	virtual bool HandleEvent(Node* node, const Event& event) override;
+
+private:
+	int cursorPosition;
+
+	void DrawCursor(DrawContext& context, Node* node, bool clear);
+	void MoveCursorPosition(Node* node, int newPosition);
+	void RedrawModified(Node* node, int position);
+
+
 };
 
 #endif

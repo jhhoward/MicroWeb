@@ -152,6 +152,7 @@
     <ClCompile Include="..\..\src\Nodes\ImgNode.cpp" />
     <ClCompile Include="..\..\src\Nodes\LinkNode.cpp" />
     <ClCompile Include="..\..\src\Nodes\Section.cpp" />
+    <ClCompile Include="..\..\src\Nodes\Status.cpp" />
     <ClCompile Include="..\..\src\Nodes\StyNode.cpp" />
     <ClCompile Include="..\..\src\Nodes\Text.cpp" />
     <ClCompile Include="..\..\src\Font.cpp" />
@@ -178,9 +179,11 @@
     <ClInclude Include="..\..\src\Nodes\Break.h" />
     <ClInclude Include="..\..\src\Nodes\Button.h" />
     <ClInclude Include="..\..\src\Nodes\Field.h" />
+    <ClInclude Include="..\..\src\Nodes\Form.h" />
     <ClInclude Include="..\..\src\Nodes\ImgNode.h" />
     <ClInclude Include="..\..\src\Nodes\LinkNode.h" />
     <ClInclude Include="..\..\src\Nodes\Section.h" />
+    <ClInclude Include="..\..\src\Nodes\Status.h" />
     <ClInclude Include="..\..\src\Nodes\StyNode.h" />
     <ClInclude Include="..\..\src\Nodes\Text.h" />
     <ClInclude Include="..\..\src\Font.h" />
