@@ -359,5 +359,68 @@ void DrawSurface_1BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 {
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
-
 }
+
+void DrawSurface_1BPP::InvertRect(DrawContext& context, int x, int y, int width, int height)
+{
+	x += context.drawOffsetX;
+	y += context.drawOffsetY;
+
+	if (x < context.clipLeft)
+	{
+		width -= (context.clipLeft - x);
+		x = context.clipLeft;
+	}
+	if (y < context.clipTop)
+	{
+		height -= (context.clipTop - y);
+		y = context.clipTop;
+	}
+	if (x + width >= context.clipRight)
+	{
+		width = context.clipRight - 1 - x;
+	}
+	if (y + height >= context.clipBottom)
+	{
+		height = context.clipBottom - 1 - y;
+	}
+	if (width <= 0 || height <= 0)
+	{
+		return;
+	}
+
+	while (height)
+	{
+		uint8_t* VRAMptr = lines[y];
+		VRAMptr += (x >> 3);
+		int count = width;
+		int workX = x;
+		uint8_t data = *VRAMptr;
+		uint8_t mask = (0x80 >> (x & 7));
+
+		while (count--)
+		{
+			data ^= mask;
+			workX++;
+			//mask = (mask >> 1) | 0x80;
+			mask >>= 1;
+			if ((workX & 7) == 0)
+			{
+				*VRAMptr++ = data;
+				while (count > 8)
+				{
+					*VRAMptr++ ^= 0xff;
+					count -= 8;
+				}
+				mask = 0x80;
+				data = *VRAMptr;
+			}
+		}
+
+		*VRAMptr = data;
+
+		height--;
+		y++;
+	}
+}
+

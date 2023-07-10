@@ -12,5 +12,7 @@ public:
 	};
 
 	virtual void ApplyStyle(Node* node) override;
+	virtual bool CanPick(Node* node) override { return true; }
+
 	static Node* Construct(Allocator& allocator);
 };

@@ -14,6 +14,8 @@ public:
 	virtual void FillRect(DrawContext& context, int x, int y, int width, int height, uint8_t colour);
 	virtual void DrawString(DrawContext& context, Font* font, const char* text, int x, int y, uint8_t colour, FontStyle::Type style = FontStyle::Regular);
 	virtual void BlitImage(DrawContext& context, Image* image, int x, int y);
+	virtual void InvertRect(DrawContext& context, int x, int y, int width, int height);
+
 
 	uint8_t** lines;
 };

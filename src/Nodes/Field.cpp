@@ -61,11 +61,3 @@ void TextFieldNode::GenerateLayout(Layout& layout, Node* node)
 	layout.ProgressCursor(node, node->size.x, node->size.y);
 }
 
-Node* TextFieldNode::Pick(Node* node, int x, int y)
-{
-	if (node->IsPointInsideNode(x, y))
-	{
-		return node;
-	}
-	return nullptr;
-}

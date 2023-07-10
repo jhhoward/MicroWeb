@@ -22,6 +22,7 @@
 #include "Nodes/Text.h"
 #include "Draw/Surface.h"
 #include "DataPack.h"
+#include "Event.h"
 
 #define MIN_SCROLL_WIDGET_SIZE 8
 
@@ -161,6 +162,23 @@ void AppInterface::Update()
 		{
 			Platform::input->SetMouseCursor(MouseCursor::Pointer);
 		}
+
+		{
+			// For debugging picking
+			if (hoverNode)
+			{
+				DrawContext context;
+				app.pageRenderer.GenerateDrawContext(context, hoverNode);
+				context.surface->InvertRect(context, hoverNode->anchor.x, hoverNode->anchor.y, hoverNode->size.x, hoverNode->size.y);
+			}
+			if (oldHoverNode)
+			{
+				DrawContext context;
+				app.pageRenderer.GenerateDrawContext(context, oldHoverNode);
+				context.surface->InvertRect(context, oldHoverNode->anchor.x, oldHoverNode->anchor.y, oldHoverNode->size.x, oldHoverNode->size.y);
+			}
+		}
+
 	}
 	
 
@@ -169,6 +187,11 @@ void AppInterface::Update()
 
 	while (keyPress = Platform::input->GetKeyPress())
 	{
+		if (focusedNode && focusedNode->Handler().HandleEvent(focusedNode, Event(app, Event::KeyPress, keyPress)))
+		{
+			continue;
+		}
+
 		if (activeWidget)
 		{
 			if (HandleActiveWidget(keyPress))
@@ -241,7 +264,8 @@ void AppInterface::Update()
 
 	if (scrollDelta)
 	{
-		app.renderer.Scroll(scrollDelta);
+		app.pageRenderer.ScrollRelative(scrollDelta);
+		//app.renderer.Scroll(scrollDelta);
 	}
 }
 
@@ -329,7 +353,7 @@ Node* AppInterface::PickNode(int x, int y)
 	if (x >= windowRect.x && y >= windowRect.y && x < windowRect.x + windowRect.width && y < windowRect.y + windowRect.height)
 	{
 		int pageX = x - windowRect.x;
-		int pageY = y - windowRect.y - app.pageRenderer.GetScrollPositionY();
+		int pageY = y - windowRect.y + app.pageRenderer.GetScrollPositionY();
 
 		Node* pageRootNode = app.page.GetRootNode();
 		return pageRootNode->Handler().Pick(pageRootNode, pageX, pageY);
@@ -444,12 +468,10 @@ void AppInterface::HandleClick(int mouseX, int mouseY)
 		DeactivateWidget();
 	}
 
+	if (hoverNode)
 	{
-		Node* clickedNode = PickNode(mouseX, mouseY);
-		if (clickedNode)
-		{
-			printf("Clicked a node\n");
-		}
+		FocusNode(hoverNode);
+		focusedNode->Handler().HandleEvent(focusedNode, Event(app, Event::MouseClick));
 	}
 
 	if (hoverWidget)
@@ -539,6 +561,11 @@ void AppInterface::HandleButtonClicked(Widget* widget)
 
 void AppInterface::HandleRelease()
 {
+	if (focusedNode)
+	{
+		focusedNode->Handler().HandleEvent(focusedNode, Event(app, Event::MouseRelease));
+	}
+
 	if (activeWidget && activeWidget->type == Widget::Button)
 	{
 		if (clickingButton)
@@ -991,5 +1018,14 @@ void AppInterface::SetTitle(const char* title)
 
 bool AppInterface::IsInterfaceNode(Node* node)
 {
-	return node && node->parent == rootInterfaceNode;
+	return node == rootInterfaceNode || (node && node->parent == rootInterfaceNode);
 }
+
+void AppInterface::FocusNode(Node* node)
+{
+	if (node != focusedNode)
+	{
+		focusedNode = node;
+	}
+}
+

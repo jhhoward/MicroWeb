@@ -20,6 +20,8 @@ public:
 	void DrawAll(DrawContext& context, Node* node);
 
 	int GetScrollPositionY() { return scrollPositionY; }
+	
+	void GenerateDrawContext(DrawContext& context, Node* node);
 
 private:
 	App& app;

@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include "Style.h"
+#include "Event.h"
 
 class App;
 class Page;
@@ -21,8 +22,8 @@ public:
 	virtual void EndLayoutContext(Layout& layout, Node* node);
 	virtual void ApplyStyle(Node* node) {}
 	virtual Node* Pick(Node* node, int x, int y);
-	virtual void OnMouseClick(App& app) {}
-	virtual void OnMouseRelease(App& app) {}
+	virtual bool CanPick(Node* node) { return false; }
+	virtual bool HandleEvent(Node* node, const Event& event) { return false; }
 };
 
 struct Coord

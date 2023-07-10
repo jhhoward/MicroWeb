@@ -93,6 +93,11 @@ Node* NodeHandler::Pick(Node* node, int x, int y)
 		return nullptr;
 	}
 
+	if (CanPick(node))
+	{
+		return node;
+	}
+
 	for (Node* it = node->firstChild; it; it = it->next)
 	{
 		if (it->IsPointInsideNode(x, y))

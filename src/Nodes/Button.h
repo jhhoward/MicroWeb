@@ -16,7 +16,8 @@ public:
 	static Node* Construct(Allocator& allocator, const char* buttonText);
 	virtual void GenerateLayout(Layout& layout, Node* node) override;
 	virtual void Draw(DrawContext& context, Node* node) override;
-	virtual Node* Pick(Node* node, int x, int y) override;
+	virtual bool CanPick(Node* node) { return true; }
+	virtual bool HandleEvent(Node* node, const Event& event);
 
 	static Coord CalculateSize(Node* node);
 };

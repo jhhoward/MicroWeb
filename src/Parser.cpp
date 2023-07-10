@@ -27,6 +27,7 @@
 // debug
 #include "Platform.h"
 #include "Draw/Surface.h"
+#include "App.h"
 
 HTMLParser::HTMLParser(Page& inPage)
 : page(inPage)
@@ -100,8 +101,9 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 			if (contextStackSize == 0)
 			{
 				page.GetRootNode()->EncapsulateChildren();
-				DrawContext context(Platform::video->drawSurface, 0, 20, Platform::video->screenWidth, Platform::video->screenHeight - 20);
-				context.drawOffsetY = 50;
+				DrawContext context;
+				page.GetApp().pageRenderer.GenerateDrawContext(context, page.GetRootNode());
+				
 #ifdef _WIN32
 				page.DebugDumpNodeGraph(page.GetRootNode());
 #endif

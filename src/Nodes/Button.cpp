@@ -1,8 +1,11 @@
+
 #include "Button.h"
 #include "../DataPack.h"
 #include "../Draw/Surface.h"
 #include "../LinAlloc.h"
 #include "../Layout.h"
+#include "../Event.h"
+#include "../App.h"
 
 void ButtonNode::Draw(DrawContext& context, Node* node)
 {
@@ -15,6 +18,7 @@ void ButtonNode::Draw(DrawContext& context, Node* node)
 		uint8_t buttonOutlineColour = 0;
 		context.surface->HLine(context, node->anchor.x + 1, node->anchor.y, node->size.x - 2, buttonOutlineColour);
 		context.surface->HLine(context, node->anchor.x + 1, node->anchor.y + node->size.y - 1, node->size.x - 2, buttonOutlineColour);
+		context.surface->HLine(context, node->anchor.x + 1, node->anchor.y + node->size.y - 2, node->size.x - 2, buttonOutlineColour);
 		context.surface->VLine(context, node->anchor.x, node->anchor.y + 1, node->size.y - 2, buttonOutlineColour);
 		context.surface->VLine(context, node->anchor.x + node->size.x - 1, node->anchor.y + 1, node->size.y - 2, buttonOutlineColour);
 		context.surface->DrawString(context, font, data->buttonText, node->anchor.x + 8, node->anchor.y + 2, textColour, node->style.fontStyle);
@@ -56,7 +60,7 @@ Coord ButtonNode::CalculateSize(Node* node)
 
 	Coord result;
 	result.x = labelWidth + 16;
-	result.y = labelHeight + 4;
+	result.y = labelHeight + 5;
 	return result;
 }
 
@@ -75,11 +79,27 @@ void ButtonNode::GenerateLayout(Layout& layout, Node* node)
 	layout.ProgressCursor(node, node->size.x, node->size.y);
 }
 
-Node* ButtonNode::Pick(Node* node, int x, int y)
+bool ButtonNode::HandleEvent(Node* node, const Event& event)
 {
-	if (node->IsPointInsideNode(x, y))
+	switch (event.type)
 	{
-		return node;
+	case Event::MouseClick:
+		{
+			DrawContext context;
+			event.app.pageRenderer.GenerateDrawContext(context, node);
+			context.surface->InvertRect(context, node->anchor.x + 1, node->anchor.y + 1, node->size.x - 2, node->size.y - 3);
+			return true;
+		}
+	case Event::MouseRelease:
+		{
+			DrawContext context;
+			event.app.pageRenderer.GenerateDrawContext(context, node);
+			context.surface->InvertRect(context, node->anchor.x + 1, node->anchor.y + 1, node->size.x - 2, node->size.y - 3);
+			return true;
+		}
+	default:
+		break;
 	}
-	return nullptr;
+
+	return false;
 }

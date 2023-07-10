@@ -99,6 +99,8 @@ public:
 
 	URL pageURL;
 
+	App& GetApp() { return app; }
+
 private:
 	friend class Renderer;
 	friend class AppInterface;

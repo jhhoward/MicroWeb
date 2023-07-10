@@ -46,6 +46,12 @@ public:
 
 	void SetTitle(const char* title);
 
+	void FocusNode(Node* node);
+	Node* GetFocusedNode() { return focusedNode; }
+	Node* GetHoverNode() { return hoverNode; }
+	Node* GetRootInterfaceNode() { return rootInterfaceNode; }
+	bool IsInterfaceNode(Node* node);
+
 	Widget scrollBar;
 	Widget addressBar;
 	Widget backButton;
@@ -74,7 +80,6 @@ private:
 	void ActivateWidget(Widget* widget);
 	void DeactivateWidget();
 
-	bool IsInterfaceNode(Node* node);
 	bool IsOverNode(Node* node, int x, int y);
 
 	Widget* appInterfaceWidgets[NUM_APP_INTERFACE_WIDGETS];
