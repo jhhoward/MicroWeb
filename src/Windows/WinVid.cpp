@@ -25,8 +25,10 @@
 #define WINDOW_HEIGHT 168
 #define WINDOW_BOTTOM (WINDOW_TOP + WINDOW_HEIGHT)
 
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
+//#define SCREEN_WIDTH 800
+//#define SCREEN_HEIGHT 600
+#define SCREEN_WIDTH 640
+#define SCREEN_HEIGHT 200
 
 #define NAVIGATION_BUTTON_WIDTH 24
 #define NAVIGATION_BUTTON_HEIGHT 12
@@ -71,6 +73,8 @@ WindowsVideoDriver::WindowsVideoDriver()
 	//bulletImage = &CGA_Bullet;
 
 	Assets.Load("Default.dat");
+//	Assets.Load("Lowres.dat");
+//	Assets.Load("CGA.dat");
 
 	isTextMode = false;
 }

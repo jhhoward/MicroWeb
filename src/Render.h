@@ -14,18 +14,12 @@ public:
 	void Reset();
 	void Update();
 
-	void ScrollRelative(int delta);
-	void ScrollAbsolute(int position);
-
 	void DrawAll(DrawContext& context, Node* node);
-
-	int GetScrollPositionY() { return scrollPositionY; }
 	
 	void GenerateDrawContext(DrawContext& context, Node* node);
 
 private:
 	App& app;
-	int scrollPositionY;
 };
 
 #endif

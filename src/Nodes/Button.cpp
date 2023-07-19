@@ -60,7 +60,7 @@ Coord ButtonNode::CalculateSize(Node* node)
 
 	Coord result;
 	result.x = labelWidth + 16;
-	result.y = labelHeight + 5;
+	result.y = labelHeight + 4;
 	return result;
 }
 

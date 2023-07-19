@@ -57,6 +57,7 @@ public:
 		TextField,
 		Form,
 		StatusBar,
+		ScrollBar,
 		NumNodeTypes
 	};
 

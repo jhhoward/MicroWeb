@@ -53,6 +53,11 @@ public:
 	Node* GetRootInterfaceNode() { return rootInterfaceNode; }
 	bool IsInterfaceNode(Node* node);
 
+	int GetScrollPositionY() { return scrollPositionY; }
+	void ScrollRelative(int delta);
+	void ScrollAbsolute(int position);
+
+
 	URL addressBarURL;
 
 	Widget scrollBar;
@@ -118,6 +123,9 @@ private:
 	Node* forwardButtonNode;
 	Node* addressBarNode;
 	Node* statusBarNode;
+	Node* scrollBarNode;
+
+	int scrollPositionY;
 
 	char titleBuffer[MAX_TITLE_LENGTH];
 };

@@ -21,6 +21,7 @@
 #include "Nodes/Field.h"
 #include "Nodes/Text.h"
 #include "Nodes/Status.h"
+#include "Nodes/Scroll.h"
 #include "Draw/Surface.h"
 #include "DataPack.h"
 #include "Event.h"
@@ -52,6 +53,7 @@ void AppInterface::Init()
 
 void AppInterface::Reset()
 {
+	scrollPositionY = 0;
 	oldPageHeight = 0;
 	if (activeWidget && !activeWidget->isInterfaceWidget)
 	{
@@ -267,7 +269,7 @@ void AppInterface::Update()
 
 	if (scrollDelta)
 	{
-		app.pageRenderer.ScrollRelative(scrollDelta);
+		ScrollRelative(scrollDelta);
 		//app.renderer.Scroll(scrollDelta);
 	}
 }
@@ -339,7 +341,7 @@ bool AppInterface::IsOverNode(Node* node, int x, int y)
 	else
 	{
 		x -= windowRect.x;
-		y -= windowRect.y - app.pageRenderer.GetScrollPositionY();
+		y -= windowRect.y - scrollPositionY;
 		return node->IsPointInsideNode(x, y);
 	}
 }
@@ -356,7 +358,7 @@ Node* AppInterface::PickNode(int x, int y)
 	if (x >= windowRect.x && y >= windowRect.y && x < windowRect.x + windowRect.width && y < windowRect.y + windowRect.height)
 	{
 		int pageX = x - windowRect.x;
-		int pageY = y - windowRect.y + app.pageRenderer.GetScrollPositionY();
+		int pageY = y - windowRect.y + scrollPositionY;
 
 		Node* pageRootNode = app.page.GetRootNode();
 		return pageRootNode->Handler().Pick(pageRootNode, pageX, pageY);
@@ -453,7 +455,7 @@ void AppInterface::InvertWidgetsWithLinkURL(const char* url)
 	for (int n = app.renderer.GetPageTopWidgetIndex(); n < app.page.numFinishedWidgets; n++)
 	{
 		Widget* pageWidget = &app.page.widgets[n];
-		if (pageWidget->y > app.renderer.GetScrollPosition() + Platform::video->windowHeight)
+		if (pageWidget->y > scrollPositionY + Platform::video->windowHeight)
 		{
 			break;
 		}
@@ -826,7 +828,7 @@ void AppInterface::UpdateAddressBar(const URL& url)
 
 void AppInterface::UpdatePageScrollBar()
 {
-	int pageHeight = app.page.GetPageHeight();
+	/*int pageHeight = app.page.GetPageHeight();
 	int windowHeight = Platform::video->windowHeight;
 	int scrollWidgetSize = pageHeight < windowHeight ? windowHeight : (int)(((int32_t)windowHeight * windowHeight) / pageHeight);
 	if (scrollWidgetSize < MIN_SCROLL_WIDGET_SIZE)
@@ -844,6 +846,14 @@ void AppInterface::UpdatePageScrollBar()
 	}
 
 	app.renderer.RedrawScrollBar();
+	*/
+	ScrollBarNode::Data* data = static_cast<ScrollBarNode::Data*>(scrollBarNode->data);
+	int maxScrollHeight = app.page.GetRootNode()->size.y - app.ui.windowRect.height;
+	if (maxScrollHeight < 0)
+		maxScrollHeight = 0;
+	data->scrollPosition = scrollPositionY;
+	data->maxScroll = maxScrollHeight;
+	scrollBarNode->Redraw();
 }
 
 void AppInterface::CycleWidgets(int direction)
@@ -991,11 +1001,19 @@ void AppInterface::GenerateInterfaceNodes()
 	statusBarNode->anchor.y = Platform::video->screenHeight - statusBarNode->size.y;
 	rootInterfaceNode->AddChild(statusBarNode);
 
+	scrollBarNode = ScrollBarNode::Construct(allocator, scrollPositionY, app.page.pageHeight);
+	scrollBarNode->style = rootInterfaceNode->style;
+	scrollBarNode->anchor.y = backButtonNode->anchor.y + backButtonNode->size.y + 3;
+	scrollBarNode->size.x = 16;
+	scrollBarNode->size.y = Platform::video->screenHeight - scrollBarNode->anchor.y - statusBarNode->size.y;
+	scrollBarNode->anchor.x = Platform::video->screenWidth - scrollBarNode->size.x;
+	rootInterfaceNode->AddChild(scrollBarNode);
+
 	rootInterfaceNode->EncapsulateChildren();
 
 	windowRect.x = 0;
 	windowRect.y = backButtonNode->anchor.y + backButtonNode->size.y + 3;
-	windowRect.width = Platform::video->screenWidth - 16;
+	windowRect.width = Platform::video->screenWidth - scrollBarNode->size.x;
 	windowRect.height = Platform::video->screenHeight - windowRect.y - statusBarNode->size.y;
 }
 
@@ -1066,4 +1084,31 @@ void AppInterface::SetStatusMessage(const char* message)
 		strcpy(data->message, message);
 		statusBarNode->Redraw();
 	}
+}
+
+void AppInterface::ScrollRelative(int delta)
+{
+	scrollPositionY += delta;
+	if (scrollPositionY < 0)
+		scrollPositionY = 0;
+
+	int maxScrollY = app.page.GetRootNode()->size.y - app.ui.windowRect.height;
+	if (maxScrollY > 0 && scrollPositionY > maxScrollY)
+	{
+		scrollPositionY = maxScrollY;
+	}
+
+	UpdatePageScrollBar();
+
+	DrawContext context;
+	app.pageRenderer.GenerateDrawContext(context, NULL);
+	context.drawOffsetY = 0;
+	context.surface->FillRect(context, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight, 1);
+	app.pageRenderer.GenerateDrawContext(context, NULL);
+	app.pageRenderer.DrawAll(context, app.page.GetRootNode());
+}
+
+void AppInterface::ScrollAbsolute(int position)
+{
+
 }

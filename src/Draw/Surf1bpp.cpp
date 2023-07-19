@@ -424,3 +424,57 @@ void DrawSurface_1BPP::InvertRect(DrawContext& context, int x, int y, int width,
 	}
 }
 
+void DrawSurface_1BPP::VerticalScrollBar(DrawContext& context, int x, int y, int height, int position, int size)
+{
+	x += context.drawOffsetX;
+	y += context.drawOffsetY;
+	int startY = y;
+
+	x >>= 3;
+	const int grabSize = 7;
+	const int minWidgetSize = grabSize + 4;
+	const int widgetPaddingSize = size - minWidgetSize;
+	int topPaddingSize = widgetPaddingSize >> 1;
+	int bottomPaddingSize = widgetPaddingSize - topPaddingSize;
+	const uint16_t edge = 0;
+	const uint16_t inner = 0xfe7f;
+	int bottomSpacing = height - position - size;
+
+	while (position--)
+	{
+		*(uint16_t*)(&lines[y++][x]) = inner;
+	}
+
+	const uint16_t widgetEdge = 0x0660;
+	*(uint16_t*)(&lines[y++][x]) = inner;
+	*(uint16_t*)(&lines[y++][x]) = widgetEdge;
+
+	const uint16_t widgetInner = 0xfa5f;
+	const uint16_t grab = 0x0a50;
+
+	while (topPaddingSize--)
+	{
+		*(uint16_t*)(&lines[y++][x]) = widgetInner;
+	}
+
+	*(uint16_t*)(&lines[y++][x]) = widgetInner;
+	*(uint16_t*)(&lines[y++][x]) = grab;
+	*(uint16_t*)(&lines[y++][x]) = widgetInner;
+	*(uint16_t*)(&lines[y++][x]) = grab;
+	*(uint16_t*)(&lines[y++][x]) = widgetInner;
+	*(uint16_t*)(&lines[y++][x]) = grab;
+	*(uint16_t*)(&lines[y++][x]) = widgetInner;
+
+	while (bottomPaddingSize--)
+	{
+		*(uint16_t*)(&lines[y++][x]) = widgetInner;
+	}
+
+	*(uint16_t*)(&lines[y++][x]) = widgetEdge;
+	*(uint16_t*)(&lines[y++][x]) = inner;
+
+	while (bottomSpacing--)
+	{
+		*(uint16_t*)(&lines[y++][x]) = inner;
+	}
+}

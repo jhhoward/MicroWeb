@@ -5,7 +5,7 @@
 #include "Draw/Surface.h"
 
 PageRenderer::PageRenderer(App& inApp)
-	: app(inApp), scrollPositionY(0)
+	: app(inApp)
 {
 
 }
@@ -17,38 +17,12 @@ void PageRenderer::Init()
 
 void PageRenderer::Reset()
 {
-	scrollPositionY = 0;
 }
 
 void PageRenderer::Update()
 {
 
 }	
-
-void PageRenderer::ScrollRelative(int delta)
-{
-	scrollPositionY += delta;
-	if (scrollPositionY < 0)
-		scrollPositionY = 0;
-	
-	int maxScrollY = app.page.GetRootNode()->size.y - app.ui.windowRect.height;
-	if (maxScrollY > 0 && scrollPositionY > maxScrollY)
-	{
-		scrollPositionY = maxScrollY;
-	}
-
-	DrawContext context;
-	GenerateDrawContext(context, NULL);
-	context.drawOffsetY = 0;
-	context.surface->FillRect(context, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight, 1);
-	GenerateDrawContext(context, NULL);
-	DrawAll(context, app.page.GetRootNode());
-}
-
-void PageRenderer::ScrollAbsolute(int position)
-{
-
-}
 
 void PageRenderer::DrawAll(DrawContext& context, Node* node)
 {
@@ -83,6 +57,6 @@ void PageRenderer::GenerateDrawContext(DrawContext& context, Node* node)
 		context.clipTop = windowRect.y;
 		context.clipBottom = windowRect.y + windowRect.height;
 		context.drawOffsetX = windowRect.x;
-		context.drawOffsetY = windowRect.y - scrollPositionY;
+		context.drawOffsetY = windowRect.y - app.ui.GetScrollPositionY();
 	}
 }

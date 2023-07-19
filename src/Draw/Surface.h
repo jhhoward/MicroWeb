@@ -29,6 +29,7 @@ public:
 	virtual void InvertRect(DrawContext& context, int x, int y, int width, int height) = 0;
 	virtual void DrawString(DrawContext& context, Font* font, const char* text, int x, int y, uint8_t colour, FontStyle::Type style = FontStyle::Regular) = 0;
 	virtual void BlitImage(DrawContext& context, Image* image, int x, int y) = 0;
+	virtual void VerticalScrollBar(DrawContext& context, int x, int y, int height, int position, int size) = 0;
 
 	int width, height;
 };
