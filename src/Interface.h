@@ -39,7 +39,6 @@ public:
 	void SetStatusMessage(const char* message);
 
 	void UpdatePageScrollBar();
-	int GetTextFieldCursorPosition() {	return textFieldCursorPosition;	}
 
 	void SetTitle(const char* title);
 
@@ -79,11 +78,7 @@ private:
 	Node* hoverNode;
 	int oldButtons;
 	int oldMouseX, oldMouseY;
-	int scrollBarRelativeClickPositionX;
-	int scrollBarRelativeClickPositionY;
 	int oldPageHeight;
-	int textFieldCursorPosition;
-	bool clickingButton;
 
 	LinearAllocator allocator;
 

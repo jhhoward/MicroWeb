@@ -31,8 +31,6 @@ AppInterface::AppInterface(App& inApp) : app(inApp)
 	oldMouseX = -1;
 	oldMouseY = -1;
 	oldButtons = 0;
-	textFieldCursorPosition = 0;
-	clickingButton = false;
 
 	hoverNode = nullptr;
 	focusedNode = nullptr;

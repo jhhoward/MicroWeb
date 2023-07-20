@@ -1,7 +1,7 @@
 bin = MicroWeb.exe
 SRC_PATH = ..\..\src
 OBJDIR=obj
-objects = MicroWeb.obj App.obj Parser.obj Tags.obj Platform.obj CGA.obj EGA.obj Hercules.obj Font.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj Layout.obj Node.obj Text.obj Section.obj ImgNode.obj Block.obj StyNode.obj LinkNode.obj Break.obj Render.obj Button.obj Field.obj DataPack.obj Surf1bpp.obj Form.obj Status.obj Scroll.obj
+objects = MicroWeb.obj App.obj Parser.obj Tags.obj Platform.obj CGA.obj EGA.obj Hercules.obj Font.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj Layout.obj Node.obj Text.obj Section.obj ImgNode.obj Block.obj StyNode.obj LinkNode.obj Break.obj Render.obj Button.obj Field.obj DataPack.obj Surf1bpp.obj Form.obj Status.obj Scroll.obj HTTP.obj
 memory_model = -ml
 CC = wpp
 CFLAGS = -zq -0 -ot -bt=DOS -w2 $(memory_model) -fi=$(SRC_PATH)\Defines.h
@@ -50,6 +50,9 @@ Page.obj: $(SRC_PATH)\Page.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 Platform.obj: $(SRC_PATH)\DOS\Platform.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+HTTP.obj: $(SRC_PATH)\HTTP.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 Font.obj: $(SRC_PATH)\Font.cpp

@@ -114,7 +114,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);WIN32_LEAN_AND_MEAN </PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -128,7 +128,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);WIN32_LEAN_AND_MEAN </PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -142,6 +142,7 @@
     <ClCompile Include="..\..\src\App.cpp" />
     <ClCompile Include="..\..\src\DataPack.cpp" />
     <ClCompile Include="..\..\src\Draw\Surf1bpp.cpp" />
+    <ClCompile Include="..\..\src\HTTP.cpp" />
     <ClCompile Include="..\..\src\Layout.cpp" />
     <ClCompile Include="..\..\src\Node.cpp" />
     <ClCompile Include="..\..\src\Nodes\Block.cpp" />
@@ -165,6 +166,7 @@
     <ClCompile Include="..\..\src\Tags.cpp" />
     <ClCompile Include="..\..\src\Windows\Platform.cpp" />
     <ClCompile Include="..\..\src\Windows\WinInput.cpp" />
+    <ClCompile Include="..\..\src\Windows\WinNet.cpp" />
     <ClCompile Include="..\..\src\Windows\WinVid.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -173,6 +175,7 @@
     <ClInclude Include="..\..\src\Defines.h" />
     <ClInclude Include="..\..\src\Draw\Surf1bpp.h" />
     <ClInclude Include="..\..\src\Draw\Surface.h" />
+    <ClInclude Include="..\..\src\HTTP.h" />
     <ClInclude Include="..\..\src\Layout.h" />
     <ClInclude Include="..\..\src\Node.h" />
     <ClInclude Include="..\..\src\Nodes\Block.h" />
@@ -198,6 +201,7 @@
     <ClInclude Include="..\..\src\Tags.h" />
     <ClInclude Include="..\..\src\URL.h" />
     <ClInclude Include="..\..\src\Windows\WinInput.h" />
+    <ClInclude Include="..\..\src\Windows\WinNet.h" />
     <ClInclude Include="..\..\src\Windows\WinVid.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

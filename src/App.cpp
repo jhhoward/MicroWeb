@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include "App.h"
 #include "Platform.h"
+#include "HTTP.h"
 
 App* App::app;
 

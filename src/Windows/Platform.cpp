@@ -16,14 +16,15 @@
 #include "../Platform.h"
 #include "WinVid.h"
 #include "WinInput.h"
+#include "WinNet.h"
 #include "../Draw/Surface.h"
 
 WindowsVideoDriver winVid;
-NetworkDriver nullNetworkDriver;
+WindowsNetworkDriver winNetworkDriver;
 WindowsInputDriver winInputDriver;
 
 VideoDriver* Platform::video = &winVid;
-NetworkDriver* Platform::network = &nullNetworkDriver;
+NetworkDriver* Platform::network = &winNetworkDriver;
 InputDriver* Platform::input = &winInputDriver;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);

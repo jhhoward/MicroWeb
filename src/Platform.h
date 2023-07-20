@@ -36,24 +36,18 @@ public:
 	DrawSurface* drawSurface;
 };
 
-class HTTPRequest
+typedef uint8_t NetworkAddress[4];   // An IPv4 address is 4 bytes
+class HTTPRequest;
+
+class NetworkTCPSocket
 {
 public:
-	enum Status
-	{
-		Stopped,
-		Connecting,
-		Downloading,
-		Finished,
-		Error,
-		UnsupportedHTTPS
-	};
-
-	virtual Status GetStatus() = 0;
-	virtual size_t ReadData(char* buffer, size_t count) = 0;
-	virtual void Stop() = 0;
-	virtual const char* GetStatusString() { return ""; }
-	virtual const char* GetURL() { return ""; }
+	virtual int Send(uint8_t* data, int length) = 0;
+	virtual int Receive(uint8_t* buffer, int length) = 0;
+	virtual int Connect(NetworkAddress address, int port) = 0;
+	virtual bool IsConnectComplete() = 0;
+	virtual bool IsClosed() = 0;
+	virtual void Close() = 0;
 };
 
 class NetworkDriver
@@ -64,6 +58,12 @@ public:
 	virtual void Update() {}
 
 	virtual bool IsConnected() { return false; }
+
+	// Returns zero on success, negative number is error
+	virtual int ResolveAddress(const char* name, NetworkAddress address, bool sendRequest) { return false; }
+
+	virtual NetworkTCPSocket* CreateSocket() { return NULL; }
+	virtual void DestroySocket(NetworkTCPSocket* socket) {}
 
 	virtual HTTPRequest* CreateRequest(char* url) { return NULL; }
 	virtual void DestroyRequest(HTTPRequest* request) {}

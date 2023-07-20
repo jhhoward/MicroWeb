@@ -110,9 +110,6 @@ bool TextFieldNode::HandleEvent(Node* node, const Event& event)
 				data->buffer[cursorPosition] = (char)(event.key);
 				MoveCursorPosition(node, cursorPosition + 1);
 				RedrawModified(node, cursorPosition - 1);
-				//app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition - 1, true);
-				//app.renderer.RedrawModifiedTextField(activeWidget, textFieldCursorPosition - 1);
-				//app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
 			}
 			return true;
 		}
@@ -123,7 +120,6 @@ bool TextFieldNode::HandleEvent(Node* node, const Event& event)
 				data->buffer[0] = '\0';
 				node->Redraw();
 				MoveCursorPosition(node, 0);
-				//app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
 			}
 			else if (cursorPosition > 0)
 			{
@@ -134,8 +130,6 @@ bool TextFieldNode::HandleEvent(Node* node, const Event& event)
 				}
 				MoveCursorPosition(node, cursorPosition - 1);
 				RedrawModified(node, cursorPosition);
-				//app.renderer.RedrawModifiedTextField(activeWidget, textFieldCursorPosition);
-				//app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
 			}
 			return true;
 		}
@@ -146,7 +140,6 @@ bool TextFieldNode::HandleEvent(Node* node, const Event& event)
 			{
 				data->buffer[0] = '\0';
 				node->Redraw();
-				//app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
 			}
 			else if (cursorPosition < len)
 			{
@@ -155,8 +148,6 @@ bool TextFieldNode::HandleEvent(Node* node, const Event& event)
 					data->buffer[n] = data->buffer[n + 1];
 				}
 				RedrawModified(node, cursorPosition);
-				//app.renderer.RedrawModifiedTextField(activeWidget, textFieldCursorPosition);
-				//app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
 			}
 			return true;
 		}
@@ -181,15 +172,11 @@ bool TextFieldNode::HandleEvent(Node* node, const Event& event)
 		{
 			if (cursorPosition == -1)
 			{
-				//app.renderer.RedrawWidget(activeWidget);
 				MoveCursorPosition(node, strlen(data->buffer));
-				//app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
 			}
 			else if (cursorPosition > 0)
 			{
-				//app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, true);
 				MoveCursorPosition(node, cursorPosition - 1);
-				//app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
 			}
 			return true;
 		}
@@ -197,16 +184,11 @@ bool TextFieldNode::HandleEvent(Node* node, const Event& event)
 		{
 			if (cursorPosition == -1)
 			{
-				//app.renderer.RedrawWidget(activeWidget);
 				MoveCursorPosition(node, strlen(data->buffer));
-
-				//app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
 			}
 			else if (cursorPosition < strlen(data->buffer))
 			{
-				//app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, true);
 				MoveCursorPosition(node, cursorPosition + 1);
-				//app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
 			}
 			return true;
 		}
@@ -214,15 +196,11 @@ bool TextFieldNode::HandleEvent(Node* node, const Event& event)
 		{
 			if (cursorPosition == -1)
 			{
-				//app.renderer.RedrawWidget(activeWidget);
 				MoveCursorPosition(node, strlen(data->buffer));
-				//app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
 			}
 			else
 			{
-				//app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, true);
 				MoveCursorPosition(node, strlen(data->buffer));
-				//app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
 			}
 			return true;
 		}
@@ -230,15 +208,11 @@ bool TextFieldNode::HandleEvent(Node* node, const Event& event)
 		{
 			if (cursorPosition == -1)
 			{
-				//app.renderer.RedrawWidget(activeWidget);
 				MoveCursorPosition(node, strlen(data->buffer));
-				//app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
 			}
 			else
 			{
-				//app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, true);
 				MoveCursorPosition(node, 0);
-				//app.renderer.DrawTextFieldCursor(activeWidget, textFieldCursorPosition, false);
 			}
 			return true;
 		}
