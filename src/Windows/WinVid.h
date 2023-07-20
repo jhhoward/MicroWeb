@@ -27,29 +27,7 @@ public:
 	virtual void Init();
 	virtual void Shutdown();
 
-	virtual void ArrangeAppInterfaceWidgets(class AppInterface& app);
 	virtual void ClearScreen();
-
-	virtual void ClearWindow();
-	virtual void ClearRect(int x, int y, int width, int height);
-	virtual void FillRect(int x, int y, int width, int height);
-	virtual void InvertRect(int x, int y, int width, int height);
-	virtual void ScrollWindow(int delta);
-	virtual void SetScissorRegion(int y1, int y2);
-	virtual void ClearScissorRegion();
-
-	virtual void DrawString(const char* text, int x, int y, int size = 1, FontStyle::Type style = FontStyle::Regular);
-	virtual void DrawScrollBar(int position, int size);
-	virtual void DrawImage(struct Image* image, int x, int y) {}
-
-	virtual MouseCursorData* GetCursorGraphic(MouseCursor::Type type);
-
-	virtual Font* GetFont(int fontSize, FontStyle::Type style = FontStyle::Regular);
-	virtual int GetGlyphWidth(char c, int fontSize = 1, FontStyle::Type style = FontStyle::Regular);
-	virtual int GetLineHeight(int fontSize = 1, FontStyle::Type style = FontStyle::Regular);
-
-	virtual void HLine(int x, int y, int count);
-	virtual void VLine(int x, int y, int count);
 
 	void Paint(HWND hwnd);
 
@@ -65,5 +43,4 @@ private:
 	HBITMAP screenBitmap;
 
 	uint32_t foregroundColour, backgroundColour;
-	int scissorX1, scissorY1, scissorX2, scissorY2;
 };

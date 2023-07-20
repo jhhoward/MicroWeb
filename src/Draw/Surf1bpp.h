@@ -9,6 +9,7 @@ class DrawSurface_1BPP : public DrawSurface
 public:
 	DrawSurface_1BPP(int inWidth, int inHeight);
 
+	virtual void Clear();
 	virtual void HLine(DrawContext& context, int x, int y, int count, uint8_t colour);
 	virtual void VLine(DrawContext& context, int x, int y, int count, uint8_t colour);
 	virtual void FillRect(DrawContext& context, int x, int y, int width, int height, uint8_t colour);

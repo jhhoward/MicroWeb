@@ -1,3 +1,4 @@
+#include <memory.h>
 #include "Surf1bpp.h"
 #include "../Font.h"
 #include "../Image.h"
@@ -233,16 +234,28 @@ void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* 
 	int startX = x;
 	uint8_t glyphHeight = font->glyphHeight;
 
-	if (x >= context.clipRight || y >= context.clipBottom || y + glyphHeight <= context.clipTop)
+	if (x >= context.clipRight)
 	{
-		return; // No need to draw anything if fully outside the clipping region.
+		return;
+	}
+	if (y >= context.clipBottom)
+	{
+		return;
+	}
+	if (y + glyphHeight > context.clipBottom)
+	{
+		glyphHeight = (uint8_t)(context.clipBottom - y);
+	}
+	if (y + glyphHeight < context.clipTop)
+	{
+		return;
 	}
 
-	// Adjust glyphHeight to fit within the clipping region.
+	uint8_t firstLine = 0;
 	if (y < context.clipTop)
 	{
-		glyphHeight -= (context.clipTop - y);
-		y = context.clipTop;
+		firstLine += context.clipTop - y;
+		y += firstLine;
 	}
 
 	while (*text)
@@ -250,7 +263,7 @@ void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* 
 		char c = *text++;
 		if (c < 32 || c >= 128)
 		{
-			continue; // Skip non-printable characters.
+			continue;
 		}
 
 		char index = c - 32;
@@ -258,63 +271,90 @@ void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* 
 
 		if (glyphWidth == 0)
 		{
-			continue; // Skip zero-width characters.
+			continue;
 		}
 
 		uint8_t* glyphData = font->glyphData + (font->glyphDataStride * index);
 
+		glyphData += (firstLine * font->glyphWidthBytes);
+
 		int outY = y;
-		uint8_t* VRAMptr = lines[outY] + (x >> 3);
-		uint8_t writeOffset = (uint8_t)(x) & 0x7;
+		uint8_t* VRAMptr = lines[y] + (x >> 3);
 
-		if (style & FontStyle::Italic && outY - y < (font->glyphHeight >> 1))
+		if (!colour)
 		{
-			writeOffset++;
-		}
-
-		for (uint8_t j = 0; j < glyphHeight; j++)
-		{
-			for (uint8_t i = 0; i < font->glyphWidthBytes; i++)
+			for (uint8_t j = firstLine; j < glyphHeight; j++)
 			{
-				uint8_t glyphPixels = *glyphData++;
+				uint8_t writeOffset = (uint8_t)(x) & 0x7;
 
-				if (style & FontStyle::Bold)
+				if ((style & FontStyle::Italic) && j < (font->glyphHeight >> 1))
 				{
-					glyphPixels |= (glyphPixels >> 1);
+					writeOffset++;
 				}
 
-				if (!colour)
+				for (uint8_t i = 0; i < font->glyphWidthBytes; i++)
 				{
+					uint8_t glyphPixels = *glyphData++;
+
+					if (style & FontStyle::Bold)
+					{
+						glyphPixels |= (glyphPixels >> 1);
+					}
+
 					VRAMptr[i] &= ~(glyphPixels >> writeOffset);
 					VRAMptr[i + 1] &= ~(glyphPixels << (8 - writeOffset));
 				}
-				else
+
+				outY++;
+				VRAMptr = lines[outY] + (x >> 3);
+			}
+		}
+		else
+		{
+			for (uint8_t j = firstLine; j < glyphHeight; j++)
+			{
+				uint8_t writeOffset = (uint8_t)(x) & 0x7;
+
+				if ((style & FontStyle::Italic) && j < (font->glyphHeight >> 1))
 				{
+					writeOffset++;
+				}
+
+				for (uint8_t i = 0; i < font->glyphWidthBytes; i++)
+				{
+					uint8_t glyphPixels = *glyphData++;
+
+					if (style & FontStyle::Bold)
+					{
+						glyphPixels |= (glyphPixels >> 1);
+					}
+
 					VRAMptr[i] |= (glyphPixels >> writeOffset);
 					VRAMptr[i + 1] |= (glyphPixels << (8 - writeOffset));
 				}
-			}
 
-			outY++;
-			VRAMptr = lines[outY] + (x >> 3);
+				outY++;
+				VRAMptr = lines[outY] + (x >> 3);
+			}
 		}
 
-		x += glyphWidth + (style & FontStyle::Bold ? 1 : 0);
+		x += glyphWidth;
+		if (style & FontStyle::Bold)
+		{
+			x++;
+		}
 
 		if (x >= context.clipRight)
 		{
-			break; // No need to continue drawing if reached the clipping region's boundary.
+			break;
 		}
 	}
 
-	if (style & FontStyle::Underline)
+	if ((style & FontStyle::Underline) && y - firstLine + font->glyphHeight - 1 < context.clipBottom)
 	{
-		int underlineY = y - context.drawOffsetY + glyphHeight - 1;
-		if (underlineY < context.clipBottom)
-		{
-			HLine(context, startX, underlineY, x - startX - context.drawOffsetX, colour);
-		}
+		HLine(context, startX, y - firstLine + font->glyphHeight - 1 - context.drawOffsetY, x - startX - context.drawOffsetX, colour);
 	}
+
 }
 
 void DrawSurface_1BPP::BlitImage(DrawContext& context, Image* image, int x, int y)
@@ -467,6 +507,7 @@ void DrawSurface_1BPP::InvertRect(DrawContext& context, int x, int y, int width,
 
 void DrawSurface_1BPP::VerticalScrollBar(DrawContext& context, int x, int y, int height, int position, int size)
 {
+	return;
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
 	int startY = y;
@@ -517,5 +558,14 @@ void DrawSurface_1BPP::VerticalScrollBar(DrawContext& context, int x, int y, int
 	while (bottomSpacing--)
 	{
 		*(uint16_t*)(&lines[y++][x]) = inner;
+	}
+}
+
+void DrawSurface_1BPP::Clear()
+{
+	int widthBytes = width >> 3;
+	for (int y = 0; y < height; y++)
+	{
+		memset(lines[y], 0xff, widthBytes);
 	}
 }

@@ -18,7 +18,6 @@
 #include <stdlib.h>
 #include "Font.h"
 #include "Cursor.h"
-#include "Widget.h"
 
 struct Image;
 class DrawSurface;
@@ -29,45 +28,10 @@ public:
 	virtual void Init() = 0;
 	virtual void Shutdown() = 0;
 
-	virtual void ClearScreen() = 0;
-	virtual void InvertScreen() {}
-
-	virtual void ArrangeAppInterfaceWidgets(class AppInterface& app) = 0;
-
-	virtual void ClearWindow() = 0;
-	virtual void ClearRect(int x, int y, int width, int height) = 0;
-	virtual void FillRect(int x, int y, int width, int height) = 0;
-	virtual void InvertRect(int x, int y, int width, int height) = 0;
-	virtual void ScrollWindow(int delta) = 0;
-	virtual void SetScissorRegion(int y1, int y2) = 0;
-	virtual void ClearScissorRegion() = 0;
-
-	virtual void DrawString(const char* text, int x, int y, int size = 1, FontStyle::Type style = FontStyle::Regular) = 0;
-	virtual void DrawScrollBar(int position, int size) = 0;
-	virtual void DrawImage(Image* image, int x, int y) = 0;
-
-	virtual void HLine(int x, int y, int count) = 0;
-	virtual void VLine(int x, int y, int count) = 0;
-
 	virtual void ScaleImageDimensions(int& width, int& height) {}
-
-	virtual MouseCursorData* GetCursorGraphic(MouseCursor::Type type) = 0;
-
-	virtual Font* GetFont(int fontSize, FontStyle::Type style = FontStyle::Regular) = 0;
-	virtual int GetGlyphWidth(char c, int fontSize = 1, FontStyle::Type style = FontStyle::Regular) = 0;
-	virtual int GetLineHeight(int fontSize = 1, FontStyle::Type style = FontStyle::Regular) = 0;
 
 	int screenWidth;
 	int screenHeight;
-
-	int windowWidth;
-	int windowHeight;
-	int windowX, windowY;
-
-	Image* imageIcon;
-	Image* bulletImage;
-
-	bool isTextMode;
 
 	DrawSurface* drawSurface;
 };

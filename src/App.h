@@ -18,7 +18,6 @@
 #include <stdio.h>
 #include "Parser.h"
 #include "Page.h"
-#include "Renderer.h"
 #include "URL.h"
 #include "Interface.h"
 #include "Render.h"
@@ -75,7 +74,6 @@ public:
 	static App& Get() { return *app; }
 
 	Page page;
-	Renderer renderer;
 	PageRenderer pageRenderer;
 	HTMLParser parser;
 	AppInterface ui;

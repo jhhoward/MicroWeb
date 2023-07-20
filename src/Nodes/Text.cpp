@@ -38,7 +38,7 @@ Node* TextElement::Construct(Allocator& allocator, const char* text)
 void TextElement::GenerateLayout(Layout& layout, Node* node)
 {
 	TextElement::Data* data = static_cast<TextElement::Data*>(node->data);
-	Font* font = Platform::video->GetFont(node->style.fontSize, node->style.fontStyle);	// TODO: Get font from active style
+	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);	// TODO: Get font from active style
 	int lineHeight = font->glyphHeight;
 
 	// Clear out SubTextElement children if we are regenerating the layout
@@ -73,7 +73,7 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 			lastBreakPointWidth = width;
 		}
 
-		width += Platform::video->GetGlyphWidth(c, node->style.fontSize, node->style.fontStyle);
+		width += font->GetGlyphWidth(c, node->style.fontStyle);
 
 		if (width > layout.AvailableWidth())
 		{

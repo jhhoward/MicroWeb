@@ -30,9 +30,6 @@ public:
 	virtual void Close(class HTMLParser& parser) const {}
 	
 	const char* name;
-
-protected:
-	void ApplyStyleAttributes(struct WidgetStyle& style, char* attributeStr) const;
 };
 
 class SectionTagHandler : public HTMLTagHandler

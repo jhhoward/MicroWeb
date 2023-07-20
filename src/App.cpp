@@ -19,7 +19,7 @@
 App* App::app;
 
 App::App() 
-	: page(*this), renderer(*this), pageRenderer(*this), parser(page), ui(*this)
+	: page(*this), pageRenderer(*this), parser(page), ui(*this)
 {
 	app = this;
 	requestedNewPage = false;
@@ -36,7 +36,6 @@ App::~App()
 void App::ResetPage()
 {
 	page.Reset();
-	//renderer.Reset();
 	parser.Reset();
 	ui.Reset();
 }
@@ -45,7 +44,6 @@ void App::Run(int argc, char* argv[])
 {
 	running = true;
 
-	renderer.Init();
 	ui.Init();
 
 	if (argc > 1)
@@ -63,7 +61,6 @@ void App::Run(int argc, char* argv[])
 	while (running)
 	{
 		Platform::Update();
-		//renderer.Update();
 
 		if (loadTask.HasContent())
 		{
@@ -263,15 +260,15 @@ void App::ShowErrorPage(const char* message)
 	loadTask.Stop();
 	ResetPage();
 
-	page.BreakLine(2);
-	page.PushStyle(WidgetStyle(FontStyle::Bold, 2));
-	page.AppendText("Error");
-	page.PopStyle();
-	page.BreakLine(2);
-	page.AppendText(message);
-	page.FinishSection();
-	
-	page.SetTitle("Error");
+//	page.BreakLine(2);
+//	page.PushStyle(WidgetStyle(FontStyle::Bold, 2));
+//	page.AppendText("Error");
+//	page.PopStyle();
+//	page.BreakLine(2);
+//	page.AppendText(message);
+//	page.FinishSection();
+//	
+//	page.SetTitle("Error");
 	//page.pageURL = "about:error";
 	//ui.UpdateAddressBar(page.pageURL);
 
@@ -285,24 +282,24 @@ void App::ShowNoHTTPSPage()
 {
 	ResetPage();
 
-	page.BreakLine(2);
-	page.PushStyle(WidgetStyle(FontStyle::Bold, 2));
-	page.AppendText("HTTPS unsupported");
-	page.PopStyle();
-	page.BreakLine(2);
-	page.AppendText("Sorry this browser does not support HTTPS!");
-	page.BreakLine();
-	page.PushStyle(WidgetStyle(FontStyle::Underline));
-
-	page.pageURL = frogFindURL;
-	strncpy(page.pageURL.url + FROG_FIND_URL_LENGTH, loadTask.GetURL(), MAX_URL_LENGTH - FROG_FIND_URL_LENGTH);
-	page.SetWidgetURL(page.pageURL.url);
-
-
-	page.AppendText("Visit this site via FrogFind");
-	page.ClearWidgetURL();
-	page.PopStyle();
-	page.FinishSection();
+	//page.BreakLine(2);
+	//page.PushStyle(WidgetStyle(FontStyle::Bold, 2));
+	//page.AppendText("HTTPS unsupported");
+	//page.PopStyle();
+	//page.BreakLine(2);
+	//page.AppendText("Sorry this browser does not support HTTPS!");
+	//page.BreakLine();
+	//page.PushStyle(WidgetStyle(FontStyle::Underline));
+	//
+	//page.pageURL = frogFindURL;
+	//strncpy(page.pageURL.url + FROG_FIND_URL_LENGTH, loadTask.GetURL(), MAX_URL_LENGTH - FROG_FIND_URL_LENGTH);
+	//page.SetWidgetURL(page.pageURL.url);
+	//
+	//
+	//page.AppendText("Visit this site via FrogFind");
+	//page.ClearWidgetURL();
+	//page.PopStyle();
+	//page.FinishSection();
 
 	page.SetTitle("HTTPS unsupported");
 	page.pageURL = loadTask.GetURL();

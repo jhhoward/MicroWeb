@@ -135,12 +135,6 @@ void DOSInputDriver::GetMouseStatus(int& buttons, int& x, int& y)
 	x = outreg.x.cx;
 	y = outreg.x.dx;
 	buttons = outreg.x.bx;
-
-	if (Platform::video->isTextMode)
-	{
-		x >>= 3;
-		y >>= 3;
-	}
 }
 
 InputButtonCode DOSInputDriver::GetKeyPress() 

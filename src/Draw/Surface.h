@@ -23,6 +23,7 @@ class DrawSurface
 {
 public:
 	DrawSurface(int inWidth, int inHeight) : width(inWidth), height(inHeight) {}
+	virtual void Clear() = 0;
 	virtual void HLine(DrawContext& context, int x, int y, int count, uint8_t colour) = 0;
 	virtual void VLine(DrawContext& context, int x, int y, int count, uint8_t colour) = 0;
 	virtual void FillRect(DrawContext& context, int x, int y, int width, int height, uint8_t colour) = 0;

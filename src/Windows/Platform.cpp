@@ -16,6 +16,7 @@
 #include "../Platform.h"
 #include "WinVid.h"
 #include "WinInput.h"
+#include "../Draw/Surface.h"
 
 WindowsVideoDriver winVid;
 NetworkDriver nullNetworkDriver;
@@ -50,7 +51,7 @@ void Platform::Init(int argc, char* argv[])
 
 	network->Init();
 	video->Init();
-	video->ClearScreen();
+	video->drawSurface->Clear();
 	input->Init();
 	input->ShowMouse();
 }

@@ -18,7 +18,6 @@
 #include <ctype.h>
 #include "Parser.h"
 #include "Tags.h"
-#include "Renderer.h"
 #include "Page.h"
 #include "Unicode.inc"
 #include "Nodes/Text.h"
@@ -270,7 +269,7 @@ void HTMLParser::FlushTextBuffer()
 		{
 			if(textBufferSize == 0)
 			{
-				page.AppendText("&");
+				EmitText("&");
 			}
 			else
 			{
@@ -295,7 +294,7 @@ void HTMLParser::FlushTextBuffer()
 					
 					if(matching && escapeSequence[textBufferSize] == '\0')
 					{
-						page.AppendText(ampersandEscapeSequences[n * 2 + 1]);
+						EmitText(ampersandEscapeSequences[n * 2 + 1]);
 						break;
 					}
 				}
@@ -465,7 +464,8 @@ void HTMLParser::ParseChar(char c)
 					c = ' ';
 					if (textBufferSize == 0)
 					{
-						page.FlagLeadingWhiteSpace();
+						// TODO-refactor
+						//page.FlagLeadingWhiteSpace();
 						break;
 					}
 					else
@@ -482,7 +482,9 @@ void HTMLParser::ParseChar(char c)
 				if (c == '\n')
 				{
 					FlushTextBuffer();
-					page.BreakTextLine();
+					
+					// TODO-refactor
+					//page.BreakTextLine();
 					break;
 				}
 				else if (c == '\r')

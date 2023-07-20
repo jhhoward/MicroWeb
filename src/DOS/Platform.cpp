@@ -20,7 +20,6 @@
 #include "CGA.h"
 #include "EGA.h"
 #include "Hercules.h"
-#include "TextMode.h"
 #endif
 #include "DOSInput.h"
 #include "DOSNet.h"
@@ -28,7 +27,7 @@
 #include "../Image.h"
 #include "../Cursor.h"
 #include "../Font.h"
-//#include "DefData.inc"
+#include "../Draw/Surface.h"
 
 static DOSInputDriver DOSinput;
 static DOSNetworkDriver DOSNet;
@@ -154,10 +153,7 @@ static void AutoDetectVideoDriver()
 
 	if (isMono)
 	{
-		Platform::video = new MDATextModeDriver();
-		printf("Detected MDA\n");
-		return;
-		//fprintf(stderr, "MDA cards not supported!\n");
+		fprintf(stderr, "MDA cards not supported!\n");
 	}
 	else
 	{
@@ -191,14 +187,6 @@ void Platform::Init(int argc, char* argv[])
 		{
 			video = new HerculesDriver();
 		}
-		if (!stricmp(argv[n], "-t") && !video)
-		{
-			video = new CGATextModeDriver();
-		}
-		if (!stricmp(argv[n], "-m") && !video)
-		{
-			video = new MDATextModeDriver();
-		}
 #endif
 		if (!stricmp(argv[n], "-i"))
 		{
@@ -213,12 +201,13 @@ void Platform::Init(int argc, char* argv[])
 
 	network->Init();
 	video->Init();
-	video->ClearScreen();
+	video->drawSurface->Clear();
 	input->Init();
 
 	if (inverse)
 	{
-		video->InvertScreen();
+		// TODO-refactor
+		//video->InvertScreen();
 	}
 }
 

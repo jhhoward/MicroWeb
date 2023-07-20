@@ -14,13 +14,11 @@
 
 #ifndef _INTERFACE_H_
 #define _INTERFACE_H_
-#include "Widget.h"
 #include "Platform.h"
 #include "URL.h"
 #include "LinAlloc.h"
 #include "Node.h"
 
-#define NUM_APP_INTERFACE_WIDGETS 4
 #define MAX_TITLE_LENGTH 80
 
 class App;
@@ -37,12 +35,10 @@ public:
 	void Update();
 
 	void DrawInterfaceNodes(DrawContext& context);
-	void DrawInterfaceWidgets();
 	void UpdateAddressBar(const URL& url);
 	void SetStatusMessage(const char* message);
 
 	void UpdatePageScrollBar();
-	Widget* GetActiveWidget() { return activeWidget; }
 	int GetTextFieldCursorPosition() {	return textFieldCursorPosition;	}
 
 	void SetTitle(const char* title);
@@ -60,33 +56,15 @@ public:
 
 	URL addressBarURL;
 
-	Widget scrollBar;
-	Widget addressBar;
-	Widget backButton;
-	Widget forwardButton;
-
-	Widget titleBar;
-	Widget statusBar;
-
 	Rect windowRect;
 
 private:
 	void GenerateInterfaceNodes();
 
-	void GenerateWidgets();
-	Widget* PickWidget(int x, int y);
 	Node* PickNode(int x, int y);
 
 	void HandleClick(int mouseX, int mouseY);
 	void HandleRelease();
-	bool HandleActiveWidget(InputButtonCode keyPress);
-	void SubmitForm(WidgetFormData* form);
-	void CycleWidgets(int direction);
-	void InvertWidgetsWithLinkURL(const char* url);
-	void HandleButtonClicked(Widget* widget);
-
-	void ActivateWidget(Widget* widget);
-	void DeactivateWidget();
 
 	bool IsOverNode(Node* node, int x, int y);
 
@@ -95,13 +73,10 @@ private:
 	static void OnAddressBarSubmit(Node* node);
 
 
-	Widget* appInterfaceWidgets[NUM_APP_INTERFACE_WIDGETS];
 	App& app;
 
 	Node* focusedNode;
 	Node* hoverNode;
-	Widget* activeWidget;
-	Widget* hoverWidget;
 	int oldButtons;
 	int oldMouseX, oldMouseY;
 	int scrollBarRelativeClickPositionX;
@@ -109,11 +84,6 @@ private:
 	int oldPageHeight;
 	int textFieldCursorPosition;
 	bool clickingButton;
-
-	ButtonWidgetData backButtonData;
-	ButtonWidgetData forwardButtonData;
-	TextFieldWidgetData addressBarData;
-	ScrollBarData scrollBarData;
 
 	LinearAllocator allocator;
 

@@ -162,7 +162,6 @@
     <ClCompile Include="..\..\src\Page.cpp" />
     <ClCompile Include="..\..\src\Parser.cpp" />
     <ClCompile Include="..\..\src\Render.cpp" />
-    <ClCompile Include="..\..\src\Renderer.cpp" />
     <ClCompile Include="..\..\src\Tags.cpp" />
     <ClCompile Include="..\..\src\Windows\Platform.cpp" />
     <ClCompile Include="..\..\src\Windows\WinInput.cpp" />
@@ -195,11 +194,9 @@
     <ClInclude Include="..\..\src\Parser.h" />
     <ClInclude Include="..\..\src\Platform.h" />
     <ClInclude Include="..\..\src\Render.h" />
-    <ClInclude Include="..\..\src\Renderer.h" />
     <ClInclude Include="..\..\src\Style.h" />
     <ClInclude Include="..\..\src\Tags.h" />
     <ClInclude Include="..\..\src\URL.h" />
-    <ClInclude Include="..\..\src\Widget.h" />
     <ClInclude Include="..\..\src\Windows\WinInput.h" />
     <ClInclude Include="..\..\src\Windows\WinVid.h" />
   </ItemGroup>
