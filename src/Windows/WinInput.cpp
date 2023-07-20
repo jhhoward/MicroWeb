@@ -79,8 +79,15 @@ void WindowsInputDriver::GetMouseStatus(int& buttons, int& x, int& y)
 	{
 		if (ScreenToClient(hWnd, &p))
 		{
-			x = p.x;
-			y = p.y / static_cast<WindowsVideoDriver*>(Platform::video)->verticalScale;
+			// Calculate the destination rectangle to stretch the bitmap to fit the window
+			RECT windowRect;
+			GetClientRect(hWnd, &windowRect);
+
+			int width = windowRect.right - windowRect.left;
+			int height = windowRect.bottom - windowRect.top;
+
+			x = p.x * Platform::video->screenWidth / width;
+			y = p.y * Platform::video->screenHeight / height;
 		}
 	}
 

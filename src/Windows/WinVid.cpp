@@ -49,7 +49,7 @@ void WindowsVideoDriver::Init()
 	ZeroMemory(bitmapInfo, sizeof(BITMAPINFO));
 	bitmapInfo->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 	bitmapInfo->bmiHeader.biWidth = screenWidth;
-	bitmapInfo->bmiHeader.biHeight = screenHeight * verticalScale;
+	bitmapInfo->bmiHeader.biHeight = screenHeight;
 	bitmapInfo->bmiHeader.biPlanes = 1;
 //	bitmapInfo->bmiHeader.biBitCount = 32;
 	bitmapInfo->bmiHeader.biBitCount = 1;
@@ -93,7 +93,7 @@ void WindowsVideoDriver::Init()
 	}
 	else
 	{
-		for (int n = 0; n < screenWidth * screenHeight * verticalScale; n++)
+		for (int n = 0; n < screenWidth * screenHeight; n++)
 		{
 			lpBitmapBits[n] = backgroundColour;
 		}
@@ -172,38 +172,18 @@ void WindowsVideoDriver::Paint(HWND hwnd)
 	BITMAP bitmap;
 
 	GetObject(screenBitmap, sizeof(BITMAP), &bitmap);
-	BitBlt(hdc, 0, 0, bitmap.bmWidth, bitmap.bmHeight,
-		hdcMem, 0, 0, SRCCOPY);
+
+	// Calculate the destination rectangle to stretch the bitmap to fit the window
+	RECT destRect;
+	GetClientRect(hwnd, &destRect);
+
+	// Stretch the bitmap to fit the window size
+	StretchBlt(hdc, 0, 0, destRect.right - destRect.left, destRect.bottom - destRect.top,
+		hdcMem, 0, 0, bitmap.bmWidth, bitmap.bmHeight, SRCCOPY);
 
 	SelectObject(hdcMem, oldBitmap);
 	DeleteDC(hdcMem);
 
 	EndPaint(hwnd, &ps);
-
-/*	PAINTSTRUCT ps;
-	RECT r;
-
-	GetClientRect(hwnd, &r);
-
-	if (r.bottom == 0) {
-
-		return;
-	}
-
-	HDC hdc = BeginPaint(hwnd, &ps);
-
-	for (int y = 0; y < screenHeight; y++)
-	{
-		for (int x = 0; x < screenWidth; x++)
-		{
-			uint8_t value = screenPixels[y * screenWidth + x];
-			SetPixel(hdc, x, y * 2, value ? RGB(255, 255, 255) : RGB(0, 0, 0));
-			SetPixel(hdc, x, y * 2 + 1, value ? RGB(255, 255, 255) : RGB(0, 0, 0));
-		}
-	}
-
-	EndPaint(hwnd, &ps);*/
-
-
 }
 
