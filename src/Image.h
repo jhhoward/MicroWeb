@@ -8,7 +8,8 @@ struct Image
 {
 	uint16_t width;
 	uint16_t height;
-	uint8_t* data;
+	uint16_t pitch;
+	uint8_t data[1];
 };
 
 #endif

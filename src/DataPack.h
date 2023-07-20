@@ -44,6 +44,7 @@ struct DataPackHeader
 	uint16_t pointerCursorOffset;
 	uint16_t linkCursorOffset;
 	uint16_t textSelectCursorOffset;
+	uint16_t imageIconOffset;
 };
 
 struct DataPack
@@ -51,6 +52,7 @@ struct DataPack
 	MouseCursorData* pointerCursor;
 	MouseCursorData* linkCursor;
 	MouseCursorData* textSelectCursor;
+	Image* imageIcon;
 
 	Font fonts[NUM_FONT_SIZES];
 	Font monoFonts[NUM_FONT_SIZES];

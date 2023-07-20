@@ -1,5 +1,6 @@
 #include "Surf1bpp.h"
 #include "../Font.h"
+#include "../Image.h"
 
 DrawSurface_1BPP::DrawSurface_1BPP(int inWidth, int inHeight)
 	: DrawSurface(inWidth, inHeight)
@@ -232,28 +233,16 @@ void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* 
 	int startX = x;
 	uint8_t glyphHeight = font->glyphHeight;
 
-	if (x >= context.clipRight)
+	if (x >= context.clipRight || y >= context.clipBottom || y + glyphHeight <= context.clipTop)
 	{
-		return;
-	}
-	if (y >= context.clipBottom)
-	{
-		return;
-	}
-	if (y + glyphHeight > context.clipBottom)
-	{
-		glyphHeight = (uint8_t)(context.clipBottom - y);
-	}
-	if (y + glyphHeight < context.clipTop)
-	{
-		return;
+		return; // No need to draw anything if fully outside the clipping region.
 	}
 
-	uint8_t firstLine = 0;
+	// Adjust glyphHeight to fit within the clipping region.
 	if (y < context.clipTop)
 	{
-		firstLine += context.clipTop - y;
-		y += firstLine;
+		glyphHeight -= (context.clipTop - y);
+		y = context.clipTop;
 	}
 
 	while (*text)
@@ -261,7 +250,7 @@ void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* 
 		char c = *text++;
 		if (c < 32 || c >= 128)
 		{
-			continue;
+			continue; // Skip non-printable characters.
 		}
 
 		char index = c - 32;
@@ -269,97 +258,149 @@ void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* 
 
 		if (glyphWidth == 0)
 		{
-			continue;
+			continue; // Skip zero-width characters.
 		}
 
 		uint8_t* glyphData = font->glyphData + (font->glyphDataStride * index);
 
-		glyphData += (firstLine * font->glyphWidthBytes);
-
 		int outY = y;
-		uint8_t* VRAMptr = lines[y] + (x >> 3);
+		uint8_t* VRAMptr = lines[outY] + (x >> 3);
+		uint8_t writeOffset = (uint8_t)(x) & 0x7;
 
-		if (!colour)
+		if (style & FontStyle::Italic && outY - y < (font->glyphHeight >> 1))
 		{
-			for (uint8_t j = firstLine; j < glyphHeight; j++)
-			{
-				uint8_t writeOffset = (uint8_t)(x) & 0x7;
+			writeOffset++;
+		}
 
-				if ((style & FontStyle::Italic) && j < (font->glyphHeight >> 1))
+		for (uint8_t j = 0; j < glyphHeight; j++)
+		{
+			for (uint8_t i = 0; i < font->glyphWidthBytes; i++)
+			{
+				uint8_t glyphPixels = *glyphData++;
+
+				if (style & FontStyle::Bold)
 				{
-					writeOffset++;
+					glyphPixels |= (glyphPixels >> 1);
 				}
 
-				for (uint8_t i = 0; i < font->glyphWidthBytes; i++)
+				if (!colour)
 				{
-					uint8_t glyphPixels = *glyphData++;
-
-					if (style & FontStyle::Bold)
-					{
-						glyphPixels |= (glyphPixels >> 1);
-					}
-
 					VRAMptr[i] &= ~(glyphPixels >> writeOffset);
 					VRAMptr[i + 1] &= ~(glyphPixels << (8 - writeOffset));
 				}
-
-				outY++;
-				VRAMptr = lines[outY] + (x >> 3);
-			}
-		}
-		else
-		{
-			for (uint8_t j = firstLine; j < glyphHeight; j++)
-			{
-				uint8_t writeOffset = (uint8_t)(x) & 0x7;
-
-				if ((style & FontStyle::Italic) && j < (font->glyphHeight >> 1))
+				else
 				{
-					writeOffset++;
-				}
-
-				for (uint8_t i = 0; i < font->glyphWidthBytes; i++)
-				{
-					uint8_t glyphPixels = *glyphData++;
-
-					if (style & FontStyle::Bold)
-					{
-						glyphPixels |= (glyphPixels >> 1);
-					}
-
 					VRAMptr[i] |= (glyphPixels >> writeOffset);
 					VRAMptr[i + 1] |= (glyphPixels << (8 - writeOffset));
 				}
-
-				outY++;
-				VRAMptr = lines[outY] + (x >> 3);
 			}
+
+			outY++;
+			VRAMptr = lines[outY] + (x >> 3);
 		}
 
-		x += glyphWidth;
-		if (style & FontStyle::Bold)
-		{
-			x++;
-		}
+		x += glyphWidth + (style & FontStyle::Bold ? 1 : 0);
 
 		if (x >= context.clipRight)
 		{
-			break;
+			break; // No need to continue drawing if reached the clipping region's boundary.
 		}
 	}
 
-	if ((style & FontStyle::Underline) && y - firstLine + font->glyphHeight - 1 < context.clipBottom)
+	if (style & FontStyle::Underline)
 	{
-		HLine(context, startX, y - firstLine + font->glyphHeight - 1 - context.drawOffsetY, x - startX - context.drawOffsetX, colour);
+		int underlineY = y - context.drawOffsetY + glyphHeight - 1;
+		if (underlineY < context.clipBottom)
+		{
+			HLine(context, startX, underlineY, x - startX - context.drawOffsetX, colour);
+		}
 	}
-
 }
 
 void DrawSurface_1BPP::BlitImage(DrawContext& context, Image* image, int x, int y)
 {
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
+
+	int srcWidth = image->width;
+	int srcHeight = image->height;
+	int srcPitch = image->pitch;
+	uint8_t* srcData = image->data;
+
+	// Calculate the destination width and height to copy, considering clipping region
+	int destWidth = srcWidth;
+	int destHeight = srcHeight;
+
+	if (x < context.clipLeft)
+	{
+		srcData += ((context.clipLeft - x) >> 3);
+		destWidth -= (context.clipLeft - x);
+		x = context.clipLeft;
+	}
+
+	if (x + destWidth > context.clipRight)
+	{
+		destWidth = context.clipRight - x;
+	}
+
+	if (y < context.clipTop)
+	{
+		srcData += (context.clipTop - y) * srcPitch;
+		destHeight -= (context.clipTop - y);
+		y = context.clipTop;
+	}
+
+	if (y + destHeight > context.clipBottom)
+	{
+		destHeight = context.clipBottom - y;
+	}
+
+	if (destWidth <= 0 || destHeight <= 0)
+	{
+		return; // Nothing to draw if fully outside the clipping region.
+	}
+
+	int srcByteWidth = (srcWidth + 7) >> 3; // Calculate the width of the source image in bytes
+	int destByteWidth = (destWidth + 7) >> 3; // Calculate the width of the destination image in bytes
+
+	// Blit the image data line by line
+	for (int j = 0; j < destHeight; j++)
+	{
+		uint8_t* srcRow = srcData + (j * srcPitch);
+		uint8_t* destRow = lines[y + j] + (x >> 3);
+		int xBits = 7 - (x & 0x7); // Number of bits in the first destination byte to skip
+
+		// Handle the first destination byte separately with proper masking
+		if (xBits == 0)
+		{
+			// If x is on a byte boundary, copy the whole byte from the source
+			for (int i = 0; i < destByteWidth; i++)
+			{
+				destRow[i] = srcRow[i];
+			}
+		}
+		else
+		{
+			// Copy the first destination byte with proper masking
+			destRow[0] = (destRow[0] & (0xFF << xBits)) | (srcRow[0] >> (8 - xBits));
+
+			// Copy the remaining bytes
+			for (int i = 1; i < destByteWidth; i++)
+			{
+				destRow[i] = (srcRow[i - 1] << xBits) | (srcRow[i] >> (8 - xBits));
+			}
+		}
+
+		// Handle the case when the destination image width is not a multiple of 8 bits
+		int lastBit = 7 - ((x + destWidth) & 0x7);
+		if (lastBit > 0)
+		{
+			int mask = 0xFF << lastBit;
+			destRow[destByteWidth - 1] = (destRow[destByteWidth - 1] & ~mask) | (srcRow[destByteWidth] & mask);
+		}
+	}
 }
+
 
 void DrawSurface_1BPP::InvertRect(DrawContext& context, int x, int y, int width, int height)
 {

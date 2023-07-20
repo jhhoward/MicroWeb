@@ -3,6 +3,7 @@
 #include "App.h"
 #include "Interface.h"
 #include "Draw/Surface.h"
+#include "DataPack.h"
 
 PageRenderer::PageRenderer(App& inApp)
 	: app(inApp)
@@ -34,6 +35,10 @@ void PageRenderer::DrawAll(DrawContext& context, Node* node)
 
 		node = node->next;
 	}
+
+	context.surface->BlitImage(context, Assets.imageIcon, 0, 50);
+	context.surface->BlitImage(context, Assets.imageIcon, 1, 100);
+	context.surface->BlitImage(context, Assets.imageIcon, 2, 150);
 }
 
 void PageRenderer::GenerateDrawContext(DrawContext& context, Node* node)

@@ -90,3 +90,56 @@ void EncodeImage(const char* imageFilename, ofstream& outputFile, const char* va
 	outputFile << "};" << endl << endl;
 }
 
+void WriteOutput(vector<uint8_t>& outputData, uint16_t x)
+{
+	outputData.push_back((uint8_t)(x & 0xff));
+	outputData.push_back((uint8_t)(x >> 8));
+}
+
+void EncodeImage(const char* basePath, const char* imageFilename, vector<uint8_t>& outputData, uint16_t& headerOffsetPosition)
+{
+	headerOffsetPosition = (uint16_t)(outputData.size());
+	char imageFilePath[256];
+	snprintf(imageFilePath, 256, "%s%s", basePath, imageFilename);
+
+	vector<unsigned char> data;
+	unsigned width, height;
+	unsigned error = lodepng::decode(data, width, height, imageFilePath);
+
+	if (error)
+	{
+		cerr << "Error loading " << imageFilePath << endl;
+		return;
+	}
+
+	WriteOutput(outputData, (uint16_t) width);
+	WriteOutput(outputData, (uint16_t)height);
+	WriteOutput(outputData, (uint16_t)(width + 7) / 8);		// pitch
+
+	for (unsigned y = 0; y < height; y++)
+	{
+		uint8_t buffer = 0;
+		int bufferMask = 0x80;
+
+		for (unsigned x = 0; x < width; x++)
+		{
+			uint8_t r = data[(y * width + x) * 4];
+			if (r > 128)
+			{
+				buffer |= bufferMask;
+			}
+
+			bufferMask >>= 1;
+			if (bufferMask == 0)
+			{
+				outputData.push_back(buffer);
+				bufferMask = 0x80;
+				buffer = 0;
+			}
+		}
+		if (bufferMask != 0x80)
+		{
+			outputData.push_back(buffer);
+		}
+	}
+}

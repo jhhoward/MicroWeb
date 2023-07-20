@@ -27,6 +27,7 @@ using namespace std;
 
 void EncodeFont(const char* basePath, const char* name, vector<uint8_t>& output, uint16_t& headerOffsetPosition);
 void EncodeCursor(const char* basePath, const char* name, vector<uint8_t>& output, uint16_t& headerOffsetPosition);
+void EncodeImage(const char* basePath, const char* name, vector<uint8_t>& output, uint16_t& headerOffsetPosition);
 
 void GenerateAssetPack(const char* name)
 {
@@ -47,6 +48,8 @@ void GenerateAssetPack(const char* name)
 	EncodeCursor(basePath, "mouse.png", data, header.pointerCursorOffset);
 	EncodeCursor(basePath, "mouse-link.png", data, header.linkCursorOffset);
 	EncodeCursor(basePath, "mouse-select.png", data, header.textSelectCursorOffset);
+
+	EncodeImage(basePath, "image-icon.png", data, header.imageIconOffset);
 
 	char outputPath[256];
 	snprintf(outputPath, 256, "assets/%s.dat", name);

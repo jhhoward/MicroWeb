@@ -43,6 +43,8 @@ bool DataPack::Load(const char* path)
 	linkCursor = (MouseCursorData*)(&rawData[header.linkCursorOffset]);
 	textSelectCursor = (MouseCursorData*)(&rawData[header.textSelectCursorOffset]);
 
+	imageIcon = (Image*)(&rawData[header.imageIconOffset]);
+
 	for (int n = 0; n < NUM_FONT_SIZES; n++)
 	{
 		memcpy(&fonts[n], &rawData[header.fontOffsets[n]], sizeof(FontMetaData));
