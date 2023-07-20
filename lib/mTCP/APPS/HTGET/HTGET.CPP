@@ -1,7 +1,7 @@
 /*
 
    mTCP HTGet.cpp
-   Copyright (C) 2011-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2011-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -35,7 +35,6 @@
 */
 
 
-#include <bios.h>
 #include <io.h>
 #include <fcntl.h>
 
@@ -46,6 +45,7 @@
 #include <string.h>
 #include <time.h>
 #include <sys/stat.h>
+#include <sys/utime.h>
 #include <unistd.h>
 
 #include "types.h"
@@ -93,6 +93,10 @@ bool     TransferEncoding_Chunked = false;
 bool     ExpectedContentLengthSent = false;
 uint32_t ExpectedContentLength = 0;
 uint16_t HttpResponse = 500;
+
+
+bool     IsTZSet = false;
+time_t   LastModifiedTime = 0;
 
 
 
@@ -256,8 +260,8 @@ uint8_t userWantsOut( void ) {
     return 1;
   }
 
-  if ( bioskey(1) != 0 ) {
-    char c = bioskey(0);
+  if ( biosIsKeyReady( ) ) {
+    char c = biosKeyRead( );
     if ( (c == 27) || (c == 3) ) {
       errorMessage( "Esc or Ctrl-C detected - aborting!\n");
       return 1;
@@ -783,6 +787,74 @@ int sendHeaders( void ) {
 }
 
 
+
+
+
+// If the Last-Modified header is detected this will parse it and give us
+// a time_t.  (time_t is Coordinated Universal Time.)
+
+static const char *Months[] = {
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+};
+
+time_t parseLastModified( char *pos ) {
+
+  time_t rc = 0; // Not set or parsed.
+
+  int hour, min, sec, day, year;
+  char dayStr[4], monthStr[4];
+
+  int scanRc = sscanf( pos, "%3s, %d %3s %d %d:%d:%d GMT", dayStr, &day, monthStr, &year, &hour, &min, &sec );
+
+  if ( scanRc == 7 ) {
+
+    // Do some error checking.  This is not perfect but it weeds out most problems.
+
+    int month = -1;
+    for ( int i=0; i < 12; i++ ) {
+      if ( stricmp( monthStr, Months[i] ) == 0 ) { month = i; break; }
+    }
+
+    if ( (month >= 0)    && (month < 12) &&     // Month is zero based in this interface
+         (day   >= 0)    && (day   < 32) &&     // 1 to 31
+         (year  >= 1970) && (year  < 2100) &&
+         (hour  >= 0)    && (hour  < 25) &&
+         (min   >= 0)    && (min   < 61) &&
+         (sec   >= 0)    && (sec   < 61) ) {
+
+
+      // We want to use mktime which takes local time and creates a time_t that is
+      // Coordinated Universal Time.  We are already starting with Coordinated
+      // Universal Time (not local time) so correct the result after the mktime
+      // call.
+
+      struct tm inputTime;
+
+      inputTime.tm_sec = sec;
+      inputTime.tm_min = min;
+      inputTime.tm_hour = hour;
+      inputTime.tm_mday = day;
+      inputTime.tm_mon = month;
+      inputTime.tm_year = year - 1900;
+      inputTime.tm_isdst = 0;
+
+      rc = mktime( &inputTime );
+
+      // timezone is a global set by tzset that has the timezone offset in seconds.
+      // time_t is uint32_t while timezone is int32_t.  (It has to handle both
+      // positive and negative offsets.)
+      rc = rc - timezone;
+
+    }
+
+  } // end if correct number of fields scanned
+
+  return rc;
+}
+
+
+
 // readHeaders
 //
 // Returns 0 if we can read everything successfully, -1 if not.
@@ -860,6 +932,10 @@ int8_t readHeaders( void ) {
     else if (stricmp(lineBuffer, "Transfer-Encoding: chunked") == 0) {
       TransferEncoding_Chunked = true;
     }
+    else if (strnicmp(lineBuffer, "Last-Modified: ", 15) == 0) {
+      if ( IsTZSet == true ) LastModifiedTime = parseLastModified( lineBuffer + 15 );
+    }
+
 
   }
 
@@ -1151,6 +1227,23 @@ int readContent( void ) {
     fileWriteError( localErrno );
     return -1;
   }
+  else {
+
+    // Try to set the file timestamp.  We don't care if this works.
+    // Fixme: This requires a few hundred bytes to do, which is obscene.
+    // Replace with int 21,57 (Get/set file date and time using handle)
+    // to reduce the bloat from the C runtime.
+ 
+    if ( IsTZSet == true ) {
+      struct utimbuf tmp;
+      tmp.actime = LastModifiedTime;
+      tmp.modtime = LastModifiedTime;
+      utime( outputFilename, &tmp );
+    } else {
+      errorMessage( "Warning: Not setting file timestamp because the TZ env variable is not set.\n" );
+    }
+
+  }
     
 
   int rc = -1;
@@ -1171,7 +1264,7 @@ int readContent( void ) {
 
 
 
-static char CopyrightMsg1[] = "mTCP HTGet by M Brutman (mbbrutman@gmail.com) (C)opyright 2011-2020\n";
+static char CopyrightMsg1[] = "mTCP HTGet by M Brutman (mbbrutman@gmail.com) (C)opyright 2011-2023\n";
 static char CopyrightMsg2[] = "Version: " __DATE__ "\n\n";
 
 char *HelpText = {
@@ -1188,7 +1281,7 @@ char *HelpText = {
   "  -09                      Use HTTP 0.9 protocol\n"
   "  -10                      Use HTTP 1.0 protocol\n"
   "  -11                      Use HTTP 1.1 protocol (default)\n\n"
-  "Press Ctrl-Break or ESC during a transfer to abort\n\n"
+  "Press Ctrl-Break or ESC during a transfer to abort\n"
 };
 
 
@@ -1405,12 +1498,14 @@ int main( int argc, char *argv[] ) {
   // specified file initialize the timezone and get the modification time
   // of the file.
 
+  IsTZSet = getenv( "TZ" ) != NULL;
+
   if ( ModifiedSince ) {
 
-    char *tzStr = getenv( "TZ" );
-    if ( tzStr == NULL ) {
-      errorMessage( "Warning: the TZ environment variable is not set.  Assuming\n"
-            "Eastern Standard Time.  See the docs for how to set it properly.\n" );
+    if ( IsTZSet == false ) {
+      errorMessage( "Error: the TZ environment variable is not set.  If you want to use\n"
+                    "the -m option it must be set.  See the docs for how to set it properly.\n" );
+      exit(1);
     }
 
     tzset( );

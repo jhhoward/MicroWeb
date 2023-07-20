@@ -20,6 +20,7 @@
 #include "CGA.h"
 #include "EGA.h"
 #include "Hercules.h"
+#include "Olivetti.h"
 #endif
 #include "DOSInput.h"
 #include "DOSNet.h"
@@ -182,6 +183,14 @@ void Platform::Init(int argc, char* argv[])
 		if (!stricmp(argv[n], "-c") && !video)
 		{
 			video = new CGADriver();
+		}
+		if (!stricmp(argv[n], "-o") && !video)
+		{
+			video = new OlivettiDriver(0x40);
+		}
+		if (!stricmp(argv[n], "-t3100") && !video)
+		{
+			video = new OlivettiDriver(0x74);
 		}
 		if (!stricmp(argv[n], "-h") && !video)
 		{

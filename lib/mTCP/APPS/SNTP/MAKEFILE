@@ -30,7 +30,7 @@ memory_model = -ms
 compile_options = -0 $(memory_model) -DCFG_H="sntp.cfg" -oh -ok -os -s -oa -ei -zp2 -zpw -we
 compile_options += -i=$(tcp_h_dir) -i=$(common_h_dir)
 
-tcpobjs = packet.obj arp.obj eth.obj ip.obj utils.obj timer.obj ipasm.obj udp.obj dns.obj trace.obj
+tcpobjs = packet.obj arp.obj eth.obj ip.obj utils.obj timer.obj ipasm.obj udp.obj dns.obj trace.obj sntplib.obj
 objs = sntp.obj
 
 all : clean sntp.exe

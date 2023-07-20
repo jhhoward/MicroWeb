@@ -1,8 +1,8 @@
 
 mTCP Source Code Readme
-2020-03-07 Version
+2023-03-31 Version
 
-Home page: http://www.brutman.com/mTCP
+Home page: http://www.brutman.com/mTCP/mTCP.html
 
 
 Welcome to the mTCP source code!

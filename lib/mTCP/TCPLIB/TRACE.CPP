@@ -1,7 +1,7 @@
 /*
 
    mTCP Trace.cpp
-   Copyright (C) 2005-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2005-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -39,10 +39,10 @@
 
 
 
-FILE   *Trace_Stream = stderr;
-char    Trace_Severity = ' ';
-uint16_t Trace_Debugging;
-char    Trace_LogFile[80];
+FILE     *Trace_Stream = stderr;
+char      Trace_Severity = ' ';
+uint16_t  Trace_Debugging;
+char     *Trace_LogFile;
 
 
 
@@ -58,7 +58,7 @@ void Trace_beginTracing( void ) {
   // Protect us if the trace file is already open.
   if ( Trace_Stream != stderr ) return;
 
-  if ( Trace_LogFile[0] ) {
+  if ( Trace_LogFile != NULL ) {
     Trace_Stream = fopen( Trace_LogFile, "ac" );
     if ( Trace_Stream == NULL ) Trace_Stream = stderr;
   }

@@ -30,7 +30,7 @@ tcp_c_dir = ..\..\TCPLIB\
 common_h_dir = ..\..\INCLUDE
 
 memory_model = -mc
-compile_options = -0 $(memory_model) -DCFG_H="nc.cfg" -oh -ok -ot -s -oa -ei -zp2 -zpw -we -ob -ol+ -oi+
+compile_options = -0 $(memory_model) -DCFG_H="nc.cfg" -oh -ok -os -s -oa -ei -zp2 -zpw -we -ob -ol+ -oi+
 compile_options += -i=$(tcp_h_dir) -i=$(common_h_dir)
 
 

@@ -1,7 +1,7 @@
 /*
 
    mTCP Netcat.cpp
-   Copyright (C) 2006-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2006-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -110,7 +110,14 @@
 //   the socket closed.
 
 
-#include <bios.h>
+
+// Return codes:
+// 0 - All good (or at least mostly worked)
+// 1 - Args or setup error
+// 2 - TCP/IP initialization failed
+// 3 - Connectivity error
+// 4 - Session timeout or error after starting.  (Ctrl-Break, send err, etc.)
+
 #include <dos.h>
 #include <conio.h>
 #include <fcntl.h>
@@ -180,6 +187,8 @@ uint8_t  Telnet_NL = 0;          // Are we sending newlines as CR/LF?
 uint8_t  LocalEcho = 0;          // Are we providing local echo?
 uint32_t WaitAfterClose = 0;     // How long to wait for incoming data after stdin closes (in ms)
 int8_t   CloseOnRemoteClose = 1; // Close immediately if other side closes
+uint8_t  Silent = 0;             // Suppress all output unless it comes from the socket
+uint32_t SessionTimeout = 0;     // Kill the session after this many milliseconds.  (0 does nothing.)
 
 
 // Internal flags and vars
@@ -221,16 +230,17 @@ void __interrupt __far ctrlCHandler( ) {
 
 
 
-static char CopyrightMsg1[] = "mTCP Netcat by M Brutman (mbbrutman@gmail.com) (C)opyright 2007-2020\n";
+static char CopyrightMsg1[] = "mTCP Netcat by M Brutman (mbbrutman@gmail.com) (C)opyright 2007-2023\n";
 static char CopyrightMsg2[] = "Version: " __DATE__ "\n\n";
 
 
 int main( int argc, char *argv[] ) {
 
-  fprintf( stderr, "%s  %s", CopyrightMsg1, CopyrightMsg2 );
+  parseEnv( );
+
+  if ( Silent == 0 ) fprintf( stderr, "%s  %s", CopyrightMsg1, CopyrightMsg2 );
 
   parseArgs( argc, argv );
-  parseEnv( );
 
 
   // Allocate buffer space early to see if we have enough memory.
@@ -239,20 +249,20 @@ int main( int argc, char *argv[] ) {
   uint8_t *fileWriteBuffer = (uint8_t *)malloc( WRITE_BUF_SIZE );
 
   if ( (fileReadBuffer == NULL) || (fileWriteBuffer == NULL) ) {
-    fprintf( stderr, "\nFailed to allocate file buffers - try reducing them.\n" );
-    exit(-1);
+    if ( Silent == 0 ) fprintf( stderr, "\nFailed to allocate file buffers - try reducing them.\n" );
+    exit(1);
   }
 
 
   // Initialize TCP/IP
 
   if ( Utils::parseEnv( ) != 0 ) {
-    exit(-1);
+    exit(2);
   }
 
   if ( Utils::initStack( 2, TCP_SOCKET_RING_SIZE, ctrlBreakHandler, ctrlCHandler ) ) {
-    fprintf( stderr, "\nFailed to initialize TCP/IP - exiting\n" );
-    exit(-1);
+    if ( Silent == 0 ) fprintf( stderr, "\nFailed to initialize TCP/IP - exiting\n" );
+    exit(2);
   }
 
 
@@ -282,9 +292,9 @@ int main( int argc, char *argv[] ) {
   }
 
 
-  // WaitAfterClose should be in milliseconds
+  // WaitAfterClose and SessionTimeout should be in milliseconds
   WaitAfterClose = WaitAfterClose * 1000ul;
-
+  SessionTimeout = SessionTimeout * 1000ul;
 
   // Pick a random number for the source port.  (If we are listening then
   // LclPort is already set and will not be altered.)
@@ -299,15 +309,15 @@ int main( int argc, char *argv[] ) {
   int8_t rc;
   if ( Listening == 0 ) {
 
-    fprintf( stderr, "Resolving server address - press Ctrl-Break to abort\n\n" );
+    if ( Silent == 0 ) fprintf( stderr, "Resolving server address - press Ctrl-Break to abort\n\n" );
 
     IpAddr_t serverAddr;
 
     // Resolve the name and definitely send the request
     int8_t rc2 = Dns::resolve( ServerAddrName, serverAddr, 1 );
     if ( rc2 < 0 ) {
-      fprintf( stderr, "Error resolving server\n" );
-      shutdown( -1 );
+      if ( Silent == 0 ) fprintf( stderr, "Error resolving server\n" );
+      shutdown( 3 );
     }
 
     uint8_t done = 0;
@@ -315,7 +325,7 @@ int main( int argc, char *argv[] ) {
     while ( !done ) {
 
       if ( CtrlBreakDetected ) {
-	break;
+        break;
       }
 
       if ( !Dns::isQueryPending( ) ) break;
@@ -331,8 +341,8 @@ int main( int argc, char *argv[] ) {
     rc2 = Dns::resolve( ServerAddrName, serverAddr, 0 );
 
     if ( rc2 != 0 ) {
-      fprintf( stderr, "Error resolving server\n" );
-      shutdown( -1 );
+      if ( Silent == 0 ) fprintf( stderr, "Error resolving server\n" );
+      shutdown( 3 );
     }
 
     mySocket = TcpSocketMgr::getSocket( );
@@ -341,13 +351,13 @@ int main( int argc, char *argv[] ) {
     mySocket->setRecvBuffer( RCV_BUF_SIZE );
     #endif
 
-    fprintf( stderr, "Server resolved to %d.%d.%d.%d - connecting\n\n", serverAddr[0], serverAddr[1], serverAddr[2], serverAddr[3] );
+    if ( Silent == 0 ) fprintf( stderr, "Server resolved to %d.%d.%d.%d - connecting\n\n", serverAddr[0], serverAddr[1], serverAddr[2], serverAddr[3] );
 
     rc = mySocket->connect( LclPort, serverAddr, ServerPort, 10000 );
   }
   else {
 
-    fprintf( stderr, "Waiting for a connection on port %u. Press [ESC] to abort.\n\n", LclPort );
+    if ( Silent == 0 ) fprintf( stderr, "Waiting for a connection on port %u. Press [ESC] to abort.\n\n", LclPort );
 
     TcpSocket *listeningSocket = TcpSocketMgr::getSocket( );
     listeningSocket->listen( LclPort, RCV_BUF_SIZE );
@@ -356,8 +366,8 @@ int main( int argc, char *argv[] ) {
     while ( 1 ) {
 
       if ( CtrlBreakDetected ) {
-	rc = -1;
-	break;
+        rc = -1;
+        break;
       }
 
       PACKET_PROCESS_SINGLE;
@@ -366,20 +376,20 @@ int main( int argc, char *argv[] ) {
 
       mySocket = TcpSocketMgr::accept( );
       if ( mySocket != NULL ) {
-	listeningSocket->close( );
-	TcpSocketMgr::freeSocket( listeningSocket );
-	rc = 0;
-	break;
+        listeningSocket->close( );
+        TcpSocketMgr::freeSocket( listeningSocket );
+        rc = 0;
+        break;
       }
 
-      if ( bioskey(1) != 0 ) {
+      if ( biosIsKeyReady( ) ) {
 
-	char c = bioskey(0);
+        char c = biosKeyRead( );
 
-	if ( (c == 27) || (c == 3) ) {
-	  rc = -1;
-	  break;
-	}
+        if ( (c == 27) || (c == 3) ) {
+          rc = -1;
+          break;
+        }
       }
 
 
@@ -389,18 +399,18 @@ int main( int argc, char *argv[] ) {
   }
 
   if ( rc != 0 ) {
-    fprintf( stderr, "Socket open failed\n" );
-    shutdown( -1 );
+    if ( Silent == 0 ) fprintf( stderr, "Socket open failed\n" );
+    shutdown( 3 );
   }
 
   if ( Listening == 0 ) {
-    fprintf( stderr, "Connected!\n\n" );
+    if ( Silent == 0 ) fprintf( stderr, "Connected!\n\n" );
   }
   else {
-    fprintf( stderr, "Connection received from %d.%d.%d.%d:%u\n\n",
-	     mySocket->dstHost[0], mySocket->dstHost[1],
-	     mySocket->dstHost[2], mySocket->dstHost[3],
-	     mySocket->dstPort );
+    if ( Silent == 0 ) fprintf( stderr, "Connection received from %d.%d.%d.%d:%u\n\n",
+             mySocket->dstHost[0], mySocket->dstHost[1],
+             mySocket->dstHost[2], mySocket->dstHost[3],
+             mySocket->dstPort );
   }
 
 
@@ -431,12 +441,21 @@ int main( int argc, char *argv[] ) {
   uint16_t cachedKey;        // Saved keystroke, if we have one.
 
 
+  clockTicks_t loopStart = TIMER_GET_CURRENT( );
+
   while ( 1 ) {
 
     if ( CtrlBreakDetected ) {
-      fprintf( stderr, "\nNetcat: Ctrl-Break detected\n" );
+      if ( Silent == 0 ) fprintf( stderr, "\nNetcat: Ctrl-Break detected\n" );
       errorStop = 2;
       break;
+    }
+
+    if ( SessionTimeout) {
+      if ( Timer_diff( loopStart, TIMER_GET_CURRENT() ) > TIMER_MS_TO_TICKS(SessionTimeout) ) {
+        errorStop = 5;
+        break;
+      }
     }
 
     // Service the connection
@@ -452,10 +471,10 @@ int main( int argc, char *argv[] ) {
       // socket for a limited time.  (The default is 0, so this will normally
       // trip quickly.
       if ( stdinClosed ) {
-	if ( Timer_diff( stdinClosedTime, TIMER_GET_CURRENT( ) ) > TIMER_MS_TO_TICKS(WaitAfterClose) ) {
-	  // Wait time is exceeded.  Break out of the main loop.
-	  break;
-	}
+        if ( Timer_diff( stdinClosedTime, TIMER_GET_CURRENT( ) ) > TIMER_MS_TO_TICKS(WaitAfterClose) ) {
+          // Wait time is exceeded.  Break out of the main loop.
+          break;
+        }
       }
 
 
@@ -463,33 +482,33 @@ int main( int argc, char *argv[] ) {
 
       while ( 1 ) {
 
-	int16_t recvRc = mySocket->recv( fileWriteBuffer+bytesRead, bytesToRead );
+        int16_t recvRc = mySocket->recv( fileWriteBuffer+bytesRead, bytesToRead );
 
-	if ( recvRc > 0 ) {
+        if ( recvRc > 0 ) {
 
-	  TotalBytesReceived += recvRc;
-	  bytesRead += recvRc;
-	  bytesToRead -= recvRc;
+          TotalBytesReceived += recvRc;
+          bytesRead += recvRc;
+          bytesToRead -= recvRc;
 
-	  if ( (bytesToRead == 0) || (IsStdoutFile == 0) ) {
-	    if ( writeOutput( fileWriteBuffer, bytesRead ) != 0 ) {
-	      errorStop = 1;
-	      break;
-	    }
-	    bytesToRead = WRITE_BUF_SIZE;
-	    bytesRead = 0;
-	  }
-	}
-	else {
-	  // No data or an error - break this local receive loop
-	  // if ( recvRc < 0 ) {
-	  //   if ( mySocket->isClosed( ) ) {
-	  //     // It is only an error if the socket really went closed.
-	  //     errorStop = 3;
-	  //   }
-	  // }
-	  break;
-	}
+          if ( (bytesToRead == 0) || (IsStdoutFile == 0) ) {
+            if ( writeOutput( fileWriteBuffer, bytesRead ) != 0 ) {
+              errorStop = 1;
+              break;
+            }
+            bytesToRead = WRITE_BUF_SIZE;
+            bytesRead = 0;
+          }
+        }
+        else {
+          // No data or an error - break this local receive loop
+          // if ( recvRc < 0 ) {
+          //   if ( mySocket->isClosed( ) ) {
+          //     // It is only an error if the socket really went closed.
+          //     errorStop = 3;
+          //   }
+          // }
+          break;
+        }
 
       }
 
@@ -499,30 +518,30 @@ int main( int argc, char *argv[] ) {
 
       while ( packet = ((uint8_t *)mySocket->incoming.dequeue( )) ) {
 
-	IpHeader *ip = (IpHeader *)(packet + sizeof(EthHeader) );
-	TcpHeader *tcp = (TcpHeader *)(ip->payloadPtr( ));
-	uint8_t *userData = ((uint8_t *)tcp)+tcp->getTcpHlen( );
-	uint16_t len = ip->payloadLen( ) - tcp->getTcpHlen( );
+        IpHeader *ip = (IpHeader *)(packet + sizeof(EthHeader) );
+        TcpHeader *tcp = (TcpHeader *)(ip->payloadPtr( ));
+        uint8_t *userData = ((uint8_t *)tcp)+tcp->getTcpHlen( );
+        uint16_t len = ip->payloadLen( ) - tcp->getTcpHlen( );
 
-	TotalBytesReceived += len;
+        TotalBytesReceived += len;
 
 
-	// Copy to our filebuffer.  If we are close to the end of
-	// the file buffer, write it out.
+        // Copy to our filebuffer.  If we are close to the end of
+        // the file buffer, write it out.
 
-	memcpy( fileWriteBuffer+bytesRead, userData, len );
-	bytesRead += len;
+        memcpy( fileWriteBuffer+bytesRead, userData, len );
+        bytesRead += len;
 
-	// Get rid of the incoming buffer as soon as possible.
-	Buffer_free( packet );
+        // Get rid of the incoming buffer as soon as possible.
+        Buffer_free( packet );
 
-	if ( ((WRITE_BUF_SIZE - bytesRead) < MyMTU) || (IsStdoutFile == 0) ) {
-	  if ( writeOutput( fileWriteBuffer, bytesRead ) != 0 ) {
-	    errorStop = 1;
-	    break;
-	  }
-	  bytesRead = 0;
-	}
+        if ( ((WRITE_BUF_SIZE - bytesRead) < MyMTU) || (IsStdoutFile == 0) ) {
+          if ( writeOutput( fileWriteBuffer, bytesRead ) != 0 ) {
+            errorStop = 1;
+            break;
+          }
+          bytesRead = 0;
+        }
 
       }
       #endif
@@ -536,15 +555,15 @@ int main( int argc, char *argv[] ) {
       remoteClosed = mySocket->isRemoteClosed( );
 
       if ( remoteClosed ) {
-	if ( Verbose ) fprintf( stderr, "\nNetcat: Remote side closed: " );
-	if ( CloseOnRemoteClose ) {
-	  // User wants to hang around after the other side closes.
-	  if ( Verbose ) fprintf( stderr, "Closing our side\n" );
-	  break;
-	}
-	else {
-	  if ( Verbose ) fprintf( stderr, "-nocorc used, leaving our side open!\n" );
-	}
+        if ( Verbose ) fprintf( stderr, "\nNetcat: Remote side closed: " );
+        if ( CloseOnRemoteClose ) {
+          // User wants to hang around after the other side closes.
+          if ( Verbose ) fprintf( stderr, "Closing our side\n" );
+          break;
+        }
+        else {
+          if ( Verbose ) fprintf( stderr, "-nocorc used, leaving our side open!\n" );
+        }
       }
 
     }
@@ -559,53 +578,53 @@ int main( int argc, char *argv[] ) {
 
     // Check for keyboard input.
 
-    if ( (isKeyCached == 0) && bioskey(1) ) {
+    if ( (isKeyCached == 0) && biosIsKeyReady( ) ) {
 
       // We are not holding a key and a new keystroke is ready.
 
-      uint16_t key = bioskey( 0 );
+      uint16_t key = biosKeyRead( );
       uint8_t ekey = key >> 8;
 
       // Is this a special key?
       if ( (key & 0xff) == 0 ) {
 
 
-	if ( ekey == 45 ) { // Alt-X
-	  stdinClosed = 1;
-	  stdinClosedTime = TIMER_GET_CURRENT( );
-	  mySocket->shutdown( TCP_SHUT_WR );
-	  if ( Verbose ) fprintf( stderr, "\nNetcat: Local side closed\n" );
-	}
-	else if ( ekey == 18 ) { // Alt-E
-	  LocalEcho = !LocalEcho;
-	  if ( LocalEcho ) {
-	    sound(500); delay(50); sound(750); delay(50); nosound( );
-	  }
-	  else {
-	    sound(500); delay(50); nosound( );
-	  }
-	}
-	else if ( ekey == 31 ) { // Alt-S
-	  fprintf( stderr, "\nNetcat: Bytes Sent: %lu  Rcvd: %lu  Stdin closed: %s  Remote closed: %s\n",
-			   TotalBytesSent, TotalBytesReceived, (stdinClosed?"yes":"no"), (remoteClosed?"yes":"no") );
-	}
-	else if ( ekey == 35 ) { // Alt-H
-	  fprintf( stderr, "\n\nNetcat quick help:\n" );
-	  fprintf( stderr, "  Alt-X: Close   Alt-E: Toggle Echo   Alt-S: Status   Ctrl-Break: Exit\n\n" );
-	}
+        if ( ekey == 45 ) { // Alt-X
+          stdinClosed = 1;
+          stdinClosedTime = TIMER_GET_CURRENT( );
+          mySocket->shutdown( TCP_SHUT_WR );
+          if ( Verbose ) fprintf( stderr, "\nNetcat: Local side closed\n" );
+        }
+        else if ( ekey == 18 ) { // Alt-E
+          LocalEcho = !LocalEcho;
+          if ( LocalEcho ) {
+            sound(500); delay(50); sound(750); delay(50); nosound( );
+          }
+          else {
+            sound(500); delay(50); nosound( );
+          }
+        }
+        else if ( ekey == 31 ) { // Alt-S
+          if ( Silent == 0 ) fprintf( stderr, "\nNetcat: Bytes Sent: %lu  Rcvd: %lu  Stdin closed: %s  Remote closed: %s\n",
+                           TotalBytesSent, TotalBytesReceived, (stdinClosed?"yes":"no"), (remoteClosed?"yes":"no") );
+        }
+        else if ( ekey == 35 ) { // Alt-H
+          if ( Silent == 0 ) fprintf( stderr, "\n\nNetcat quick help:\n" );
+          if ( Silent == 0 ) fprintf( stderr, "  Alt-X: Close   Alt-E: Toggle Echo   Alt-S: Status   Ctrl-Break: Exit\n\n" );
+        }
 
       }
 
       else {
 
-	// If we are being redirected from a file throw the key away.
-	// If we are reading interactively from the keyboard save the
-	// key
+        // If we are being redirected from a file throw the key away.
+        // If we are reading interactively from the keyboard save the
+        // key
 
-	if ( IsStdinFile == 0 ) {
-	  isKeyCached = 1;
-	  cachedKey = key;
-	}
+        if ( IsStdinFile == 0 ) {
+          isKeyCached = 1;
+          cachedKey = key;
+        }
 
       }
 
@@ -620,82 +639,82 @@ int main( int argc, char *argv[] ) {
 
       if ( isKeyCached ) {
 
-	// Special keys are already handled by this point, so it is a normal
-	// key we are dealing with.
+        // Special keys are already handled by this point, so it is a normal
+        // key we are dealing with.
 
-	isKeyCached = 0;
+        isKeyCached = 0;
 
-	uint16_t key = cachedKey;
+        uint16_t key = cachedKey;
 
-	uint8_t keyChar = key & 0xff;
-	uint8_t ekey = key >> 8;
+        uint8_t keyChar = key & 0xff;
+        uint8_t ekey = key >> 8;
 
-	uint8_t tmpBuf[2];
-	uint8_t tmpBufLen = 1; // Probably always one char generated
-	tmpBuf[0] = keyChar;   // Probably always the original char
+        uint8_t tmpBuf[2];
+        uint8_t tmpBufLen = 1; // Probably always one char generated
+        tmpBuf[0] = keyChar;   // Probably always the original char
 
-	if ( (BinaryMode == 0) && (keyChar == 3) ) {
-	  fprintf( stderr, "\nNetcat: Ctrl-C detected and sent.  Use Alt-X to quit.\n" );
-	}
+        if ( (BinaryMode == 0) && (keyChar == 3) ) {
+          if ( Silent == 0 ) fprintf( stderr, "\nNetcat: Ctrl-C detected and sent.  Use Alt-X to quit.\n" );
+        }
 
-	else if ( keyChar == 26 ) {
-	  if ( BinaryMode == 0 ) {
-	    stdinClosed = 1;
-	    stdinClosedTime = TIMER_GET_CURRENT( );
-	    mySocket->shutdown( TCP_SHUT_WR );
-	    if ( Verbose ) fprintf( stderr, "\nNetcat: Local side closed\n" );
-	  }
-	  else {
-	    fprintf( stderr, "\nNetcat: Ctrl-Z detected and sent in binary mode.  Use Alt-X to signal EOF.\n" );
-	  }
-	}
+        else if ( keyChar == 26 ) {
+          if ( BinaryMode == 0 ) {
+            stdinClosed = 1;
+            stdinClosedTime = TIMER_GET_CURRENT( );
+            mySocket->shutdown( TCP_SHUT_WR );
+            if ( Verbose ) fprintf( stderr, "\nNetcat: Local side closed\n" );
+          }
+          else {
+            if ( Silent == 0 ) fprintf( stderr, "\nNetcat: Ctrl-Z detected and sent in binary mode.  Use Alt-X to signal EOF.\n" );
+          }
+        }
 
-	else if ( (keyChar == 13) && (ekey == 0x1c) ) {
-	  // This is the Enter key by itself
-	  if ( BinaryMode == 0 ) {
-	    if ( Telnet_NL == 0 ) {
-	      // Convert to Unix NL
-	      tmpBuf[0] = NL;
-	      }
-	    else {
-	      tmpBuf[0] = CR;
-	      tmpBuf[1] = LF;
-	      tmpBufLen = 2;
-	    }
-	  }
-	}
+        else if ( (keyChar == 13) && (ekey == 0x1c) ) {
+          // This is the Enter key by itself
+          if ( BinaryMode == 0 ) {
+            if ( Telnet_NL == 0 ) {
+              // Convert to Unix NL
+              tmpBuf[0] = NL;
+              }
+            else {
+              tmpBuf[0] = CR;
+              tmpBuf[1] = LF;
+              tmpBufLen = 2;
+            }
+          }
+        }
 
 
-	if ( stdinClosed == 0 ) {
+        if ( stdinClosed == 0 ) {
 
-	  if ( LocalEcho ) {
-	    putchar( tmpBuf[0] );
-	    if ( tmpBufLen == 2 ) putchar( tmpBuf[1] );
+          if ( LocalEcho ) {
+            putchar( tmpBuf[0] );
+            if ( tmpBufLen == 2 ) putchar( tmpBuf[1] );
 
             #if defined ( __WATCOMC__ ) || defined ( __WATCOM_CPLUSPLUS__ )
             // This is brutal but needed for Watcom.  It shouldn't hurt
             // since the user is typing interactively.
             fflush( stdout );
             #endif
-	  }
+          }
 
 
-	  DataBuf *buf = (DataBuf *)TcpBuffer::getXmitBuf( );
+          DataBuf *buf = (DataBuf *)TcpBuffer::getXmitBuf( );
 
-	  if ( buf != NULL ) {
-	    buf->data[0] = tmpBuf[0];
-	    buf->data[1] = tmpBuf[1];
-	    buf->b.dataLen = tmpBufLen;
+          if ( buf != NULL ) {
+            buf->data[0] = tmpBuf[0];
+            buf->data[1] = tmpBuf[1];
+            buf->b.dataLen = tmpBufLen;
 
             // Fixme: check return code
-	    mySocket->enqueue( &buf->b );
-	    TotalBytesSent++;
-	  }
-	  else {
-	    fprintf(stderr, "\nNetcat: Warning - no transmit buffers!\n");
-	  }
+            mySocket->enqueue( &buf->b );
+            TotalBytesSent++;
+          }
+          else {
+            if ( Silent == 0 ) fprintf(stderr, "\nNetcat: Warning - no transmit buffers!\n");
+          }
 
-	}
+        }
 
       }
 
@@ -709,15 +728,15 @@ int main( int argc, char *argv[] ) {
 
       if ( (bytesToSend == 0) && (!endOfInputFile) ) {
 
-	bytesToSend = read( 0, fileReadBuffer, READ_BUF_SIZE );
-	bytesSent = 0;
-	if ( bytesToSend == 0 ) {
-	  endOfInputFile = 1;
-	  stdinClosed = 1;
-	  stdinClosedTime = TIMER_GET_CURRENT( );
-	  mySocket->shutdown( TCP_SHUT_WR );
-	  fprintf( stderr, "\nNetcat: EOF detected on STDIN\n" );
-	}
+        bytesToSend = read( 0, fileReadBuffer, READ_BUF_SIZE );
+        bytesSent = 0;
+        if ( bytesToSend == 0 ) {
+          endOfInputFile = 1;
+          stdinClosed = 1;
+          stdinClosedTime = TIMER_GET_CURRENT( );
+          mySocket->shutdown( TCP_SHUT_WR );
+          if ( Silent == 0 ) fprintf( stderr, "\nNetcat: EOF detected on STDIN\n" );
+        }
 
       }
 
@@ -726,66 +745,66 @@ int main( int argc, char *argv[] ) {
 
       while ( bytesToSend ) {
 
-	if ( !mySocket->outgoing.hasRoom() ) break;
+        if ( !mySocket->outgoing.hasRoom() ) break;
 
-	DataBuf *buf = (DataBuf *)TcpBuffer::getXmitBuf( );
+        DataBuf *buf = (DataBuf *)TcpBuffer::getXmitBuf( );
 
-	if ( buf == NULL ) break;
+        if ( buf == NULL ) break;
 
-	uint16_t bytesConsumed;
-	uint16_t packetLen;
+        uint16_t bytesConsumed;
+        uint16_t packetLen;
 
-	if ( (BinaryMode == 1) || (Telnet_NL == 0) ) {
+        if ( (BinaryMode == 1) || (Telnet_NL == 0) ) {
 
-	  bytesConsumed = maxPacketSize;
-	  if ( bytesToSend < maxPacketSize ) {
-	    bytesConsumed = bytesToSend;
-	  }
+          bytesConsumed = maxPacketSize;
+          if ( bytesToSend < maxPacketSize ) {
+            bytesConsumed = bytesToSend;
+          }
 
-	  memcpy( buf->data,
-		  fileReadBuffer+bytesSent,
-		  bytesConsumed );
+          memcpy( buf->data,
+                  fileReadBuffer+bytesSent,
+                  bytesConsumed );
 
-	  packetLen = bytesConsumed;
+          packetLen = bytesConsumed;
 
-	}
-	else {
+        }
+        else {
 
-	  uint16_t offset = 0;
+          uint16_t offset = 0;
 
-	  uint16_t limit = maxPacketSize-1;
-	  if ( bytesToSend < limit ) {
-	    limit = bytesToSend;
-	  }
+          uint16_t limit = maxPacketSize-1;
+          if ( bytesToSend < limit ) {
+            limit = bytesToSend;
+          }
 
-	  // Scan for NL and add a CR if we find it.
+          // Scan for NL and add a CR if we find it.
           uint16_t i;
-	  for ( i=0; i < limit; i++ ) {
-	    if ( fileReadBuffer[bytesSent+i] == 10 ) {
-	      buf->data[i] = 13; buf->data[i+1] = 10; offset = 1; i++; break;
-	    }
-	    else {
-	      buf->data[i] = fileReadBuffer[bytesSent+i];
-	    }
-	  }
+          for ( i=0; i < limit; i++ ) {
+            if ( fileReadBuffer[bytesSent+i] == 10 ) {
+              buf->data[i] = 13; buf->data[i+1] = 10; offset = 1; i++; break;
+            }
+            else {
+              buf->data[i] = fileReadBuffer[bytesSent+i];
+            }
+          }
 
-	  bytesConsumed = i;
-	  packetLen = bytesConsumed + offset;
-	}
+          bytesConsumed = i;
+          packetLen = bytesConsumed + offset;
+        }
 
-	TotalBytesSent += packetLen;
-	buf->b.dataLen = packetLen;
+        TotalBytesSent += packetLen;
+        buf->b.dataLen = packetLen;
 
-	int16_t rc = mySocket->enqueue( &buf->b );
-	if ( rc ) {
-	  fprintf( stderr, "\nNetcat: Error enqueuing packet: %d\n", rc );
-	  errorStop = 4;
-	  mySocket->shutdown( TCP_SHUT_WR );
-	  break;
-	}
+        int16_t rc = mySocket->enqueue( &buf->b );
+        if ( rc ) {
+          if ( Silent == 0 ) fprintf( stderr, "\nNetcat: Error enqueuing packet: %d\n", rc );
+          errorStop = 4;
+          mySocket->shutdown( TCP_SHUT_WR );
+          break;
+        }
 
-	bytesSent += bytesConsumed;
-	bytesToSend -= bytesConsumed;
+        bytesSent += bytesConsumed;
+        bytesToSend -= bytesConsumed;
 
       }
 
@@ -808,14 +827,14 @@ int main( int argc, char *argv[] ) {
     write( 1, "\xD", 1 );
   }
 
-
-  if ( errorStop ) {
+  if ( errorStop && (Silent == 0) ) {
     fprintf(stderr, "\nWarning: netcat ended early: " );
     switch ( errorStop ) {
       case 1: fprintf( stderr, "Probable error writing output\n\n" ); break;
       case 2: fprintf( stderr, "You pressed Ctrl-Break\n\n" ); break;
       case 3: fprintf( stderr, "Error on socket receive\n\n" ); break;
       case 4: fprintf( stderr, "Error on socket send\n\n" ); break;
+      case 5: fprintf( stderr, "Session timeout\n\n" ); break;
       default: fprintf( stderr, "Error code: %d\n\n", errorStop ); break;
     }
   }
@@ -834,10 +853,12 @@ int main( int argc, char *argv[] ) {
 
   uint16_t t = Utils::timeDiff( start, endTime );
 
-  fprintf( stderr, "\nElapsed time: %u.%02u   Bytes sent: %ld  Received: %ld\n",
-		   (t/100), (t%100), TotalBytesSent, TotalBytesReceived );
+  if ( Silent == 0 ) fprintf( stderr, "\nElapsed time: %u.%02u   Bytes sent: %ld  Received: %ld\n",
+                   (t/100), (t%100), TotalBytesSent, TotalBytesReceived );
 
-  shutdown( 0 );
+  int8_t endRc = 0;
+  if ( errorStop ) endRc = 4;
+  shutdown( endRc );
 
   return 0;
 }
@@ -904,19 +925,19 @@ int8_t writeOutput( uint8_t *outputBuffer, uint16_t outputBufferLen ) {
 
       while ( curCharIndex < outputBufferLen ) {
 
-	if ( outputBuffer[curCharIndex] == CR ) {
-	  if ( curCharIndex < (outputBufferLen-1) ) {
-	    if ( outputBuffer[curCharIndex+1] == LF ) {
-	      outputBuffer[curCharIndex] = NL;
-	      if ( write( 1, outputBuffer+bytesWritten, curCharIndex-bytesWritten+1 ) != (curCharIndex-bytesWritten+1) ) return -1;
-	      curCharIndex += 2;
-	      bytesWritten = curCharIndex;
-	      break;
-	    }
-	  }
-	}
+        if ( outputBuffer[curCharIndex] == CR ) {
+          if ( curCharIndex < (outputBufferLen-1) ) {
+            if ( outputBuffer[curCharIndex+1] == LF ) {
+              outputBuffer[curCharIndex] = NL;
+              if ( write( 1, outputBuffer+bytesWritten, curCharIndex-bytesWritten+1 ) != (curCharIndex-bytesWritten+1) ) return -1;
+              curCharIndex += 2;
+              bytesWritten = curCharIndex;
+              break;
+            }
+          }
+        }
 
-	curCharIndex++;
+        curCharIndex++;
 
       }
 
@@ -926,11 +947,11 @@ int8_t writeOutput( uint8_t *outputBuffer, uint16_t outputBufferLen ) {
     if ( bytesWritten < curCharIndex ) {
 
       if ( ((curCharIndex - bytesWritten) == 1 ) && (outputBuffer[bytesWritten] == CR) ) {
-	lastCharWasCR = 1;
+        lastCharWasCR = 1;
       }
       else {
-	lastCharWasCR = 0;
-	if ( write( 1, outputBuffer+bytesWritten, curCharIndex-bytesWritten ) != curCharIndex-bytesWritten ) rc = -1;
+        lastCharWasCR = 0;
+        if ( write( 1, outputBuffer+bytesWritten, curCharIndex-bytesWritten ) != curCharIndex-bytesWritten ) rc = -1;
       }
     }
 
@@ -1005,19 +1026,19 @@ static void parseArgs( int argc, char *argv[] ) {
     else if ( stricmp( argv[i], "-target" ) == 0 ) {
 
       if ( Listening != -1 ) {
-	errorMsg( "Specify -listen or -target, but not both\n" );
+        errorMsg( "Specify -listen or -target, but not both\n" );
       }
 
       i++;
       if ( i == argc ) {
-	errorMsg( "Need to provide a target server\n" );
+        errorMsg( "Need to provide a target server\n" );
       }
 
       strcpy( ServerAddrName, argv[i] );
 
       i++;
       if ( i == argc ) {
-	errorMsg( "Need to provide a target port\n" );
+        errorMsg( "Need to provide a target port\n" );
       }
 
       ServerPort = atoi( argv[i] );
@@ -1027,18 +1048,18 @@ static void parseArgs( int argc, char *argv[] ) {
     else if ( stricmp( argv[i], "-listen" ) == 0 ) {
 
       if ( Listening != -1 ) {
-	errorMsg( "Specify -listen or -target, but not both\n" );
+        errorMsg( "Specify -listen or -target, but not both\n" );
       }
 
       i++;
       if ( i == argc ) {
-	errorMsg( "Need to specify a port to listen on\n" );
+        errorMsg( "Need to specify a port to listen on\n" );
       }
 
       LclPort = atoi( argv[i] );
 
       if ( LclPort == 0 ) {
-	errorMsg( "Use a non-zero port to listen on\n" );
+        errorMsg( "Use a non-zero port to listen on\n" );
       }
 
       Listening = 1;
@@ -1051,15 +1072,15 @@ static void parseArgs( int argc, char *argv[] ) {
     else if ( stricmp( argv[i], "-srcport" ) == 0 ) {
 
       if ( Listening == -1 ) {
-	errorMsg( "Specify a target to connect to first\n" );
+        errorMsg( "Specify a target to connect to first\n" );
       }
       if ( Listening == 1 ) {
-	errorMsg( "The -srcport option is not valid with -listen\n" );
+        errorMsg( "The -srcport option is not valid with -listen\n" );
       }
 
       i++;
       if ( i == argc ) {
-	errorMsg( "Need to specify a port number with -srcport\n" );
+        errorMsg( "Need to specify a port number with -srcport\n" );
       }
 
       LclPort = atoi( argv[i] );
@@ -1072,10 +1093,18 @@ static void parseArgs( int argc, char *argv[] ) {
     else if ( stricmp( argv[i], "-w" ) == 0 ) {
       i++;
       if ( i == argc ) {
-	fprintf( stderr, "Need to specify the number of seconds with -w\n" );
-	exit(-1);
+        fprintf( stderr, "Need to specify the number of seconds with -w\n" );
+        exit(1);
       }
       WaitAfterClose = atoi( argv[i] );
+    }
+    else if ( stricmp( argv[i], "-timeout" ) == 0 ) {
+      i++;
+      if ( i == argc ) {
+        fprintf( stderr, "Need to specify the number of seconds with -timeout\n" );
+        exit(1);
+      }
+      SessionTimeout = atoi( argv[i] );
     }
     else {
       fprintf( stderr, "Unknown option %s\n", argv[i] );
@@ -1117,6 +1146,11 @@ static void parseEnv( void ) {
   if ( c!= NULL ) {
     uint16_t tmp = atoi( c );
     if ( (tmp >= 512) && (tmp <=32768) ) WRITE_BUF_SIZE = tmp;
+  }
+
+  c = getenv( "NC_SILENT" );
+  if ( c!= NULL ) {
+    Silent = 1;
   }
 }
 

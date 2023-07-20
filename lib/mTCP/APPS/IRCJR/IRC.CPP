@@ -1,7 +1,7 @@
 /*
 
    mTCP Irc.cpp
-   Copyright (C) 2008-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2008-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -76,6 +76,9 @@
 #include "session.h"
 #include "irc.h"
 
+#ifdef IRCJR_UNICODE
+#include "unicode.h"
+#endif
 
 
 enum IrcState_t {
@@ -207,6 +210,7 @@ char *getNextParm( char *input, char *target, uint16_t bufLen );
 char outBuf[ OUTBUF_LEN ];
 
 
+
 // DOS Version
 uint8_t DOS_major;
 uint8_t DOS_minor;
@@ -235,6 +239,7 @@ void processSessionSwitch( void );
 
 
 // Socket handling
+void sendMsg( uint8_t *buffer, uint16_t bufferLen );
 bool processSocketInput( void );
 void pollSocket( uint32_t timeout, uint16_t batching );
 int16_t registerWithServer( void );
@@ -283,7 +288,7 @@ const char CtrlBreakMsg[] = "\nCtrl-Break detected: exiting\n";
 
 bool checkUserWantsOut( void ) {
 
-  if ( bioskey(1) ) {
+  if ( biosIsKeyReady( ) ) {
     char c = getch( );
     if ( c == 27 ) {
       CS->puts( scErr, "[Esc] pressed - quitting.\n" );
@@ -311,19 +316,28 @@ static char QuitMsg[] = "QUIT :IRCjr DOS Client (Yes - DOS!)\r\n";
 
 static char Err_MustSupplyChannel[] = "Error: Must supply a channel name\n";
 static char Err_MustSupplyUserForMsg[] = "Error: Must supply a user to send the msg to\n";
-static char Err_MustSupplyAMsg[] = "Error: must supply a msg!\n";
-static char Err_RemoteSideClosed[] = "\nRemote side closed connection!\n";
+static char Err_MustSupplyAMsg[] = "Error: Must supply a msg\n";
+static char Err_MustSupplyANick[] = "Error: Must supply a nick\n";
+static char Err_RemoteSideClosed[] = "\nRemote side closed connection\n";
+static char Err_MustSupplyChannelAndTopic[] = "Error: Must supply a channel and a topic\n";
+static char Err_MeRequiresText[] = "Error: /me requires some text\n";
+static char Err_NeedACTCPCommand[] = "Error: Need to specify a CTCP command to use\n";
+
+static char Err_CTCPFormat[] = 
+ "Error: syntax for ctcp commands is /ctcp <command> <nick>\n"
+ "where <command> is the command and nick is the user/channel to send it to.\n";
 
 static char Msg_HasParted[] = "%s has parted %s\n";
 static char Msg_HasJoined[] = "%s joined channel %s\n";
 static char Msg_SetsMode[] = "%s sets mode%s\n";
 static char Msg_JoinedChannel[] = "You joined channel %s\n";
+static char Msg_TopicChanged[] = "%s changed the topic on %s to %s\n";
 
 
 
 
 
-static char CopyrightMsg1[] = "mTCP IRCjr by M Brutman (mbbrutman@gmail.com) (C)opyright 2008-2020\n";
+static char CopyrightMsg1[] = "mTCP IRCjr by M Brutman (mbbrutman@gmail.com) (C)opyright 2008-2023\n";
 static char CopyrightMsg2[] = "Version: " __DATE__ "\n\n";
 
 
@@ -346,6 +360,15 @@ int main( int argc, char *argv[] ) {
   }
 
   getCfgOpts( );
+
+  #ifdef IRCJR_UNICODE
+  // This will move to a config parameter one day, but I want something
+  // easy for now.
+  char *unicodeMap = getenv( "MTCP_UNICODE_MAP" );
+  if ( unicodeMap != NULL ) {
+    Unicode::loadXlateTable( unicodeMap );
+  }
+  #endif
 
   // One socket, 5 outgoing TCP buffers
   if ( Utils::initStack( 1, 5, ctrlBreakHandler, ctrlCHandler ) ) {
@@ -502,7 +525,7 @@ int main( int argc, char *argv[] ) {
   // Join a channel if one was specified
   if ( *InitialChan ) {
     int16_t bufLen = sprintf( outBuf, "JOIN %s\r\n", InitialChan );
-    s->send( (uint8_t *)outBuf, bufLen );
+    sendMsg( (uint8_t *)outBuf, bufLen );
   }
 
 
@@ -523,7 +546,7 @@ int main( int argc, char *argv[] ) {
     }
 
     if ( CtrlBreakDetected ) {
-      s->send( (uint8_t *)QuitMsg, strlen(QuitMsg) );
+      sendMsg( (uint8_t *)QuitMsg, strlen(QuitMsg) );
       done = true;
     }
 
@@ -549,7 +572,7 @@ int main( int argc, char *argv[] ) {
       case Screen::AteOneKeypress:  { HelpIsActive = false; CS->draw( ); break; }
       case Screen::Redraw:          { CS->draw( ); break; }
       case Screen::EndProgram: {
-        s->send( (uint8_t *)QuitMsg, strlen(QuitMsg) );
+        sendMsg( (uint8_t *)QuitMsg, strlen(QuitMsg) );
         done = true;
         break;
       }
@@ -604,6 +627,68 @@ int main( int argc, char *argv[] ) {
 
 
 
+// sendMsg - send a message to the server
+//
+// In this context message is a generic term, and not specially an IRC
+// message.  All communicate to the IRC server comes through here.
+//
+// If there is a Unicode translation table outgoing bytes are converted
+// to UTF-8.  Otherwise, you get the bytes sent as is, including high-bit
+// ones.  High-bit ASCII is generally going to be messy unless you
+// are using the exact same code page or encoding as the server.
+
+void sendMsg( uint8_t *buffer, uint16_t bufferLen ) {
+
+  #ifdef IRCJR_UNICODE
+
+  // This does not need room for a terminating nul character.
+  static char unicodeBuffer[ IRC_MSG_MAX_LEN ];
+
+  if ( Unicode::XlateTableLoaded( ) == false ) {
+
+    s->send( (uint8_t *)buffer, bufferLen );
+
+  } else {
+
+    bool overflow = false;
+    int outputIndex = 0;
+    for ( int i=0; i < bufferLen; i++ ) {
+
+      if ( outputIndex == IRC_MSG_MAX_LEN ) {
+        // We are out of space in the target buffer.  Give the user a
+        // warning and don't attempt to send the message.
+        if ( CS != NULL ) {
+          CS->puts( scErr, "Outgoing message is too long.  Message not sent.\n" );
+        }
+        overflow = true;
+        break;
+      }
+
+      if ( buffer[i] < 0x80 ) {
+        unicodeBuffer[outputIndex] = buffer[i];
+        outputIndex++;
+      } else {
+        small_cp_t cp = Unicode::charToUnicode( buffer[i] );
+        uint8_t s = Unicode::encodeUTF8( cp, (uint8_t *)(unicodeBuffer+outputIndex) );
+        outputIndex = outputIndex + s;
+      }
+    }
+
+    if ( overflow == false ) {
+      s->send( (uint8_t *)unicodeBuffer, outputIndex );
+    }
+
+  } // End if UTF-8 enabled.
+
+  #else
+
+  s->send( (uint8_t *)buffer, bufferLen );
+
+  #endif
+
+}
+
+
 int16_t registerWithServer( void ) {
 
   // Send PASS if one was specified
@@ -613,7 +698,7 @@ int16_t registerWithServer( void ) {
   if ( IRCPass[0] ) {
     bufLen = snprintf( outBuf, OUTBUF_LEN, "PASS %s\r\n", IRCPass );
     outBuf[OUTBUF_LEN-1] = 0;
-    s->send( (uint8_t *)outBuf, bufLen );
+    sendMsg( (uint8_t *)outBuf, bufLen );
   }
 
 
@@ -621,7 +706,7 @@ int16_t registerWithServer( void ) {
 
   bufLen = snprintf( outBuf, OUTBUF_LEN, "NICK %s\r\nUSER %s 0 * :%s\r\n", IRCNick, IRCUser, IRCRealName );
   outBuf[OUTBUF_LEN-1] = 0;
-  s->send( (uint8_t *)outBuf, bufLen );
+  sendMsg( (uint8_t *)outBuf, bufLen );
 
   SessionState = SentNickAndUser;
 
@@ -675,7 +760,7 @@ int16_t registerWithServer( void ) {
         // Just send NICK this time
         uint16_t bufLen = snprintf( outBuf, OUTBUF_LEN, "NICK %s\r\n", IRCNick );
         outBuf[OUTBUF_LEN-1] = 0;
-        s->send( (uint8_t *)outBuf, bufLen );
+        sendMsg( (uint8_t *)outBuf, bufLen );
 
         SessionState = SentNickAndUser;
 
@@ -934,6 +1019,8 @@ void processUserInput( void ) {
 
   bool echoUserInput = true;
 
+  char *errorMessage = NULL;
+
   if ( inputBuffer[0] == '/' ) { // Command
 
     char target[ IRCNICK_MAX_LEN ];
@@ -955,7 +1042,7 @@ void processUserInput( void ) {
         sprintf( outBuf, "join%s\r\n", pos );
       }
       else {
-        CS->puts( scErr, Err_MustSupplyChannel );
+        errorMessage = Err_MustSupplyChannel;
       }
 
       // If there is no error from the server we will get a response
@@ -968,7 +1055,7 @@ void processUserInput( void ) {
         sprintf( outBuf, "part%s\r\n", pos );
       }
       else {
-        CS->puts( scErr, Err_MustSupplyChannel );
+        errorMessage = Err_MustSupplyChannel;
       }
 
       // If there is no error from the server we will get a response
@@ -987,7 +1074,7 @@ void processUserInput( void ) {
          sprintf( outBuf, "NICK %s\r\n", target );
        }
       else {
-        CS->puts( scErr, "Error: Must supply a new nick!\n" );
+        errorMessage = Err_MustSupplyANick;
       }
 
     }
@@ -1007,11 +1094,11 @@ void processUserInput( void ) {
           sprintf( outBuf, "PRIVMSG %s :%s\r\n", target, pos+1 );
         }
         else {
-          CS->puts( scErr, Err_MustSupplyAMsg );
+          errorMessage = Err_MustSupplyAMsg;
         }
       }
       else {
-        CS->puts( scErr, Err_MustSupplyUserForMsg );
+        errorMessage = Err_MustSupplyUserForMsg;
       }
 
     }
@@ -1042,11 +1129,11 @@ void processUserInput( void ) {
           sprintf( outBuf, "PRIVMSG %s :%s\r\n", target, pos+1 );
         }
         else {
-          CS->puts( scErr, Err_MustSupplyAMsg );
+          errorMessage = Err_MustSupplyAMsg;
         }
       }
       else {
-        CS->puts( scErr, Err_MustSupplyUserForMsg );
+        errorMessage = Err_MustSupplyUserForMsg;
       }
 
     }
@@ -1065,7 +1152,7 @@ void processUserInput( void ) {
         CS->printf( Session::PrintOpts_Part1, scActionMsg, "* %s %s\n", IRCNick, pos );
       }
       else {
-        CS->puts( scErr, "Error: /me requires some text\n" );
+        errorMessage = Err_MeRequiresText;
       }
 
     }
@@ -1077,7 +1164,7 @@ void processUserInput( void ) {
       pos = Utils::getNextToken( pos, ctcpCmd, 20 );
 
       if ( *pos == 0 ) {
-        CS->puts( scErr, "Error: Need to specify a CTCP command to use\n" );
+        errorMessage = Err_NeedACTCPCommand;
       }
       else {
 
@@ -1086,8 +1173,7 @@ void processUserInput( void ) {
         pos = Utils::getNextToken( pos, target, IRCNICK_MAX_LEN );
 
         if ( *target == 0 ) {
-          CS->puts( scErr, "Error: syntax for ctcp commands is /ctcp <command> <nick>\nwhere <command> is the command "
-                           "and nick is the user/channel to send it to.\n" );
+          errorMessage = Err_CTCPFormat;
         }
         else {
 
@@ -1105,7 +1191,36 @@ void processUserInput( void ) {
 
       }
 
+    } else if ( stricmp( "/topic", token ) == 0 ) {
+
+      // This is safe because IRCNICK_MAX_LEN and IRCCHANNEL_MAX_LEN are the same.
+      pos = Utils::getNextToken( pos, target, IRCCHANNEL_MAX_LEN );
+
+      if ( *target != 0 ) {
+
+        // They provided a channel.  Advance to the topic.
+
+        if ( pos != NULL ) {
+          while ( (*pos == ' ') && (*pos != 0) ) {
+            ++pos;
+          }
+        }
+
+        if ( (pos != NULL) && (*pos != 0) ) {
+          sprintf( outBuf, "TOPIC %s :%s\r\n", target, pos );
+        } else {
+          errorMessage = Err_MustSupplyChannelAndTopic;
+        }
+
+      } else {
+        errorMessage = Err_MustSupplyChannelAndTopic;
+      }
+
     }
+
+
+    // Send whatever they typed; the user is responsible for formatting the
+    // command in a way the server can interpret.
 
     else {
       sprintf( outBuf, "%s\r\n", &inputBuffer[1] );
@@ -1133,11 +1248,15 @@ void processUserInput( void ) {
   if ( echoUserInput ) {
     CS->printf( Session::PrintOpts_Part1, scUserMsg, "<%s> ", IRCNick );
     CS->printf( Session::PrintOpts_Part2, scNormal, "%s\n", inputBuffer );
-
   }
 
+  if ( errorMessage ) {
+    CS->puts( scErr, errorMessage );
+  }
+
+
   if ( outBuf[0] ) {
-    s->send( (uint8_t *)outBuf, strlen(outBuf) );
+    sendMsg( (uint8_t *)outBuf, strlen(outBuf) );
   }
 
   restoreNormalScreen( );
@@ -1185,7 +1304,7 @@ void processCloseWindow( void ) {
 
   if ( CS->isChannel( ) ) {
     int rc = sprintf( outBuf, "part %s\r\n", CS->getName( ) );
-    s->send( (uint8_t *)outBuf, rc );
+    sendMsg( (uint8_t *)outBuf, rc );
   }
 
   closeSession( CS );
@@ -1695,7 +1814,7 @@ void handleCtcp( char *src, char *target, char *msg, bool request ) {
       }
 
       if ( outBuf[0] != 0 ) {
-        s->send( (uint8_t *)outBuf, strlen(outBuf) );
+        sendMsg( (uint8_t *)outBuf, strlen(outBuf) );
       }
 
     } // end other CTCP commands
@@ -1818,6 +1937,12 @@ void pollSocket( uint32_t timeout, uint16_t batching ) {
 //
 // Side effects: to keep from redundantly searching, store the index
 // of the last char searched in inBufSearchIndex.
+//
+// UTF-8 note: If we are using UTF-8 then we decode everything from the
+// server, as it should only send us UTF-8.  UTF-8 in the contents of a
+// message or topic is fine, and possibly even in a nick.  But in a command or
+// control message it would not be, and we don't expect the server to
+// do something like that - it would be a mal-formed message.
 
 uint16_t getLineFromInBuf( char *target ) {
 
@@ -1828,12 +1953,52 @@ uint16_t getLineFromInBuf( char *target ) {
 
     if ( inBuf[i] == '\r' && inBuf[i+1] == '\n' ) {
 
-      // Found delimiter
+      // Found delimiter - copy the line to the target buffer and
+      // shift the remaining input to the front of the socket
+      // input buffer.
+
+      #ifdef IRCJR_UNICODE
+      if ( Unicode::XlateTableLoaded == false ) {
+
+        // Fastpath - no unicode.
+        //
+        // We should only copy i-1, not i, but this is safe and marginally
+        // faster.
+        memcpy( target, inBuf, i );
+        target[i] = 0;
+
+      } else {
+
+        // Copy and decode UTF-8 as we go.
+
+        // j is the input buffer location, k is the output buffer location.
+        int j=0, k=0;
+
+        while ( j < i ) {
+          if ( inBuf[j] < 0x80 ) {
+            target[k] = inBuf[j];
+            j++;
+          } else {
+            unicode_cp_t cp;
+            int l = Unicode::decodeUTF8( (unsigned char const *)(inBuf+j), &cp );
+            j = j + l;
+            if ( cp > 0xFFFF ) cp = 0xfffd;
+            target[k] = Unicode::findDisplayChar( cp );
+          }
+          k++;
+        }
+        target[k] = 0;
+
+      }
+
+      #else
 
       // We should only copy i-1, not i, but this is safe and marginally
       // faster.
       memcpy( target, inBuf, i );
       target[i] = 0;
+
+      #endif
 
       memmove( inBuf, inBuf+i+2, (inBufIndex - (i+2)) );
       inBufIndex = inBufIndex - (i+2);
@@ -2132,7 +2297,7 @@ bool processSocketInput( void ) {
     getNextParm( pos, hostname, IRCHOSTNAME_MAX_LEN );
 
     uint16_t bytes = sprintf( outBuf, "PONG %s\r\n", hostname );
-    s->send( (uint8_t *)outBuf, bytes );
+    sendMsg( (uint8_t *)outBuf, bytes );
 
     PingResponses++;
     return false;
@@ -2159,6 +2324,38 @@ bool processSocketInput( void ) {
       tmp->printf( Session::PrintOpts_Part1, scServerMsg, Msg_SetsMode, msgNick, pos );
     }
 
+  }
+
+  else if ( stricmp( "TOPIC", command ) == 0 ) {
+
+    // Get the channel name
+    pos = getNextParm( pos, token2, 100 );
+    char *channel = token2;
+
+    // See if we have a session for this channel
+
+    Session *target = NULL;
+    int16_t i = Session::getSessionIndex( channel );
+    if ( i != -1 ) {
+      target = Session::activeSessionList[i];
+    }
+
+    // If pos == NULL then this is a malformed message.
+    if ( pos != NULL ) {
+
+      // Advance to the ':' char that marks the start of the topic.
+      while ( (*pos == ' ') && (*pos != 0) ) {
+        ++pos;
+      }
+
+      // Skip past the ':' char
+      if ( *pos == ':' ) pos++;
+
+      if ( target ) {
+        target->printf( Session::PrintOpts_Part1, scLocalMsg, Msg_TopicChanged, msgNick, channel, pos );
+      }
+
+    }
   }
 
   else {
@@ -2515,7 +2712,7 @@ void initScreen( void ) {
     for ( uint16_t j=0; j < 5; j++ ) {
       for ( int16_t k=7; k > -1; k-- ) {
         if ( logoBitmap[ i*5+j ] & (1<<k) ) {
-          CS->puts( scTitle, "\xB0" );
+          CS->puts( scTitle, "\xb0" );
         }
         else {
           CS->puts( scNormal, " " );
@@ -2539,6 +2736,12 @@ void initScreen( void ) {
            MyEthAddr[3], MyEthAddr[4], MyEthAddr[5] );
 
   CS->printf( Session::PrintOpts_none, scNormal, "Packet interrupt: 0x%02X\n\n", Packet_getSoftwareInt() );
+  
+
+  #ifdef IRCJR_UNICODE
+  CS->printf( Session::PrintOpts_none, scNormal, "UTF-8 translation: %s\n\n",
+      Unicode::XlateTableLoaded() ? "Enabled" : "Not loaded" );
+  #endif
 
   CS->draw( );
 }

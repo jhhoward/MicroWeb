@@ -1,7 +1,7 @@
 /*
 
    mTCP SpdTest.cpp
-   Copyright (C) 2011-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2011-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -82,7 +82,6 @@
 // extra memcpy operations though, so it is slower.
 
 
-#include <bios.h>
 #include <dos.h>
 #include <conio.h>
 #include <fcntl.h>
@@ -187,7 +186,7 @@ void __interrupt __far ctrlBreakHandler( ) {
 
 
 
-static char CopyrightMsg1[] = "mTCP SpeedTest by M Brutman (mbbrutman@gmail.com) (C)opyright 2010-2020\n";
+static char CopyrightMsg1[] = "mTCP SpeedTest by M Brutman (mbbrutman@gmail.com) (C)opyright 2010-2023\n";
 static char CopyrightMsg2[] = "Version: " __DATE__ "\n\n";
 
 int main( int argc, char *argv[] ) {
@@ -235,7 +234,7 @@ int main( int argc, char *argv[] ) {
     while ( !done ) {
 
       if ( CtrlBreakDetected ) {
-	break;
+        break;
       }
 
       if ( !Dns::isQueryPending( ) ) break;
@@ -276,8 +275,8 @@ int main( int argc, char *argv[] ) {
     while ( 1 ) {
 
       if ( CtrlBreakDetected ) {
-	rc = -1;
-	break;
+        rc = -1;
+        break;
       }
 
       PACKET_PROCESS_SINGLE;
@@ -286,24 +285,24 @@ int main( int argc, char *argv[] ) {
 
       mySocket = TcpSocketMgr::accept( );
       if ( mySocket != NULL ) {
-	listeningSocket->close( );
-	TcpSocketMgr::freeSocket( listeningSocket );
-	rc = 0;
-	printf( "Connection received from %d.%d.%d.%d:%u\n\n",
-		mySocket->dstHost[0], mySocket->dstHost[1],
-		mySocket->dstHost[2], mySocket->dstHost[3],
-		mySocket->dstPort );
-	break;
+        listeningSocket->close( );
+        TcpSocketMgr::freeSocket( listeningSocket );
+        rc = 0;
+        printf( "Connection received from %d.%d.%d.%d:%u\n\n",
+                mySocket->dstHost[0], mySocket->dstHost[1],
+                mySocket->dstHost[2], mySocket->dstHost[3],
+                mySocket->dstPort );
+        break;
       }
 
-      if ( bioskey(1) != 0 ) {
+      if ( biosIsKeyReady( ) ) {
 
-	char c = bioskey(0);
+        char c = biosKeyRead( );
 
-	if ( (c == 27) || (c == 3) ) {
-	  rc = -1;
-	  break;
-	}
+        if ( (c == 27) || (c == 3) ) {
+          rc = -1;
+          break;
+        }
       }
 
 
@@ -408,28 +407,28 @@ int main( int argc, char *argv[] ) {
 
       while ( 1 ) {
 
-	int16_t recvRc = mySocket->recv( fileWriteBuffer+bytesRead, bytesToRead );
+        int16_t recvRc = mySocket->recv( fileWriteBuffer+bytesRead, bytesToRead );
 
-	if ( recvRc > 0 ) {
+        if ( recvRc > 0 ) {
 
-	  TotalBytesReceived += recvRc;
-	  bytesRead += recvRc;
-	  bytesToRead -= recvRc;
+          TotalBytesReceived += recvRc;
+          bytesRead += recvRc;
+          bytesToRead -= recvRc;
 
-	  if ( bytesToRead == 0 ) {
+          if ( bytesToRead == 0 ) {
 
             // Buffer has been filled; normally it would be written or
             // processed, but here we are just simulating that.
 
             // Setup to fill the buffer again.
-	    bytesToRead = WRITE_BUF_SIZE;
-	    bytesRead = 0;
-	  }
-	}
-	else {
+            bytesToRead = WRITE_BUF_SIZE;
+            bytesRead = 0;
+          }
+        }
+        else {
           // Error path - the socket is probably dead.
-	  break;
-	}
+          break;
+        }
 
       }
 
@@ -447,17 +446,17 @@ int main( int argc, char *argv[] ) {
 
         packetsDequeued++;
 
-	IpHeader *ip = (IpHeader *)(packet + sizeof(EthHeader) );
-	TcpHeader *tcp = (TcpHeader *)(ip->payloadPtr( ));
-	uint8_t *userData = ((uint8_t *)tcp)+tcp->getTcpHlen( );
-	uint16_t len = ip->payloadLen( ) - tcp->getTcpHlen( );
+        IpHeader *ip = (IpHeader *)(packet + sizeof(EthHeader) );
+        TcpHeader *tcp = (TcpHeader *)(ip->payloadPtr( ));
+        uint8_t *userData = ((uint8_t *)tcp)+tcp->getTcpHlen( );
+        uint16_t len = ip->payloadLen( ) - tcp->getTcpHlen( );
 
-	// Well, we at least looked in the packet to find the length of
-	// user payload.
-	TotalBytesReceived += len;
+        // Well, we at least looked in the packet to find the length of
+        // user payload.
+        TotalBytesReceived += len;
 
-	// Return the packet so it can be reused.
-	Buffer_free( packet );
+        // Return the packet so it can be reused.
+        Buffer_free( packet );
       }
 
 #endif
@@ -592,7 +591,7 @@ void parseArgs( int argc, char *argv[] ) {
     else if ( stricmp( argv[i], "-target" ) == 0 ) {
 
       if ( Listening != -1 ) {
-	errorMsg( ErrorText[0] );
+        errorMsg( ErrorText[0] );
       }
 
       i++;
@@ -603,7 +602,7 @@ void parseArgs( int argc, char *argv[] ) {
 
       i++;
       if ( i == argc ) {
-	errorMsg( "Need to provide a target port on the server" );
+        errorMsg( "Need to provide a target port on the server" );
       }
       serverPort = atoi( argv[i] );
 
@@ -613,7 +612,7 @@ void parseArgs( int argc, char *argv[] ) {
     else if ( stricmp( argv[i], "-listen" ) == 0 ) {
 
       if ( Listening != -1 ) {
-	errorMsg( ErrorText[0] );
+        errorMsg( ErrorText[0] );
       }
 
       i++;
@@ -623,7 +622,7 @@ void parseArgs( int argc, char *argv[] ) {
       Port = atoi( argv[i] );
 
       if ( Port == 0 ) {
-	errorMsg( "Use a non-zero port to listen on" );
+        errorMsg( "Use a non-zero port to listen on" );
       }
 
       Listening = 1;

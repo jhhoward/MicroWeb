@@ -1,8 +1,7 @@
-
 /*
 
    mTCP Packet.cpp
-   Copyright (C) 2005-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2005-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -108,6 +107,18 @@ static uint8_t  *Buffer_packetBeingCopied;
 uint8_t   Buffer_lowFreeCount;
 
 
+// Experimental for the SNTP server
+//
+#ifdef PACKET_TIMESTAMPS
+extern time_t   CoordinatedTime;
+extern uint16_t FastTicks;
+
+static Packet_Timestamp_t Buffer_ts[ PACKET_RB_SIZE ];
+
+// This is awful, but we know we only process one buffer at a time, so put
+// the timestamp information in a global that we can reach later.
+Packet_Timestamp_t *Buffer_Timestamp;
+#endif
 
 
 // Buffer_init
@@ -371,6 +382,12 @@ static void far interrupt receiver( union INTPACK r ) {
     Buffer[ Buffer_next ] = Buffer_packetBeingCopied;
     Buffer_len[Buffer_next] = r.w.cx;
 
+    #ifdef PACKET_TIMESTAMPS
+    Buffer_ts[ Buffer_next ].coordinatedTime = CoordinatedTime;
+    Buffer_ts[ Buffer_next ].ticks = FastTicks;
+    #endif
+
+
     Buffer_next++;
     if ( Buffer_next == PACKET_RB_SIZE ) Buffer_next = 0;
 
@@ -590,6 +607,9 @@ void Packet_process_internal( void ) {
   disable_ints( );
   uint8_t *packet = Buffer[ Buffer_first ];
   uint16_t packet_len = Buffer_len[ Buffer_first ];
+  #ifdef PACKET_TIMESTAMPS
+  Buffer_Timestamp = &Buffer_ts[ Buffer_first ];
+  #endif
   Buffer_first++;
   if ( Buffer_first == PACKET_RB_SIZE ) Buffer_first = 0;
   enable_ints( );
@@ -643,7 +663,7 @@ void Packet_process_internal( void ) {
 
 void Packet_dumpStats( FILE *stream ) {
   fprintf( stream, "Pkt: Sent %lu Rcvd %lu Dropped %lu SndErrs %lu LowFreeBufs %u SndRetries %u\n",
-	  Packets_sent, Packets_received, Packets_dropped, Packets_send_errs, Buffer_lowFreeCount, Packets_send_retries );
+          Packets_sent, Packets_received, Packets_dropped, Packets_send_errs, Buffer_lowFreeCount, Packets_send_retries );
 };
 
 

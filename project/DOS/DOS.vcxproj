@@ -103,6 +103,7 @@
     <ClCompile Include="..\..\src\DOS\EGA.cpp" />
     <ClCompile Include="..\..\src\DOS\Hercules.cpp" />
     <ClCompile Include="..\..\src\DOS\HP95LX.cpp" />
+    <ClCompile Include="..\..\src\DOS\Olivetti.cpp" />
     <ClCompile Include="..\..\src\DOS\Platform.cpp" />
     <ClCompile Include="..\..\src\Font.cpp" />
     <ClCompile Include="..\..\src\Interface.cpp" />
@@ -125,6 +126,7 @@
     <ClInclude Include="..\..\src\DOS\EGA.h" />
     <ClInclude Include="..\..\src\DOS\Hercules.h" />
     <ClInclude Include="..\..\src\DOS\HP95LX.h" />
+    <ClInclude Include="..\..\src\DOS\Olivetti.h" />
     <ClInclude Include="..\..\src\DOS\TextMode.h" />
     <ClInclude Include="..\..\src\Image.h" />
     <ClInclude Include="..\..\src\Interface.h" />

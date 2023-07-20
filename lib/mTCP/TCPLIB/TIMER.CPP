@@ -1,8 +1,7 @@
-
 /*
 
    mTCP Timer.cpp
-   Copyright (C) 2008-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2008-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -31,6 +30,11 @@
 */
 
 
+#include <dos.h>
+#include <i86.h>
+
+#include "Timer.h"
+
 
 // This code uses a lot of timers, and probably should use more.  I used
 // to use C standard time structures, but computing elapsed time was killing
@@ -53,50 +57,88 @@
 
 
 
-
-#include <dos.h>
-
-#if defined ( __WATCOMC__ ) || defined ( __WATCOM_CPLUSPLUS__ )
-#include <i86.h>
-#endif
-
-#include "Timer.h"
-
-
+// Shadow count of BIOS tick counter.  This one does not reset
+// at midnight, so it will be good for about 7.5 years of
+// continuous runtime.  This counter is public
 
 extern volatile clockTicks_t Timer_CurrentTicks = 0;
 
-static uint8_t Timer_hooked = 0;
 
-#if defined ( __WATCOMC__ ) || defined ( __WATCOM_CPLUSPLUS__ )
+
+// Locals - do not use outside of this code.
+
+// Did we hook the timer interrupt?
+static uint8_t timer_hooked = 0;
+
+// Short duration countdown timer data
+static uint16_t *countdownTimers[10];  // List of timers
+static uint16_t  activeTimers = 0;     // Number of active timers
+
+// Pointer to the timer tick handler that we are chaining to.
+// This is the one we will restore when we are done.
 void (__interrupt __far *Timer_old_tick_handler)( );
 
-void __interrupt __far Timer_tick_handler( )
-{
+
+
+void __interrupt __far Timer_tick_handler( ) {
+
    Timer_CurrentTicks++;
+
+   for ( int i=0; i < activeTimers; i++ ) {
+     if ( *countdownTimers[i] > 0 ) {
+       (*countdownTimers[i])--;
+     }
+   }
+     
    _chain_intr( Timer_old_tick_handler );
 }
-#else
-void interrupt ( *Timer_old_tick_handler)( ... );
 
-void interrupt Timer_tick_handler( ... )
-{
-   Timer_CurrentTicks++;
-   Timer_old_tick_handler();
-}
-#endif
 
 void Timer_start( void ) {
   disable_ints( );
   Timer_old_tick_handler = getvect( 0x1c );
   setvect( 0x1c, Timer_tick_handler );
-  Timer_hooked = 1;
+  timer_hooked = 1;
   enable_ints( );
 }
 
+
 void Timer_stop( void ) {
+  if ( timer_hooked ) {
+    disable_ints( );
+    setvect( 0x1c, Timer_old_tick_handler );
+    timer_hooked = 0;
+    enable_ints( );
+  }
+}
+
+
+
+
+// Short duration countdown timer support
+//
+// It's safe to add a timer without disabling interrupts, as the new
+// timer is just appended to the end of the list and at worst case
+// it will be missed once.  But when removing a timer disable
+// interrupts.
+
+void Timer_manageTimer( uint16_t *p ) {
+  if (activeTimers < 10) {
+    countdownTimers[activeTimers] = p;
+    activeTimers++;
+  }
+}
+
+void Timer_stopManagingTimer( uint16_t *p ) {
   disable_ints( );
-  setvect( 0x1c, Timer_old_tick_handler );
-  Timer_hooked = 0;
+  for ( int i=0; i < activeTimers++; i++ ) {
+    if ( countdownTimers[i] == p ) {
+      // Take the last timer and move it into this slot.
+      countdownTimers[i] = countdownTimers[activeTimers-1];
+      activeTimers--;
+    }
+  }
   enable_ints( );
 }
+
+

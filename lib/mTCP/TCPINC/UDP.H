@@ -1,7 +1,7 @@
 /*
 
    mTCP Udp.H
-   Copyright (C) 2006-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2006-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -81,11 +81,11 @@ class Udp {
 
   public:
 
-    static int8_t sendUdp( IpAddr_t host, uint16_t srcPort, uint16_t dstPort,
-			   uint16_t payloadLen, unsigned char *data, uint8_t preAlloc );
+    static int8_t sendUdp( const IpAddr_t host, uint16_t srcPort, uint16_t dstPort,
+                           uint16_t payloadLen, unsigned char *data, uint8_t preAlloc );
 
-    static int8_t sendUdpFragments( IpAddr_t host, uint16_t srcPort, uint16_t dstPort,
-			   uint16_t payLoadLen, unsigned char *data, uint8_t preAlloc );
+    static int8_t sendUdpFragments( const IpAddr_t host, uint16_t srcPort, uint16_t dstPort,
+                           uint16_t payLoadLen, unsigned char *data, uint8_t preAlloc );
 
     // Use only if sendUdp returned a 1 and you had a preAllocated packet
     static int8_t resend( UdpPacket_t *packetPtr, uint16_t len );
@@ -93,9 +93,11 @@ class Udp {
 
     static void process( const unsigned char *packet, IpHeader *ip );
 
+    static uint16_t Udp::getUnusedCallbackPort( void );
+
     static int8_t registerCallback( uint16_t srcPort,
-				 void (*f)(const unsigned char *packet,
-					   const UdpHeader *udp) );
+                                 void (*f)(const unsigned char *packet,
+                                           const UdpHeader *udp) );
 
     static int8_t unregisterCallback( uint16_t port );
 
@@ -114,8 +116,8 @@ class Udp {
     static uint16_t  callbackList[ UDP_MAX_CALLBACKS ];
     static uint8_t   callbackPorts;
     static void    (*callbackFunctions[ UDP_MAX_CALLBACKS ] )
-				   (const unsigned char *packet,
-				   const UdpHeader *udp);
+                                   (const unsigned char *packet,
+                                   const UdpHeader *udp);
 
 };
 

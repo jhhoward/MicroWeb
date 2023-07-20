@@ -1,7 +1,7 @@
 /*
 
    mTCP TelnetSc.h
-   Copyright (C) 2009-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2009-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -92,6 +92,7 @@ class Screen {
 
     void add( char *buf );
     void add( char *buf, uint16_t len );
+    void addPrintableChar( char c );
 
     void paint( void );
     void paint( int16_t offsetLines );
@@ -117,8 +118,9 @@ class Screen {
       return tmp;
     }
 
+    void restoreTextMode( void );
 
-    bool isColorCard( void ) { return colorCard; }
+    uint8_t getCardType( void ) { return cardType; }
     bool isPreventSnowOn( void ) { return preventSnow; }
 
     inline uint16_t getScreenBaseSeg( void ) { return screenBaseSeg; }
@@ -144,7 +146,7 @@ class Screen {
 
       if ( overhang ) {
         cursor_x = 0;
-	scroll( );
+        scroll( );
       }
       overhang = false;
     }
@@ -187,7 +189,7 @@ class Screen {
 
     // Video card characteristics
 
-    bool     colorCard;         // Monochrome=false, CGA, EGA, or VGA=true
+    uint8_t  cardType;          // MDA = 0, CGA = 1, EGA = 2, VGA = 3
     bool     preventSnow;       // Prevent CGA snow
     uint16_t screenBaseSeg;     // Segment for the screen framebuffer
     uint16_t bytesPerLine;      // How many bytes does a terminal line require?

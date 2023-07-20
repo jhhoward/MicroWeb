@@ -1,7 +1,7 @@
 /*
 
    mTCP DnsTest.cpp
-   Copyright (C) 2008-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2008-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -34,7 +34,6 @@
 
 // Command line DNS resolver.
 
-#include <bios.h>
 #include <dos.h>
 #include <stdlib.h>
 #include <string.h>
@@ -75,6 +74,7 @@ void __interrupt __far ctrlBreakHandler( ) {
 
 
 char TargetName[DNS_MAX_NAME_LEN] = "";
+IpAddr_t CmdlineNameserver;
 uint8_t Verbose = 0;
 uint8_t DNSRecursion = 1;
 clockTicks_t DNSTimeout = 10000ul;
@@ -92,7 +92,7 @@ char *DnsErrors[] = {
 
 
 
-static char CopyrightMsg1[] = "mTCP DNSTest by M Brutman (mbbrutman@gmail.com) (C)opyright 2009-2020\n";
+static char CopyrightMsg1[] = "mTCP DNSTest by M Brutman (mbbrutman@gmail.com) (C)opyright 2009-2023\n";
 static char CopyrightMsg2[] = "Version: " __DATE__ "\n\n";
 
 
@@ -116,13 +116,16 @@ int main( int argc, char *argv[] ) {
     exit(-1);
   }
 
-
   // From this point forward you have to call the shutdown( ) routine to
   // exit because we have the timer interrupt hooked.
 
+  if ( ! Ip::isSame(CmdlineNameserver, IpInvalid) ) {
+    Ip::copy( Dns::NameServer, CmdlineNameserver );
+  }
 
-  printf( "Timeout set to %lu seconds, DNS Recursion = %s\n",
-	  (DNSTimeout/1000ul), (DNSRecursion ? "on" : "off") );
+  printf( "Nameserver: %d.%d.%d.%d, Timeout: %lu seconds, Recursion requested: %s\n",
+          Dns::NameServer[0], Dns::NameServer[1], Dns::NameServer[2], Dns::NameServer[3],
+          (DNSTimeout/1000ul), (DNSRecursion ? "on" : "off") );
   puts( "Press [ESC] or [Ctrl-C] to quit early\n" );
 
 
@@ -133,11 +136,19 @@ int main( int argc, char *argv[] ) {
 
   if ( rc == -1 ) {
     fprintf( stderr, "Error: Machine name to long, the limit is %u characters\n",
-	    (DNS_MAX_NAME_LEN-1) );
+             (DNS_MAX_NAME_LEN-1) );
     shutdown( -1 );
   }
   else if ( rc == -2 ) {
     fprintf( stderr, "Error: You have not set a nameserver up.  Check the mTCP config file\n" );
+    shutdown( -1 );
+  }
+  else if ( rc == -3 ) {
+    fprintf( stderr, "Error: Bad target name\n" );
+    shutdown( -1 );
+  }
+  else if ( rc < 0 ) {
+    fprintf( stderr, "Error: unknown\n" );
     shutdown( -1 );
   }
 
@@ -155,12 +166,12 @@ int main( int argc, char *argv[] ) {
       break;
     }
 
-    if ( bioskey(1) != 0 ) {
-      char c = bioskey(0);
+    if ( biosIsKeyReady( ) ) {
+      char c = biosKeyRead( );
       if ( (c == 27) || (c == 3) ) {
-	userQuit = 1;
-	puts( "\nCtrl-C or ESC detected - ending!" );
-	break;
+        userQuit = 1;
+        puts( "\nCtrl-C or ESC detected - ending!" );
+        break;
       }
     }
 
@@ -184,6 +195,9 @@ int main( int argc, char *argv[] ) {
     if ( queryRc == -1 ) {
       puts( "Query timed out" );
     }
+    else if ( queryRc == -2 ) {
+      puts( "Unknown error" );
+    }
     else if (queryRc == 0 ) {
 
       // Should have the name in the DNS cache now.
@@ -195,21 +209,21 @@ int main( int argc, char *argv[] ) {
       uint32_t milliseconds = elapsedTicks * TIMER_TICK_LEN;
 
       printf( "Machine name %s resolved to %d.%d.%d.%d\n",
-	      TargetName, newAddr[0], newAddr[1], newAddr[2], newAddr[3] );
+              TargetName, newAddr[0], newAddr[1], newAddr[2], newAddr[3] );
 
       printf( "Elapsed time in seconds: %lu.%03lu\n",
-	      (milliseconds/1000ul), (milliseconds % 1000ul) );
+              (milliseconds/1000ul), (milliseconds % 1000ul) );
 
       TRACE(( "Machine name %s resolved to %d.%d.%d.%d\n",
-	      TargetName, newAddr[0], newAddr[1], newAddr[2], newAddr[3] ));
+              TargetName, newAddr[0], newAddr[1], newAddr[2], newAddr[3] ));
     }
     else {
 
       if ( (queryRc > 0) && (queryRc < 6) ) {
-	printf( "Dns server error: %s\n", DnsErrors[queryRc] );
+        printf( "Dns server error: %s\n", DnsErrors[queryRc] );
       }
       else {
-	printf( "Dns server returned error code %d\n", queryRc );
+        printf( "Dns server returned error code %d\n", queryRc );
       }
 
     }
@@ -232,10 +246,11 @@ void shutdown( int rc ) {
 char *HelpText[] = {
   "\ndnstest -name <machine name> [options]\n\n",
   "Options:\n",
-  "  -help        (Shows this help)\n",
-  "  -timeout <n> (Set timeout to n seconds)\n",
-  "  -norecurse   (Do not request a recursive lookup (default is do)\n",
-  "  -verbose     (Show lots of fun output)\n",
+  "  -help                  Shows this help\n",
+  "  -nameserver <x.x.x.x>  Specify a nameserver to use\n",
+  "  -timeout <n>           Set timeout to n seconds\n",
+  "  -norecurse             Do not request a recursive lookup (default is do)\n",
+  "  -verbose               Show lots of fun output\n",
   NULL
 };
 
@@ -251,6 +266,7 @@ void usage( void ) {
 
 
 
+static const char err0[]="Specify a numeric IP address for the -nameserver option\n";
 
 void parseArgs( int argc, char *argv[] ) {
 
@@ -263,8 +279,8 @@ void parseArgs( int argc, char *argv[] ) {
     else if ( stricmp( argv[i], "-name" ) == 0 ) {
       i++;
       if ( i == argc ) {
-	fprintf( stderr, "You must specify a machine name to resolve on the -name parameter\n" );
-	usage( );
+        fprintf( stderr, "You must specify a machine name to resolve on the -name parameter\n" );
+        usage( );
       }
       strncpy( TargetName, argv[i], DNS_MAX_NAME_LEN );
       TargetName[DNS_MAX_NAME_LEN-1] = 0;
@@ -276,8 +292,8 @@ void parseArgs( int argc, char *argv[] ) {
     else if ( stricmp( argv[i], "-timeout" ) == 0 ) {
       i++;
       if ( i == argc ) {
-	fprintf( stderr, "You must specify a number of seconds on the -timeout option\n" );
-	usage( );
+        fprintf( stderr, "You must specify a number of seconds on the -timeout option\n" );
+        usage( );
       }
       DNSTimeout = atoi( argv[i] );
       if ( DNSTimeout < 1 ) DNSTimeout = 1;
@@ -285,6 +301,21 @@ void parseArgs( int argc, char *argv[] ) {
     }
     else if ( stricmp( argv[i], "-norecurse" ) == 0 ) {
       DNSRecursion = 0;
+    }
+    else if ( stricmp( argv[i], "-nameserver" ) == 0 ) {
+      i++;
+      if ( i == argc ) {
+        fprintf( stderr, err0 );
+        usage( );
+      }
+      uint16_t tmp0, tmp1, tmp2, tmp3;
+      int rc = sscanf( argv[i], "%d.%d.%d.%d\n", &tmp0, &tmp1, &tmp2, &tmp3 );
+      if ( rc != 4 ) {
+        fprintf( stderr, err0 );
+        usage( );
+      }
+      CmdlineNameserver[0] = tmp0; CmdlineNameserver[1] = tmp1;
+      CmdlineNameserver[2] = tmp2; CmdlineNameserver[3] = tmp3;
     }
     else {
       fprintf( stderr, "Unknown option %s\n", argv[i] );

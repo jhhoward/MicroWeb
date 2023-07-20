@@ -1,7 +1,7 @@
 /*
 
    mTCP Sample.cpp
-   Copyright (C) 2011-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2011-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -35,7 +35,6 @@
 */
 
 
-#include <bios.h>
 #include <dos.h>
 #include <io.h>
 #include <stdlib.h>
@@ -94,7 +93,7 @@ void __interrupt __far ctrlCHandler( ) {
 
 int main( int argc, char *argv[] ) {
 
-  fprintf( stderr, "mTCP Sample program by M Brutman (mbbrutman@gmail.com) (C)opyright 2012-2020\n\n" );
+  fprintf( stderr, "mTCP Sample program by M Brutman (mbbrutman@gmail.com) (C)opyright 2012-2023\n\n" );
 
   // Read command line arguments
   parseArgs( argc, argv );
@@ -191,9 +190,9 @@ int main( int argc, char *argv[] ) {
         break;
       }
 
-      if ( _bios_keybrd(1) != 0 ) {
+      if ( biosIsKeyReady( ) ) {
 
-        char c = _bios_keybrd(0);
+        char c = biosKeyRead( );
 
         if ( (c == 27) || (c == 3) ) {
           rc = -1;
@@ -254,9 +253,9 @@ int main( int argc, char *argv[] ) {
       done = 1;
     }
 
-    if ( _bios_keybrd(1) ) {
+    if ( biosIsKeyReady( ) ) {
 
-      uint16_t key = _bios_keybrd(0);
+      uint16_t key = biosKeyRead( );
       char ch = key & 0xff;
 
       if ( ch == 0 ) {

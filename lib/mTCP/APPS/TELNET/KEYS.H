@@ -1,8 +1,7 @@
-
 /*
 
    mTCP Keys.h
-   Copyright (C) 2011-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2011-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -36,38 +35,51 @@
 
 #include "types.h"
 
+#ifdef TELNET_UNICODE
+#include "unicode.h"
+#endif
 
-// Define human readable symbols for our keys
 
-#define K_NoKey        (0)
-#define K_NormalKey    (1)
-#define K_CursorUp     (2)
-#define K_CursorDown   (3)
-#define K_CursorLeft   (4)
-#define K_CursorRight  (5)
-#define K_PageUp       (6)
-#define K_PageDown     (7)
-#define K_Home         (8)
-#define K_Insert       (9)
-#define K_Delete      (10)
-#define K_Backtab     (11)
-#define K_Alt_R       (12)
-#define K_Alt_W       (13)
-#define K_Alt_H       (14)
-#define K_Alt_X       (15)
-#define K_Alt_B       (16)
-#define K_Enter       (17)
-#define K_Alt_E       (18)
-#define K_Alt_N       (19)
-#define K_Alt_D       (20)
-#define K_Alt_U       (21)
-#define K_Alt_F       (22)
+// Define human readable symbols for actions and keys.
+
+#define K_NoKey            (0)
+#define K_Compose_Unicode  (1)
+#define K_NormalKey        (2)
+#define K_Unicode_CP       (3)
+
+#define K_CursorUp         (4)
+#define K_CursorDown       (5)
+#define K_CursorLeft       (6)
+#define K_CursorRight      (7)
+#define K_PageUp           (8)
+#define K_PageDown         (9)
+#define K_Home            (10)
+#define K_Insert          (11)
+#define K_Delete          (12)
+#define K_Backtab         (13)
+#define K_Alt_R           (14)
+#define K_Alt_W           (15)
+#define K_Alt_H           (16)
+#define K_Alt_X           (17)
+#define K_Alt_B           (18)
+#define K_Enter           (19)
+#define K_Alt_E           (20)
+#define K_Alt_N           (21)
+#define K_Alt_D           (22)
+#define K_Alt_U           (23)
+#define K_Alt_F           (24)
 
 
 typedef struct {
-  uint8_t specialKey;  // K_NoKey, K_NormalKey, or a special key code
-  uint8_t local;       // Interpreted locally by telnet?
-  uint8_t normalKey;   // Valid only if specialKey = K_NormalKey
+
+  #ifdef TELNET_UNICODE
+  small_cp_t unicode_cp; // Valid only if action = K_Unicode_Char
+  #endif
+
+  uint8_t    action;      // From the table above; describes what happened.
+  uint8_t    local;       // Interpreted locally by telnet?
+  uint8_t    normalKey;   // Valid only if action = K_NormalKey or K_Unicode_Char
+
 } Key_t;
 
 

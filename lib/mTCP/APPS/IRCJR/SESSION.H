@@ -1,8 +1,7 @@
-
 /*
 
    mTCP Session.h
-   Copyright (C) 2011-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2011-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 

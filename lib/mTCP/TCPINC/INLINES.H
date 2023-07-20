@@ -1,7 +1,7 @@
 /*
 
    mTCP Inlines.H
-   Copyright (C) 2006-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2006-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -133,6 +133,13 @@ extern uint8_t getFileAttributes( const char far * name, uint16_t *attrs );
 // All coordinates are zero based.
 // push/pop bp is a protection against old buggy BIOSes.
 
+
+// getEgaMemSize
+//
+// Used primarily to determine if this is an EGA card.  If you call it and
+// bl is returned to you as 0x10, then this is not an ega card.  A real EGA
+// card would have used the low nibble to tell you how much memory is on
+// the card.
 extern uint8_t getEgaMemSize( void );
 #pragma aux getEgaMemSize = \
   "push bp"                 \
@@ -149,8 +156,51 @@ extern void turnOffEgaBlink( void );
   "push bp"       \
   "mov ax, 1003h" \
   "mov bx, 0h"    \
-  "pop bp"        \
-  "int 10h"
+  "int 10h"       \
+  "pop bp"
+
+
+extern void setVideoMode( uint8_t );
+#pragma aux setVideoMode = \
+  "push bp"    \
+  "mov ah, 0"  \
+  "int 10h"    \
+  "pop bp"     \
+  parm [al]    \
+  modify [ax];
+
+
+// If you pass a 0 to lines the screen gets cleared.
+
+extern void scrollScreen( uint8_t lines, uint8_t hiRow, uint8_t hiCol, uint8_t lowRow, uint8_t lowCol );
+#pragma aux scrollScreen = \
+  "push bp"             \
+  "mov ah, 06h"         \
+  "mov bh, 7h"          \
+  "int 10h"             \
+  "pop bp"              \
+  parm [al] [ch] [cl] [dh] [dl] \
+  modify [ah bh];
+
+
+extern void writeChar( uint8_t col, uint8_t row, uint8_t ch, uint8_t attr );
+#pragma aux writeChar = \
+  "push bp"          \
+  "push ax"          \
+  "push bx"          \
+  "mov ah, 2h"       \
+  "mov bh, 0h"       \
+  "int 10h"          \
+  "pop bx"           \
+  "pop ax"           \
+  "mov ah, 9h"       \
+  "mov bh, 0h"       \
+  "mov cx, 1h"       \
+  "int 10h"          \
+  "pop bp"           \
+  parm [dl] [dh] [al] [bl]    \
+  modify [ax bx cx dx];
+
 
 
 extern unsigned char wherex( void );
@@ -195,6 +245,7 @@ extern void setBlockCursor( void );
   "pop bp"          \
   modify [ah cx];
 
+
 extern void hideCursor( void );
 #pragma aux hideCursor = \
   "push bp"         \
@@ -203,6 +254,17 @@ extern void hideCursor( void );
   "int 10h"         \
   "pop bp"          \
   modify [ah cx];
+
+
+// Generic video interrupt call that allows for two parameters (AX and BX)
+// and returns a value in AX.
+extern uint16_t videoInt( uint16_t, uint16_t );
+#pragma aux videoInt = \
+  "push bp"      \
+  "int 10h"      \
+  "pop bp"       \
+  parm [ax] [bx] \
+  value [ax];
 
 
 // writeCharWithoutSnow
@@ -240,6 +302,44 @@ extern void waitForCGARetraceLong( void );
   "and al, 8"                \
   "jz retrace"               \
   modify [dx al];
+
+
+
+
+
+//-----------------------------------------------------------------------------
+//
+// Keyboard handling functions
+//
+// Watcom bioskey routines seem to lock up VirtualBox when entering a character
+// using Alt-Numpad keyboard codes.  These are equivalent and even though
+// VirtualBox 6.x doesn't let you enter characters that way, these don't freeze
+// the keyboard handler up.
+
+// This could be a few instructions shorter by setting bh to zero before doing
+// the interrupt, but this is safer if a bad bios modifies bh.
+
+extern bool biosIsKeyReady( void );
+#pragma aux biosIsKeyReady = \
+  "mov ah, 0x1"        \
+  "int 0x16"           \
+  "jz nokey"           \
+  "mov bh, 0x1"        \
+  "jmp end"            \
+  "nokey: mov bh, 0x0" \
+  "end:"               \
+  modify [ax bh]       \
+  value [bh];
+
+extern uint16_t biosKeyRead( void );
+#pragma aux biosKeyRead = \
+  "mov ah, 0x0"        \
+  "int 0x16"           \
+  modify [ax]          \
+  value [ax];
+
+
+
 
 
 // This fills a region of memory a word at a time very efficiently.  Usually

@@ -1,7 +1,7 @@
 bin = MicroWeb.exe
 SRC_PATH = ..\..\src
 OBJDIR=obj
-objects = MicroWeb.obj App.obj Parser.obj Tags.obj Platform.obj CGA.obj EGA.obj Hercules.obj Font.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj Layout.obj Node.obj Text.obj Section.obj ImgNode.obj Block.obj StyNode.obj LinkNode.obj Break.obj Render.obj Button.obj Field.obj DataPack.obj Surf1bpp.obj Form.obj Status.obj Scroll.obj HTTP.obj
+objects = MicroWeb.obj App.obj Parser.obj Tags.obj Platform.obj CGA.obj EGA.obj Hercules.obj Olivetti.obj Font.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj Layout.obj Node.obj Text.obj Section.obj ImgNode.obj Block.obj StyNode.obj LinkNode.obj Break.obj Render.obj Button.obj Field.obj DataPack.obj Surf1bpp.obj Form.obj Status.obj Scroll.obj HTTP.obj
 memory_model = -ml
 CC = wpp
 CFLAGS = -zq -0 -ot -bt=DOS -w2 $(memory_model) -fi=$(SRC_PATH)\Defines.h
@@ -110,6 +110,9 @@ CGA.obj: $(SRC_PATH)\DOS\CGA.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 Hercules.obj: $(SRC_PATH)\DOS\Hercules.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+Olivetti.obj: $(SRC_PATH)\DOS\Olivetti.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 EGA.obj: $(SRC_PATH)\DOS\EGA.cpp

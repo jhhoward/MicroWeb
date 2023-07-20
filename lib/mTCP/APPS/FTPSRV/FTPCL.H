@@ -1,8 +1,7 @@
-
 /*
 
    mTCP FtpCl.h
-   Copyright (C) 2009-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2009-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -75,7 +74,6 @@ class FtpClient {
 
     char             ftproot[USR_MAX_PATH_LENGTH];  // Optional; may be null for this user
     char             cwd[USR_MAX_PATH_LENGTH];
-    char             padding3;
 
     IpAddr_t         dataTarget;
     uint16_t         dataPort;

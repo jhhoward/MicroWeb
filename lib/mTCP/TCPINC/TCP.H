@@ -1,7 +1,7 @@
 /*
 
    mTCP Tcp.H
-   Copyright (C) 2006-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2006-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -101,6 +101,8 @@ static_assert( TCP_CLOSE_TIMEOUT >= 5000ul );
 #define TCP_CODEBITS_SYN 0x02
 #define TCP_CODEBITS_FIN 0x01
 
+#define TCP_CODEBITS_MASK 0x3F
+
 
 class TcpHeader {
 
@@ -110,19 +112,33 @@ class TcpHeader {
     uint16_t dst;
     uint32_t seqnum;
     uint32_t acknum;
-    uint8_t  hlenBits;  // Use the methods!
-    uint8_t  codeBits;
+    uint8_t  hlenBitsAndReserved;  // Use the methods to manipulate this.
+    uint8_t  codeBitsAndReserved;  // Use the methods to manipulate this.
     uint16_t window;
     uint16_t checksum;
     uint16_t urgent;
 
     inline void setTcpHlen( uint16_t bytes ) {
-      hlenBits = (bytes>>2) << 4;
+      // Set the header length bits and set the reserved bits to 0 as mTCP does
+      // not implement anything that would use them.  (Yet.)
+      hlenBitsAndReserved = (bytes>>2) << 4;
     };
 
     inline uint8_t getTcpHlen( void ) const {
-      return (hlenBits>>2);
+      return (hlenBitsAndReserved>>2);
     };
+
+    inline void setCodeBits( uint8_t bits ) {
+      codeBitsAndReserved = bits;
+    }
+
+    inline void addCodeBits( uint8_t bits ) {
+      codeBitsAndReserved |= bits;
+    }
+
+    inline uint8_t getCodeBits( void ) {
+      return codeBitsAndReserved & TCP_CODEBITS_MASK;
+    }
 
     static uint16_t near readMSS( TcpHeader *tcp );
 
@@ -373,7 +389,7 @@ class TcpSocket {
     uint16_t RTT_deviation;  // Deviation ( units are clock ticks )
 
 
-    // Experimental: used to shrink the receive window on bad connections.
+    // Flow control: used to tempoarily shrink the receive window on bad connections.
     uint8_t  consecutiveGoodPackets;
     uint8_t  consecutiveSeqErrs;
     bool     reportSmallWindow;
@@ -431,6 +447,14 @@ class TcpSocket {
     }
 
     inline bool outgoingQueueIsFull( void ) { return !outgoing.hasRoom( ); }
+
+    inline uint16_t getSuggestedSendSize( void ) {
+      if ( maxEnqueueSize < remoteWindow ) {
+        return maxEnqueueSize;  // Remote window is good, send the biggest packet we can.
+      } else {
+        return remoteWindow;    // Remote window is small, limit ourselves
+      }
+    }
 
     // Almost should be private: alternative to send
     int16_t enqueue( TcpBuffer *buf );    // Send data

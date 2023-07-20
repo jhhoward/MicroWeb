@@ -1,7 +1,7 @@
 /*
 
    mTCP Eth.H
-   Copyright (C) 2005-2020 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2005-2023 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -95,8 +95,8 @@ class Eth {
       // Should be slightly faster to evaluate 16 bits at a time
 
       return ( ( ((uint16_t *)a)[0] == ((uint16_t *)b)[0] ) &&
-	       ( ((uint16_t *)a)[1] == ((uint16_t *)b)[1] ) &&
-	       ( ((uint16_t *)a)[2] == ((uint16_t *)b)[2] ) );
+               ( ((uint16_t *)a)[1] == ((uint16_t *)b)[1] ) &&
+               ( ((uint16_t *)a)[2] == ((uint16_t *)b)[2] ) );
 
       // return ( (a[0] == b[0]) && (a[1] == b[1]) && (a[2] == b[2]) &&
       //          (a[3] == b[3]) && (a[4] == b[4]) && (a[5] == b[5]) );
