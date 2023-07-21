@@ -29,11 +29,6 @@ int Font::CalculateWidth(const char* text, FontStyle::Type style)
 		}
 
 		result += glyphWidth[index];
-
-		if (style & FontStyle::Bold)
-		{
-			result++;
-		}
 	}
 
 	return result;
@@ -47,9 +42,5 @@ int Font::GetGlyphWidth(char c, FontStyle::Type style)
 		return 0;
 	}
 	int result = glyphWidth[index];
-	if (style & FontStyle::Bold)
-	{
-		result++;
-	}
 	return result;
 }

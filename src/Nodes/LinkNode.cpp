@@ -27,7 +27,7 @@ bool LinkNode::HandleEvent(Node* node, const Event& event)
 			LinkNode::Data* data = static_cast<LinkNode::Data*>(node->data);
 			if (data->url)
 			{
-				event.app.OpenURL(data->url);
+				App::Get().OpenURL(URL::GenerateFromRelative(App::Get().page.pageURL.url, data->url).url);
 			}
 			return true;
 		}

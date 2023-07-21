@@ -96,9 +96,8 @@ void WriteOutput(vector<uint8_t>& outputData, uint16_t x)
 	outputData.push_back((uint8_t)(x >> 8));
 }
 
-void EncodeImage(const char* basePath, const char* imageFilename, vector<uint8_t>& outputData, uint16_t& headerOffsetPosition)
+void EncodeImage(const char* basePath, const char* imageFilename, vector<uint8_t>& outputData)
 {
-	headerOffsetPosition = (uint16_t)(outputData.size());
 	char imageFilePath[256];
 	snprintf(imageFilePath, 256, "%s%s", basePath, imageFilename);
 

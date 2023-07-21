@@ -32,17 +32,13 @@ struct FontStyle
 	};
 };
 
-struct FontMetaData
+struct Font 
 {
 	uint8_t glyphWidth[LAST_FONT_GLYPH + 1 - FIRST_FONT_GLYPH];
 	uint8_t glyphWidthBytes;
 	uint8_t glyphHeight;
 	uint8_t glyphDataStride;
-};
-
-struct Font : public FontMetaData
-{
-	uint8_t* glyphData;
+	uint8_t glyphData[1];
 
 	int CalculateWidth(const char* text, FontStyle::Type style = FontStyle::Regular);
 	int GetGlyphWidth(char c, FontStyle::Type style = FontStyle::Regular);

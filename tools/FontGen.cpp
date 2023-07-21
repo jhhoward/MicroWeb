@@ -362,10 +362,8 @@ void GenerateDummyFont(ofstream& outputFile, const char* varName)
 	outputFile << "};" << endl << endl;
 }
 
-void EncodeFont(const char* basePath, const char* imageFilename, vector<uint8_t>& outputStream, uint16_t& headerOffsetPosition)
+void EncodeFont(const char* basePath, const char* imageFilename, vector<uint8_t>& outputStream, bool generateBold)
 {
-	headerOffsetPosition = (uint16_t) outputStream.size();
-
 	char imageFilePath[256];
 	snprintf(imageFilePath, 256, "%s%s", basePath, imageFilename);
 	vector<unsigned char> data;
@@ -398,6 +396,25 @@ void EncodeFont(const char* basePath, const char* imageFilename, vector<uint8_t>
 		int checkIndex = x * 4;
 		if (data[checkIndex] > 0)
 		{
+			if (generateBold)
+			{
+				for (unsigned int y = 0; y < glyphHeight; y++)
+				{
+					int prevIndex = ((y + 1) * width + x - 1) * 4;
+					unsigned col = data[prevIndex] | (data[prevIndex + 1] << 8) | (data[prevIndex + 2] << 16);
+
+					if (col > 0)
+					{
+						columnBuffer.push_back(1);
+					}
+					else
+					{
+						columnBuffer.push_back(0);
+					}
+				}
+				glyphBuffer.insert(glyphBuffer.end(), columnBuffer.begin(), columnBuffer.end());
+			}
+
 			// This is a break for the next glyph
 			uint16_t offset = (uint16_t)(output.size());
 			offsets.push_back(offset);
@@ -412,6 +429,12 @@ void EncodeFont(const char* basePath, const char* imageFilename, vector<uint8_t>
 		{
 			int index = ((y + 1) * width + x) * 4;
 			unsigned col = data[index] | (data[index + 1] << 8) | (data[index + 2] << 16);
+
+			if (generateBold && !col && x > 0)
+			{
+				int prevIndex = ((y + 1) * width + x - 1) * 4;
+				col = data[prevIndex] | (data[prevIndex + 1] << 8) | (data[prevIndex + 2] << 16);
+			}
 
 			if (col > 0)
 			{

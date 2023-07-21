@@ -42,7 +42,7 @@ void Platform::Init(int argc, char* argv[])
 	wc.lpfnWndProc = WndProc;
 	wc.hCursor = LoadCursor(0, IDC_ARROW);
 
-	RECT wr = { 0, 0, winVid.screenWidth, winVid.screenHeight * winVid.verticalScale };
+	RECT wr = { 0, 0, winVid.screenWidth, (int)(winVid.screenHeight * winVid.verticalScale) };
 	AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);
 
 	RegisterClassW(&wc);

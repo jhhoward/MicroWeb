@@ -297,11 +297,6 @@ void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* 
 				{
 					uint8_t glyphPixels = *glyphData++;
 
-					if (style & FontStyle::Bold)
-					{
-						glyphPixels |= (glyphPixels >> 1);
-					}
-
 					VRAMptr[i] &= ~(glyphPixels >> writeOffset);
 					VRAMptr[i + 1] &= ~(glyphPixels << (8 - writeOffset));
 				}
@@ -325,11 +320,6 @@ void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* 
 				{
 					uint8_t glyphPixels = *glyphData++;
 
-					if (style & FontStyle::Bold)
-					{
-						glyphPixels |= (glyphPixels >> 1);
-					}
-
 					VRAMptr[i] |= (glyphPixels >> writeOffset);
 					VRAMptr[i + 1] |= (glyphPixels << (8 - writeOffset));
 				}
@@ -340,10 +330,6 @@ void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* 
 		}
 
 		x += glyphWidth;
-		if (style & FontStyle::Bold)
-		{
-			x++;
-		}
 
 		if (x >= context.clipRight)
 		{

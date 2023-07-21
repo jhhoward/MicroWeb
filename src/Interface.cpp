@@ -300,6 +300,7 @@ void AppInterface::GenerateInterfaceNodes()
 	rootInterfaceNode->style.fontStyle = FontStyle::Regular;
 
 	Font* interfaceFont = Assets.GetFont(1, FontStyle::Regular);
+	Font* smallInterfaceFont = Assets.GetFont(0, FontStyle::Regular);
 
 	{
 		titleBuffer[0] = '\0';
@@ -337,10 +338,11 @@ void AppInterface::GenerateInterfaceNodes()
 	statusBarNode = StatusBarNode::Construct(allocator);
 	statusBarNode->style = rootInterfaceNode->style;
 	statusBarNode->size.x = Platform::video->screenWidth;
-	statusBarNode->size.y = interfaceFont->glyphHeight + 2;
+	statusBarNode->size.y = smallInterfaceFont->glyphHeight + 2;
 	statusBarNode->anchor.x = 0;
 	statusBarNode->anchor.y = Platform::video->screenHeight - statusBarNode->size.y;
 	rootInterfaceNode->AddChild(statusBarNode);
+	statusBarNode->style.fontSize = 0;
 
 	scrollBarNode = ScrollBarNode::Construct(allocator, scrollPositionY, app.page.pageHeight);
 	scrollBarNode->style = rootInterfaceNode->style;

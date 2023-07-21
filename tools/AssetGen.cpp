@@ -25,31 +25,66 @@ using namespace std;
 //void EncodeCursor(const char* imageFilename, ofstream& outputFile, const char* varName, int hotSpotX, int hotSpotY);
 //void GenerateDummyFont(ofstream& outputFile, const char* varName);
 
-void EncodeFont(const char* basePath, const char* name, vector<uint8_t>& output, uint16_t& headerOffsetPosition);
-void EncodeCursor(const char* basePath, const char* name, vector<uint8_t>& output, uint16_t& headerOffsetPosition);
-void EncodeImage(const char* basePath, const char* name, vector<uint8_t>& output, uint16_t& headerOffsetPosition);
+void EncodeFont(const char* basePath, const char* name, vector<uint8_t>& output, bool generateBold = true);
+void EncodeCursor(const char* basePath, const char* name, vector<uint8_t>& output);
+void EncodeImage(const char* basePath, const char* name, vector<uint8_t>& output);
+
+void AddEntryHeader(const char* name, vector<DataPackEntry>& entries, vector<uint8_t>& data)
+{
+	DataPackEntry entry;
+	memset(entry.name, 0, 8);
+	strncpy_s(entry.name, name, 8);
+	entry.offset = (uint32_t)(data.size());
+	entries.push_back(entry);
+}
 
 void GenerateAssetPack(const char* name)
 {
 	char basePath[256];
-	DataPackHeader header;
 	vector<uint8_t> data;
+	vector<DataPackEntry> entries;
 
 	snprintf(basePath, 256, "assets/%s/", name);
 
-	EncodeFont(basePath, "Helv1.png", data, header.fontOffsets[0]);
-	EncodeFont(basePath, "Helv2.png", data, header.fontOffsets[1]);
-	EncodeFont(basePath, "Helv3.png", data, header.fontOffsets[2]);
+	AddEntryHeader("FHELV1", entries, data);
+	EncodeFont(basePath, "Helv1.png", data, false);
+	AddEntryHeader("FHELV2", entries, data);
+	EncodeFont(basePath, "Helv2.png", data, false);
+	AddEntryHeader("FHELV3", entries, data);
+	EncodeFont(basePath, "Helv3.png", data, false);
 
-	EncodeFont(basePath, "Cour1.png", data, header.monoFontOffsets[0]);
-	EncodeFont(basePath, "Cour2.png", data, header.monoFontOffsets[1]);
-	EncodeFont(basePath, "Cour3.png", data, header.monoFontOffsets[2]);
+	AddEntryHeader("FHELV1B", entries, data);
+	EncodeFont(basePath, "Helv1.png", data, true);
+	AddEntryHeader("FHELV2B", entries, data);
+	EncodeFont(basePath, "Helv2.png", data, true);
+	AddEntryHeader("FHELV3B", entries, data);
+	EncodeFont(basePath, "Helv3.png", data, true);
 
-	EncodeCursor(basePath, "mouse.png", data, header.pointerCursorOffset);
-	EncodeCursor(basePath, "mouse-link.png", data, header.linkCursorOffset);
-	EncodeCursor(basePath, "mouse-select.png", data, header.textSelectCursorOffset);
+	AddEntryHeader("FCOUR1", entries, data);
+	EncodeFont(basePath, "Cour1.png", data, false);
+	AddEntryHeader("FCOUR2", entries, data);
+	EncodeFont(basePath, "Cour2.png", data, false);
+	AddEntryHeader("FCOUR3", entries, data);
+	EncodeFont(basePath, "Cour3.png", data, false);
 
-	EncodeImage(basePath, "image-icon.png", data, header.imageIconOffset);
+	AddEntryHeader("FCOUR1B", entries, data);
+	EncodeFont(basePath, "Cour1.png", data, true);
+	AddEntryHeader("FCOUR2B", entries, data);
+	EncodeFont(basePath, "Cour2.png", data, true);
+	AddEntryHeader("FCOUR3B", entries, data);
+	EncodeFont(basePath, "Cour3.png", data, true);
+
+	AddEntryHeader("CMOUSE", entries, data);
+	EncodeCursor(basePath, "mouse.png", data);
+	AddEntryHeader("CLINK", entries, data);
+	EncodeCursor(basePath, "mouse-link.png", data);
+	AddEntryHeader("CTEXT", entries, data);
+	EncodeCursor(basePath, "mouse-select.png", data);
+
+	AddEntryHeader("IIMG", entries, data);
+	EncodeImage(basePath, "image-icon.png", data);
+
+	AddEntryHeader("END", entries, data);
 
 	char outputPath[256];
 	snprintf(outputPath, 256, "%s.dat", name);
@@ -58,7 +93,15 @@ void GenerateAssetPack(const char* name)
 	fopen_s(&fs, outputPath, "wb");
 	if (fs)
 	{
-		fwrite(&header, sizeof(DataPackHeader), 1, fs);
+		uint16_t numEntries = (uint16_t)(entries.size());
+		for (int n = 0; n < entries.size(); n++)
+		{
+			entries[n].offset += sizeof(uint16_t) + sizeof(DataPackEntry) * numEntries;
+		}
+
+		fwrite(&numEntries, sizeof(uint16_t), 1, fs);
+		fwrite(entries.data(), sizeof(DataPackEntry), numEntries, fs);
+
 		fwrite(data.data(), 1, data.size(), fs);
 
 		fclose(fs);

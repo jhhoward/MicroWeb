@@ -1,6 +1,8 @@
 #include <memory.h>
 #include <stdio.h>
+#include <string.h>
 #include "DataPack.h"
+#include <malloc.h>
 
 DataPack Assets;
 
@@ -15,77 +17,76 @@ bool DataPack::Load(const char* path)
 		return false;
 	}
 
-	fseek(fs, 0, SEEK_END);
-	long dataPackSize = ftell(fs);
-	fseek(fs, 0, SEEK_SET);
-
-	if (dataPackSize <= sizeof(DataPackHeader))
-	{
-		return false;
-	}
-
 	DataPackHeader header;
 
-	fread(&header, sizeof(DataPackHeader), 1, fs);
+	fread(&header.numEntries, sizeof(uint16_t), 1, fs);
+	header.entries = new DataPackEntry[header.numEntries];
+	fread(header.entries, sizeof(DataPackEntry), header.numEntries, fs);
 
-	long rawDataSize = dataPackSize - sizeof(DataPackHeader);
-	uint8_t* rawData = new uint8_t[rawDataSize];
-	if (!rawData)
-	{
-		return false;
-	}
+	pointerCursor = (MouseCursorData*)LoadAsset(fs, header, "CMOUSE");
+	linkCursor = (MouseCursorData*)LoadAsset(fs, header, "CLINK");
+	textSelectCursor = (MouseCursorData*)LoadAsset(fs, header, "CTEXT");
 
-	fread(rawData, 1, rawDataSize, fs);
+	imageIcon = (Image*)LoadAsset(fs, header, "IIMG");
 
+	fonts[0] = (Font*)LoadAsset(fs, header, "FHELV1");
+	fonts[1] = (Font*)LoadAsset(fs, header, "FHELV2");
+	fonts[2] = (Font*)LoadAsset(fs, header, "FHELV3");
+	boldFonts[0] = (Font*)LoadAsset(fs, header, "FHELV1B");
+	boldFonts[1] = (Font*)LoadAsset(fs, header, "FHELV2B");
+	boldFonts[2] = (Font*)LoadAsset(fs, header, "FHELV3B");
+	monoFonts[0] = (Font*)LoadAsset(fs, header, "FCOUR1");
+	monoFonts[1] = (Font*)LoadAsset(fs, header, "FCOUR2");
+	monoFonts[2] = (Font*)LoadAsset(fs, header, "FCOUR3");
+	boldMonoFonts[0] = (Font*)LoadAsset(fs, header, "FCOUR1B");
+	boldMonoFonts[1] = (Font*)LoadAsset(fs, header, "FCOUR2B");
+	boldMonoFonts[2] = (Font*)LoadAsset(fs, header, "FCOUR3B");
+
+	delete[] header.entries;
 	fclose(fs);
 
-	pointerCursor = (MouseCursorData*)(&rawData[header.pointerCursorOffset]);
-	linkCursor = (MouseCursorData*)(&rawData[header.linkCursorOffset]);
-	textSelectCursor = (MouseCursorData*)(&rawData[header.textSelectCursorOffset]);
-
-	imageIcon = (Image*)(&rawData[header.imageIconOffset]);
-
-	for (int n = 0; n < NUM_FONT_SIZES; n++)
-	{
-		memcpy(&fonts[n], &rawData[header.fontOffsets[n]], sizeof(FontMetaData));
-		fonts[n].glyphData = &rawData[header.fontOffsets[n] + sizeof(FontMetaData)];
-
-		memcpy(&monoFonts[n], &rawData[header.monoFontOffsets[n]], sizeof(FontMetaData));
-		monoFonts[n].glyphData = &rawData[header.monoFontOffsets[n] + sizeof(FontMetaData)];
-	}
-
 	return true;
+}
+
+int DataPack::FontSizeToIndex(int fontSize)
+{
+	switch (fontSize)
+	{
+	case 0:
+		return 0;
+	case 2:
+	case 3:
+	case 4:
+		return 2;
+	default:
+		return 1;
+	}
 }
 
 Font* DataPack::GetFont(int fontSize, FontStyle::Type fontStyle)
 {
 	if (fontStyle & FontStyle::Monospace)
 	{
-		switch (fontSize)
+		if (fontStyle & FontStyle::Bold)
 		{
-		case 0:
-			return &monoFonts[0];
-		case 2:
-		case 3:
-		case 4:
-			return &monoFonts[2];
-		default:
-			return &monoFonts[1];
+			return boldMonoFonts[FontSizeToIndex(fontSize)];
+		}
+		else
+		{
+			return monoFonts[FontSizeToIndex(fontSize)];
 		}
 	}
-
-	switch (fontSize)
+	else
 	{
-	case 0:
-		return &fonts[0];
-	case 2:
-	case 3:
-	case 4:
-		return &fonts[2];
-	default:
-		return &fonts[1];
+		if (fontStyle & FontStyle::Bold)
+		{
+			return boldFonts[FontSizeToIndex(fontSize)];
+		}
+		else
+		{
+			return fonts[FontSizeToIndex(fontSize)];
+		}
 	}
-
 }
 
 MouseCursorData* DataPack::GetMouseCursorData(MouseCursor::Type type)
@@ -100,4 +101,35 @@ MouseCursorData* DataPack::GetMouseCursorData(MouseCursor::Type type)
 		return textSelectCursor;
 	}
 	return NULL;
+}
+
+void* DataPack::LoadAsset(FILE* fs, DataPackHeader& header, const char* entryName, void* buffer)
+{
+	DataPackEntry* entry = NULL;
+
+	for (int n = 0; n < header.numEntries; n++)
+	{
+		if (!stricmp(header.entries[n].name, entryName))
+		{
+			entry = &header.entries[n];
+			break;
+		}
+	}
+
+	if (!entry)
+	{
+		return NULL;
+	}
+
+	fseek(fs, entry->offset, SEEK_SET);
+	int32_t length = entry[1].offset - entry[0].offset;
+
+	if (!buffer)
+	{
+		buffer = malloc(length);
+	}
+
+	fread(buffer, length, 1, fs);
+
+	return buffer;
 }

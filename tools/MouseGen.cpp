@@ -184,9 +184,8 @@ void EncodeCursor(vector<unsigned char>& outputData, const char* imageFilename, 
 	outputData.push_back((uint8_t)(hotSpotX >> 8));
 }
 
-void EncodeCursor(const char* basePath, const char* imageFilename, vector<uint8_t>& outputData, uint16_t& headerOffsetPosition)
+void EncodeCursor(const char* basePath, const char* imageFilename, vector<uint8_t>& outputData)
 {
-	headerOffsetPosition = (uint16_t)(outputData.size());
 	char imageFilePath[256];
 	snprintf(imageFilePath, 256, "%s%s", basePath, imageFilename);
 

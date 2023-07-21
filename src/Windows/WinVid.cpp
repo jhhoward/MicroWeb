@@ -33,9 +33,11 @@ WindowsVideoDriver::WindowsVideoDriver()
 	screenHeight = SCREEN_HEIGHT;
 	foregroundColour = RGB(0, 0, 0);
 	backgroundColour = RGB(255, 255, 255);
-	verticalScale = 1;
+	verticalScale = ((screenWidth * 3.0f) / 4.0f) / screenHeight;
+	//verticalScale = 1.0f;
 
 	Assets.Load("Default.dat");
+//	Assets.Load("EGA.dat");
 //	Assets.Load("Lowres.dat");
 //	Assets.Load("CGA.dat");
 }

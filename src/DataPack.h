@@ -1,6 +1,7 @@
 #ifndef _DATAPACK_H_
 #define _DATAPACK_H_
 
+#include <stdio.h>
 #include <stdint.h>
 #include "Cursor.h"
 #include "Image.h"
@@ -37,14 +38,16 @@ uint8 glyphData[variable]
 
 #define NUM_FONT_SIZES 3
 
+struct DataPackEntry
+{
+	char name[8];
+	uint32_t offset;
+};
+
 struct DataPackHeader
 {
-	uint16_t fontOffsets[NUM_FONT_SIZES];
-	uint16_t monoFontOffsets[NUM_FONT_SIZES];
-	uint16_t pointerCursorOffset;
-	uint16_t linkCursorOffset;
-	uint16_t textSelectCursorOffset;
-	uint16_t imageIconOffset;
+	uint16_t numEntries;
+	DataPackEntry* entries;
 };
 
 struct DataPack
@@ -54,12 +57,18 @@ struct DataPack
 	MouseCursorData* textSelectCursor;
 	Image* imageIcon;
 
-	Font fonts[NUM_FONT_SIZES];
-	Font monoFonts[NUM_FONT_SIZES];
+	Font* fonts[NUM_FONT_SIZES];
+	Font* boldFonts[NUM_FONT_SIZES];
+	Font* monoFonts[NUM_FONT_SIZES];
+	Font* boldMonoFonts[NUM_FONT_SIZES];
 
 	bool Load(const char* path);
 	Font* GetFont(int fontSize, FontStyle::Type fontStyle);
 	MouseCursorData* GetMouseCursorData(MouseCursor::Type type);
+
+private:
+	void* LoadAsset(FILE* fs, DataPackHeader& header, const char* entryName, void* buffer = NULL);
+	int FontSizeToIndex(int fontSize);
 };
 
 extern DataPack Assets;

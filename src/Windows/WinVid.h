@@ -31,7 +31,7 @@ public:
 
 	void Paint(HWND hwnd);
 
-	int verticalScale;
+	float verticalScale;
 
 private:
 	void SetPixel(int x, int y, uint32_t colour);

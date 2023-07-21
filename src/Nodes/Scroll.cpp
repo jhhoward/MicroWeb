@@ -33,8 +33,16 @@ void ScrollBarNode::Draw(DrawContext& context, Node* node)
 		{
 			widgetSize = minWidgetSize;
 		}
+		if (widgetSize > maxWidgetSize)
+		{
+			widgetSize = maxWidgetSize;
+		}
 		int maxWidgetPosition = node->size.y - widgetSize;
 		int widgetPosition = (int32_t)maxWidgetPosition * data->scrollPosition / data->maxScroll;
+		if (widgetPosition < 0)
+			widgetPosition = 0;
+		if (widgetPosition > maxWidgetPosition)
+			widgetPosition = maxWidgetPosition;
 
 		context.surface->VerticalScrollBar(context, node->anchor.x, node->anchor.y, node->size.y, widgetPosition, widgetSize);
 	}
