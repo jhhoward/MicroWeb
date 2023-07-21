@@ -260,13 +260,14 @@ void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* 
 
 	while (*text)
 	{
-		char c = *text++;
-		if (c < 32 || c >= 128)
+		unsigned char c = (unsigned char) *text++;
+
+		if (c < 32)
 		{
 			continue;
 		}
 
-		char index = c - 32;
+		int index = c - 32;
 		uint8_t glyphWidth = font->glyphWidth[index];
 
 		if (glyphWidth == 0)
@@ -507,7 +508,6 @@ void DrawSurface_1BPP::InvertRect(DrawContext& context, int x, int y, int width,
 
 void DrawSurface_1BPP::VerticalScrollBar(DrawContext& context, int x, int y, int height, int position, int size)
 {
-	return;
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
 	int startY = y;

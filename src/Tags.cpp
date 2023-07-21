@@ -445,11 +445,15 @@ void MetaTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 void PreformattedTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
 	// TODO-refactor
+	parser.PushPreFormatted();
 	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
+	parser.PushContext(StyleNode::ConstructFontStyle(parser.page.allocator, FontStyle::Monospace), this);
 }
 
 void PreformattedTagHandler::Close(class HTMLParser& parser) const
 {
 	// TODO-refactor
+	parser.PopPreFormatted();
+	parser.PopContext(this);
 	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
 }

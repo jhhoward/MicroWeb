@@ -21,11 +21,12 @@ int Font::CalculateWidth(const char* text, FontStyle::Type style)
 	while (*text)
 	{
 		char c = *text++;
-		if (c < 32 || c >= 128)
+
+		int index = (unsigned char)c - FIRST_FONT_GLYPH;
+		if (index < 0)
 		{
 			continue;
 		}
-		char index = c - 32;
 
 		result += glyphWidth[index];
 
@@ -40,11 +41,12 @@ int Font::CalculateWidth(const char* text, FontStyle::Type style)
 
 int Font::GetGlyphWidth(char c, FontStyle::Type style)
 {
-	if (c < FIRST_FONT_GLYPH || c >= 128)
+	int index = (unsigned char)(c)-FIRST_FONT_GLYPH;
+	if (index < 0)
 	{
 		return 0;
 	}
-	int result = glyphWidth[c - FIRST_FONT_GLYPH];
+	int result = glyphWidth[index];
 	if (style & FontStyle::Bold)
 	{
 		result++;

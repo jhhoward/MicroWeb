@@ -390,7 +390,7 @@ void EncodeFont(const char* basePath, const char* imageFilename, vector<uint8_t>
 	{
 		vector<uint8_t> columnBuffer;
 
-		if (glyphWidths.size() >= (128 - 32))
+		if (glyphWidths.size() >= (256 - 32))
 		{
 			break;
 		}

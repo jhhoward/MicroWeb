@@ -52,7 +52,7 @@ void GenerateAssetPack(const char* name)
 	EncodeImage(basePath, "image-icon.png", data, header.imageIconOffset);
 
 	char outputPath[256];
-	snprintf(outputPath, 256, "assets/%s.dat", name);
+	snprintf(outputPath, 256, "%s.dat", name);
 	FILE* fs;
 	
 	fopen_s(&fs, outputPath, "wb");

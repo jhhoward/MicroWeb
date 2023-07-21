@@ -22,6 +22,7 @@
 #include "Unicode.inc"
 #include "Nodes/Text.h"
 #include "Nodes/ImgNode.h"
+#include "Nodes/Break.h"
 
 // debug
 #include "Platform.h"
@@ -483,6 +484,7 @@ void HTMLParser::ParseChar(char c)
 				{
 					FlushTextBuffer();
 					
+					EmitNode(BreakNode::Construct(page.allocator));
 					// TODO-refactor
 					//page.BreakTextLine();
 					break;

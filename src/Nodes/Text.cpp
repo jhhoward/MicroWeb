@@ -64,10 +64,8 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 	for(charIndex = 0; data->text[charIndex]; charIndex++)
 	{
 		char c = data->text[charIndex];
-		if (c < 32 || c > 128)
-			continue;
 
-		if (c == ' ')
+		if (c == ' ' || c == '\t')
 		{
 			lastBreakPoint = charIndex;
 			lastBreakPointWidth = width;
