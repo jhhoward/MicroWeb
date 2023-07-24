@@ -72,14 +72,7 @@ void AppInterface::Update()
 
 	Node* oldHoverNode = hoverNode;
 
-	if (hoverNode && !IsOverNode(hoverNode, mouseX, mouseY))
-	{
-		hoverNode = PickNode(mouseX, mouseY);
-	}
-	else if (!hoverNode && (mouseX != oldMouseX || mouseY != oldMouseY))
-	{
-		hoverNode = PickNode(mouseX, mouseY);
-	}
+	hoverNode = PickFocusableNode(mouseX, mouseY);
 
 	if ((buttons & 1) && !(oldButtons & 1))
 	{
@@ -218,43 +211,29 @@ void AppInterface::Update()
 	}
 }
 
-bool AppInterface::IsOverNode(Node* node, int x, int y)
+Node* AppInterface::PickFocusableNode(int x, int y)
 {
-	if (!node)
-	{
-		return false;
-	}
-	if (IsInterfaceNode(node))
-	{
-		return node->IsPointInsideNode(x, y);
-	}
-	else
-	{
-		x -= windowRect.x;
-		y -= windowRect.y - scrollPositionY;
-		return node->IsPointInsideNode(x, y);
-	}
-}
+	Node* result = nullptr;
+	result = rootInterfaceNode->Handler().Pick(rootInterfaceNode, x, y);
 
-Node* AppInterface::PickNode(int x, int y)
-{
-	Node* interfaceNode = rootInterfaceNode->Handler().Pick(rootInterfaceNode, x, y);
-
-	if (interfaceNode)
+	if (!result)
 	{
-		return interfaceNode;
+		if (x >= windowRect.x && y >= windowRect.y && x < windowRect.x + windowRect.width && y < windowRect.y + windowRect.height)
+		{
+			int pageX = x - windowRect.x;
+			int pageY = y - windowRect.y + scrollPositionY;
+
+			Node* pageRootNode = app.page.GetRootNode();
+			result = pageRootNode->Handler().Pick(pageRootNode, pageX, pageY);
+		}
 	}
 
-	if (x >= windowRect.x && y >= windowRect.y && x < windowRect.x + windowRect.width && y < windowRect.y + windowRect.height)
+	while (result && !result->Handler().CanFocus(result))
 	{
-		int pageX = x - windowRect.x;
-		int pageY = y - windowRect.y + scrollPositionY;
-
-		Node* pageRootNode = app.page.GetRootNode();
-		return pageRootNode->Handler().Pick(pageRootNode, pageX, pageY);
+		result = result->parent;
 	}
 
-	return nullptr;
+	return result;
 }
 
 void AppInterface::HandleClick(int mouseX, int mouseY)

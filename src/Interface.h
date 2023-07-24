@@ -60,12 +60,10 @@ public:
 private:
 	void GenerateInterfaceNodes();
 
-	Node* PickNode(int x, int y);
+	Node* PickFocusableNode(int x, int y);
 
 	void HandleClick(int mouseX, int mouseY);
 	void HandleRelease();
-
-	bool IsOverNode(Node* node, int x, int y);
 
 	static void OnBackButtonPressed(Node* node);
 	static void OnForwardButtonPressed(Node* node);

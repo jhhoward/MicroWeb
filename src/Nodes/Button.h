@@ -17,6 +17,7 @@ public:
 	static Node* Construct(Allocator& allocator, const char* buttonText, NodeCallbackFunction onClick);
 	virtual void GenerateLayout(Layout& layout, Node* node) override;
 	virtual void Draw(DrawContext& context, Node* node) override;
+	virtual bool CanFocus(Node* node) { return true; }
 	virtual bool CanPick(Node* node) { return true; }
 	virtual bool HandleEvent(Node* node, const Event& event);
 

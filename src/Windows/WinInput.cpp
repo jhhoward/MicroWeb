@@ -86,8 +86,11 @@ void WindowsInputDriver::GetMouseStatus(int& buttons, int& x, int& y)
 			int width = windowRect.right - windowRect.left;
 			int height = windowRect.bottom - windowRect.top;
 
-			x = p.x * Platform::video->screenWidth / width;
-			y = p.y * Platform::video->screenHeight / height;
+			if (width > 0 && height > 0)
+			{
+				x = p.x * Platform::video->screenWidth / width;
+				y = p.y * Platform::video->screenHeight / height;
+			}
 		}
 	}
 

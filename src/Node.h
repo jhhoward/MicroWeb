@@ -23,6 +23,7 @@ public:
 	virtual void ApplyStyle(Node* node) {}
 	virtual Node* Pick(Node* node, int x, int y);
 	virtual bool CanPick(Node* node) { return false; }
+	virtual bool CanFocus(Node* node) { return false; }
 	virtual bool HandleEvent(Node* node, const Event& event) { return false; }
 };
 

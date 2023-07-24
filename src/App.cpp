@@ -105,7 +105,7 @@ void App::Run(int argc, char* argv[])
 				}				
 			}
 		}
-		if (loadTask.type == LoadTask::RemoteFile && loadTask.request && loadTask.request->GetStatus() == HTTPRequest::Connecting)
+		if (loadTask.type == LoadTask::RemoteFile && loadTask.request)// && loadTask.request->GetStatus() == HTTPRequest::Connecting)
 			ui.SetStatusMessage(loadTask.request->GetStatusString());
 
 		ui.Update();

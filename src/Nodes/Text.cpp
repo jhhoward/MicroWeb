@@ -139,6 +139,11 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 			layout.ProgressCursor(subTextNode, width, lineHeight);
 		}
 	}
+
+	if (node->firstChild)
+	{
+		node->EncapsulateChildren();
+	}
 }
 
 Node* SubTextElement::Construct(Allocator& allocator, const char* text)
