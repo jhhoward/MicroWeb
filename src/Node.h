@@ -70,6 +70,8 @@ public:
 	void AddChild(Node* child);
 	void EncapsulateChildren();		// Sets anchor and size based on children
 	bool IsPointInsideNode(int x, int y);
+	bool IsPointInsideChildren(int x, int y);
+	void OnChildLayoutChanged();
 	Node* FindParentOfType(Node::Type searchType);
 	void Redraw();
 

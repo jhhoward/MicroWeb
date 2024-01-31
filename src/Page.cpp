@@ -22,6 +22,7 @@
 #include "Nodes/Section.h"
 #include "Nodes/Text.h"
 #include "Nodes/Form.h"
+#include "Nodes/StyNode.h"
 
 #define TOP_MARGIN_PADDING 1
 
@@ -120,6 +121,38 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 		{
 			FormNode::Data* data = static_cast<FormNode::Data*>(node->data);
 			printf("<%s> action: %s\n", nodeTypeNames[node->type], data->action ? data->action : "NONE");
+		}
+		break;
+	case Node::Style:
+		{
+			StyleNode::Data* data = static_cast<StyleNode::Data*>(node->data);
+			printf("<%s> [%d,%d:%d,%d] ", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y);
+			if (data->styleOverride.overrideMask.alignment)
+			{
+				switch (data->styleOverride.styleSettings.alignment)
+				{
+				case ElementAlignment::Center:
+					printf("align center ");
+					break;
+				}
+			}
+			if (data->styleOverride.overrideMask.fontStyle)
+			{
+				if (data->styleOverride.styleSettings.fontStyle & FontStyle::Bold)
+				{
+					printf("bold ");
+				}
+				if (data->styleOverride.styleSettings.fontStyle & FontStyle::Italic)
+				{
+					printf("italic ");
+				}
+				if (data->styleOverride.styleSettings.fontStyle & FontStyle::Underline)
+				{
+					printf("underline ");
+				}
+			}
+
+			printf("\n");
 		}
 		break;
 	default:

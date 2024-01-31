@@ -226,13 +226,13 @@ bool AppInterface::IsOverNode(Node* node, int x, int y)
 	}
 	if (IsInterfaceNode(node))
 	{
-		return node->IsPointInsideNode(x, y);
+		return node->IsPointInsideChildren(x, y);
 	}
 	else
 	{
 		x -= windowRect.x;
 		y -= windowRect.y - scrollPositionY;
-		return node->IsPointInsideNode(x, y);
+		return node->IsPointInsideChildren(x, y);
 	}
 }
 

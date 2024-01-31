@@ -60,6 +60,15 @@ void Node::AddChild(Node* child)
 	}
 }
 
+void Node::OnChildLayoutChanged()
+{
+	EncapsulateChildren();
+	if (parent)
+	{
+		parent->OnChildLayoutChanged();
+	}
+}
+
 void Node::EncapsulateChildren()
 {
 	if (firstChild)
@@ -94,6 +103,29 @@ bool Node::IsPointInsideNode(int x, int y)
 	return x >= anchor.x && y >= anchor.y && x < anchor.x + size.x && y < anchor.y + size.y;
 }
 
+bool Node::IsPointInsideChildren(int x, int y)
+{
+	if (!IsPointInsideNode(x, y))
+	{
+		return false;
+	}
+
+	if (firstChild == nullptr)
+	{
+		return true;
+	}
+
+	for (Node* it = firstChild; it; it = it->next)
+	{
+		if (it->IsPointInsideChildren(x, y))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 Node* NodeHandler::Pick(Node* node, int x, int y)
 {
 	if (!node || !node->IsPointInsideNode(x, y))
@@ -103,7 +135,14 @@ Node* NodeHandler::Pick(Node* node, int x, int y)
 
 	if (CanPick(node))
 	{
-		return node;
+		// Node is pickable, but it's dimensions could be based on encapsulated children so check 
+		// it is over the child nodes and not just in the bounding box
+		if (node->IsPointInsideChildren(x, y))
+		{
+			return node;
+		}
+
+		return nullptr;;
 	}
 
 	for (Node* it = node->firstChild; it; it = it->next)

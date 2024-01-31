@@ -52,6 +52,11 @@ void Layout::BreakNewLine()
 		TranslateNodes(lineStartNode, shift, 0, true);
 	}
 
+	if (lineStartNode && lineStartNode->parent)
+	{
+		lineStartNode->parent->OnChildLayoutChanged();
+	}
+
 	cursor.x = GetParams().marginLeft;
 	cursor.y += currentLineHeight;
 	currentLineHeight = 0;
