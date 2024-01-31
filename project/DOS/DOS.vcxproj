@@ -105,6 +105,8 @@
     <ClCompile Include="..\..\src\DOS\HP95LX.cpp" />
     <ClCompile Include="..\..\src\DOS\Olivetti.cpp" />
     <ClCompile Include="..\..\src\DOS\Platform.cpp" />
+    <ClCompile Include="..\..\src\DOS\Surf4bpp.cpp" />
+    <ClCompile Include="..\..\src\Draw\Surf1bpp.cpp" />
     <ClCompile Include="..\..\src\Font.cpp" />
     <ClCompile Include="..\..\src\Interface.cpp" />
     <ClCompile Include="..\..\src\Microweb.cpp" />

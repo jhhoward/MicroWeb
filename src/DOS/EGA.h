@@ -47,7 +47,8 @@ class VGADriver : public EGADriver
 public:
 	VGADriver() 
 	{
-		SetupVars("DEFAULT.DAT", 0x11, 480);
+//		SetupVars("DEFAULT.DAT", 0x11, 480);
+		SetupVars("DEFAULT.DAT", 0x12, 480);
 	}
 	virtual void ScaleImageDimensions(int& width, int& height) {}
 };

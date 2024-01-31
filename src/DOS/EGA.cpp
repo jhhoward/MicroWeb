@@ -23,6 +23,7 @@
 #include "../DataPack.h"
 #include "../Interface.h"
 #include "../Draw/Surf1bpp.h"
+#include "../Draw/Surf4bpp.h"
 
 #define EGA_BASE_VRAM_ADDRESS (uint8_t*) MK_FP(0xA000, 0)
 #define BYTES_PER_LINE 80
@@ -47,12 +48,20 @@ void EGADriver::Init()
 
 	Assets.Load(assetPackToUse);
 
+	/*
 	DrawSurface_1BPP* drawSurface1BPP = new DrawSurface_1BPP(screenWidth, screenHeight);
 	for (int y = 0; y < screenHeight; y++)
 	{
 		drawSurface1BPP->lines[y] = (EGA_BASE_VRAM_ADDRESS)+(BYTES_PER_LINE * y);
 	}
 	drawSurface = drawSurface1BPP;
+	*/
+	DrawSurface_4BPP* drawSurface4BPP = new DrawSurface_4BPP(screenWidth, screenHeight);
+	for (int y = 0; y < screenHeight; y++)
+	{
+		drawSurface4BPP->lines[y] = (EGA_BASE_VRAM_ADDRESS)+(BYTES_PER_LINE * y);
+	}
+	drawSurface = drawSurface4BPP;
 }
 
 void EGADriver::Shutdown()

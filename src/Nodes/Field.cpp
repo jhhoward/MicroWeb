@@ -14,7 +14,7 @@ void TextFieldNode::Draw(DrawContext& context, Node* node)
 	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
 	uint8_t textColour = 0;
 	uint8_t buttonOutlineColour = 0;
-	uint8_t clearColour = 1;
+	uint8_t clearColour = 0xf;
 	context.surface->FillRect(context, node->anchor.x + 1, node->anchor.y + 1, node->size.x - 2, node->size.y - 2, clearColour);
 	context.surface->HLine(context, node->anchor.x + 1, node->anchor.y, node->size.x - 2, buttonOutlineColour);
 	context.surface->HLine(context, node->anchor.x + 1, node->anchor.y + node->size.y - 1, node->size.x - 2, buttonOutlineColour);
