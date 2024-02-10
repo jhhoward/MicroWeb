@@ -107,6 +107,7 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 #ifdef _WIN32
 				page.DebugDumpNodeGraph(page.GetRootNode());
 #endif
+				context.surface->FillRect(context, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight, 0xf);
 				page.DebugDraw(context, page.GetRootNode());
 			}
 
@@ -728,3 +729,71 @@ bool AttributeParser::IsWhiteSpace(char c)
 	return c == ' ' || c == '\n' || c == '\t';
 }
 
+#define RGB332(red, green, blue) (((red) & 0xe0) | (((green) & 0xe0) >> 3) | (((blue) & 0xc0) >> 6))
+
+struct NamedColour
+{
+	const char* name;
+	uint8_t colour;
+};
+
+NamedColour namedColours[] =
+{
+	{ "black",	RGB332(0x00, 0x00, 0x00) },
+	{ "white",	RGB332(0xff, 0xff, 0xff) },
+	{ "gray",	RGB332(0x80, 0x80, 0x80) },
+	{ "silver", RGB332(0xc0, 0xc0, 0xc0) },
+	{ "red",	RGB332(0xff, 0x00, 0x00) },
+	{ "maroon", RGB332(0x80, 0x00, 0x00) },
+	{ "yellow", RGB332(0xff, 0xff, 0x00) },
+	{ "olive",	RGB332(0x80, 0x80, 0x00) },
+	{ "lime",	RGB332(0x00, 0xff, 0x00) },
+	{ "green",	RGB332(0x00, 0x80, 0x00) },
+	{ "aqua",	RGB332(0x00, 0xff, 0xff) },
+	{ "teal",	RGB332(0x00, 0x80, 0x80) },
+	{ "blue",	RGB332(0x00, 0x00, 0xff) },
+	{ "navy",	RGB332(0x00, 0x00, 0x80) },
+	{ "fuchsia",RGB332(0xff, 0x00, 0xff) },
+	{ "purple",	RGB332(0x80, 0x00, 0x80) },
+	{ "orange",	RGB332(0xff, 0xa5, 0x00) }
+};
+
+#define NUM_NAMED_COLOURS (sizeof(namedColours) / sizeof(NamedColour))
+
+uint8_t HTMLParser::ParseColourCode(const char* colourCode)
+{
+	if (!Platform::video->paletteLUT)
+	{
+		return 0;
+	}
+
+	if (colourCode[0] == '#')
+	{
+		uint8_t red = 0, green = 0, blue = 0;
+		int codeLength = strlen(colourCode + 1);
+		if (codeLength == 6 || codeLength == 8)
+		{
+			sscanf(colourCode, "#%02hhx%02hhx%02hhx", &red, &green, &blue);
+		}
+		else if (codeLength == 3 || codeLength == 4)
+		{
+			sscanf(colourCode, "#%1hhx%1hhx%1hhx", &red, &green, &blue);
+			red += red * 16;
+			green += green * 16;
+			blue += blue * 16;
+		}
+
+		return Platform::video->paletteLUT[RGB332(red, green, blue)];
+	}
+	else
+	{
+		for (int n = 0; n < NUM_NAMED_COLOURS; n++)
+		{
+			if (!stricmp(namedColours[n].name, colourCode))
+			{
+				return Platform::video->paletteLUT[namedColours[n].colour];
+			}
+		}
+	}
+	return 0;
+}

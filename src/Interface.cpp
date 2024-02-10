@@ -53,7 +53,7 @@ void AppInterface::Reset()
 	{
 		focusedNode = nullptr;
 	}
-	if (!hoverNode && !IsInterfaceNode(hoverNode))
+	if (hoverNode && !IsInterfaceNode(hoverNode))
 	{
 		hoverNode = nullptr;
 	}
@@ -117,6 +117,7 @@ void AppInterface::Update()
 			Platform::input->SetMouseCursor(MouseCursor::Pointer);
 		}
 
+		if(0)
 		{
 			// For debugging picking
 			Platform::input->HideMouse();
@@ -298,6 +299,7 @@ void AppInterface::GenerateInterfaceNodes()
 	rootInterfaceNode->style.alignment = ElementAlignment::Left;
 	rootInterfaceNode->style.fontSize = 1;
 	rootInterfaceNode->style.fontStyle = FontStyle::Regular;
+	rootInterfaceNode->style.fontColour = Platform::video->colourScheme.textColour;
 
 	Font* interfaceFont = Assets.GetFont(1, FontStyle::Regular);
 	Font* smallInterfaceFont = Assets.GetFont(0, FontStyle::Regular);

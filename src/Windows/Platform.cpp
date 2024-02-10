@@ -120,11 +120,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
 		break;
 
 	case WM_MOUSEWHEEL:
-		if (wParam < 0)
+		if ((int)wParam > 0)
 		{
 			winInputDriver.QueueKeyPress(VK_UP);
 		}
-		else if (wParam > 0)
+		else 
 		{
 			winInputDriver.QueueKeyPress(VK_DOWN);
 		}

@@ -23,6 +23,7 @@
 #include "Nodes/Text.h"
 #include "Nodes/Form.h"
 #include "Nodes/StyNode.h"
+#include "Draw/Surface.h"
 
 #define TOP_MARGIN_PADDING 1
 
@@ -47,6 +48,7 @@ void Page::Reset()
 	rootNode->style.alignment = ElementAlignment::Left;
 	rootNode->style.fontSize = 1;
 	rootNode->style.fontStyle = FontStyle::Regular;
+	rootNode->style.fontColour = Platform::video->colourScheme.textColour;
 
 	layout.Reset();
 }

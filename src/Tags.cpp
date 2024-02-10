@@ -104,25 +104,31 @@ const HTMLTagHandler* DetermineTag(const char* str)
 
 void HrTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	// TODO-refactor
-	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
+	int padding = Assets.GetFont(1, FontStyle::Bold)->glyphHeight;
+	parser.EmitNode(BreakNode::Construct(parser.page.allocator, padding, true));
 }
 
 void BrTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
+	int fontSize = parser.CurrentContext().node->style.fontSize;
+	int padding = Assets.GetFont(fontSize, FontStyle::Regular)->glyphHeight;
+	parser.EmitNode(BreakNode::Construct(parser.page.allocator, padding, false, true));
 }
 
 void HTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
-	parser.PushContext(StyleNode::ConstructFontStyle(parser.page.allocator, FontStyle::Bold, size >= 3 ? 1 : 2), this);
+	int fontSize = size >= 3 ? 1 : 2;
+	int padding = Assets.GetFont(fontSize, FontStyle::Bold)->glyphHeight / 2;
+	parser.EmitNode(BreakNode::Construct(parser.page.allocator, padding));
+	parser.PushContext(StyleNode::ConstructFontStyle(parser.page.allocator, FontStyle::Bold, fontSize), this);
 }
 
 void HTagHandler::Close(class HTMLParser& parser) const
 {
+	int fontSize = size >= 3 ? 1 : 2;
+	int padding = Assets.GetFont(fontSize, FontStyle::Bold)->glyphHeight / 2;
+	parser.EmitNode(BreakNode::Construct(parser.page.allocator, padding));
 	parser.PopContext(this);
-	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
 }
 
 void SizeTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
@@ -207,15 +213,57 @@ void AlignmentTagHandler::Open(class HTMLParser& parser, char* attributeStr) con
 void AlignmentTagHandler::Close(class HTMLParser& parser) const
 {
 	parser.PopContext(this);
+	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
 }
 
 void FontTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	// TODO-refactor
+	Node* styleNode = StyleNode::Construct(parser.page.allocator);
+	if (styleNode)
+	{
+		StyleNode::Data* data = static_cast<StyleNode::Data*>(styleNode->data);
+
+		AttributeParser attributes(attributeStr);
+		while (attributes.Parse())
+		{
+			if (!stricmp(attributes.Key(), "size"))
+			{
+				int fontSize = atoi(attributes.Value());
+
+				switch (fontSize)
+				{
+				case 1:
+				case 2:
+					data->styleOverride.SetFontSize(0);
+					break;
+				case 0:
+					// Probably invalid
+				case 3:
+				case 4:
+					data->styleOverride.SetFontSize(1);
+					break;
+				default:
+					// Anything bigger
+					data->styleOverride.SetFontSize(2);
+					break;
+				}
+			}
+			else if (!stricmp(attributes.Key(), "color"))
+			{
+				if (Platform::video->paletteLUT)
+				{
+					data->styleOverride.SetFontColour(HTMLParser::ParseColourCode(attributes.Value()));
+				}
+			}
+		}
+
+		parser.PushContext(styleNode, this);
+	}
 }
 
 void FontTagHandler::Close(class HTMLParser& parser) const
 {
+	parser.PopContext(this);
 }
 
 void ListTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
@@ -315,6 +363,8 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 
 void FormTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
+	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
+
 	Node* formNode = FormNode::Construct(parser.page.allocator);
 	parser.PushContext(formNode, this);
 
@@ -343,6 +393,7 @@ void FormTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 void FormTagHandler::Close(HTMLParser& parser) const
 {
 	parser.PopContext(this);
+	parser.EmitNode(BreakNode::Construct(parser.page.allocator));
 }
 
 void ImgTagHandler::Open(class HTMLParser& parser, char* attributeStr) const

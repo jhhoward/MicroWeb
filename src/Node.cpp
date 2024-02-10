@@ -71,6 +71,47 @@ void Node::OnChildLayoutChanged()
 
 void Node::EncapsulateChildren()
 {
+	Coord newAnchor, newSize;
+	newAnchor.Clear();
+	newSize.Clear();
+
+	for (Node* node = firstChild; node; node = node->next)
+	{
+		if (node->size.x == 0 || node->size.y == 0)
+			continue;
+
+		if (newSize.x == 0 || newSize.y == 0)
+		{
+			newAnchor = node->anchor;
+			newSize = node->size;
+			continue;
+		}
+
+		if (node->anchor.x < newAnchor.x)
+		{
+			newAnchor.x = node->anchor.x;
+		}
+		if (node->anchor.y < newAnchor.y)
+		{
+			newAnchor.y = node->anchor.y;
+		}
+		if (node->anchor.x + node->size.x > newAnchor.x + newSize.x)
+		{
+			newSize.x = node->anchor.x + node->size.x - newAnchor.x;
+		}
+		if (node->anchor.y + node->size.y > newAnchor.y + newSize.y)
+		{
+			newSize.y = node->anchor.y + node->size.y - newAnchor.y;
+		}
+	}
+
+	if (newSize.x != 0 && newSize.y != 0)
+	{
+		anchor = newAnchor;
+		size = newSize;
+	}
+
+	/*
 	if (firstChild)
 	{
 		anchor = firstChild->anchor;
@@ -96,6 +137,7 @@ void Node::EncapsulateChildren()
 			}
 		}
 	}
+	*/
 }
 
 bool Node::IsPointInsideNode(int x, int y)

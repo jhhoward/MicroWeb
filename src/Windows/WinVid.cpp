@@ -19,6 +19,8 @@
 #include "../Interface.h"
 #include "../DataPack.h"
 #include "../Draw/Surf1bpp.h"
+#include "../Draw/Surf8bpp.h"
+#include "../Palettes.inc"
 
 //#define SCREEN_WIDTH 800
 //#define SCREEN_HEIGHT 600
@@ -38,35 +40,93 @@ WindowsVideoDriver::WindowsVideoDriver()
 
 	Assets.Load("Default.dat");
 //	Assets.Load("EGA.dat");
-//	Assets.Load("Lowres.dat");
+	//Assets.Load("Lowres.dat");
 //	Assets.Load("CGA.dat");
 }
+
+const RGBQUAD monoPalette[] =
+{
+	{ 0, 0, 0, 0 },
+	{ 0xff, 0xff, 0xff, 0 }
+};
+
+const RGBQUAD cgaPalette[] =
+{
+	{ 0x00, 0x00, 0x00 }, // Entry 0 - Black
+	{ 0xAA, 0x00, 0x00 }, // Entry 1 - Blue
+	{ 0x00, 0xAA, 0x00 }, // Entry 2 - Green
+	{ 0xAA, 0xAA, 0x00 }, // Entry 3 - Cyan
+	{ 0x00, 0x00, 0xAA }, // Entry 4 - Red
+	{ 0xAA, 0x00, 0xAA }, // Entry 5 - Magenta
+	{ 0x00, 0x55, 0xAA }, // Entry 6 - Brown
+	{ 0xAA, 0xAA, 0xAA }, // Entry 7 - Light Gray
+	{ 0x55, 0x55, 0x55 }, // Entry 8 - Dark Gray
+	{ 0xFF, 0x55, 0x55 }, // Entry 9 - Light Blue
+	{ 0x55, 0xFF, 0x55 }, // Entry 10 - Light Green
+	{ 0xFF, 0xFF, 0x55 }, // Entry 11 - Light Cyan
+	{ 0x55, 0x55, 0xFF }, // Entry 12 - Light Red
+	{ 0xFF, 0x55, 0xFF }, // Entry 13 - Light Magenta
+	{ 0x55, 0xFF, 0xFF }, // Entry 14 - Yellow
+	{ 0xFF, 0xFF, 0xFF }, // Entry 15 - White
+};
 
 void WindowsVideoDriver::Init()
 {
 	HDC hDC = GetDC(hWnd);
 	HDC hDCMem = CreateCompatibleDC(hDC);
 
-	bitmapInfo = (BITMAPINFO*) malloc(sizeof(BITMAPINFO) + sizeof(RGBQUAD) * 2);
-	ZeroMemory(bitmapInfo, sizeof(BITMAPINFO));
+	bool useColour = true;
+	int paletteSize = useColour ? 256 : 2;
+
+	bitmapInfo = (BITMAPINFO*)malloc(sizeof(BITMAPINFO) + sizeof(RGBQUAD) * paletteSize);
+	ZeroMemory(bitmapInfo, sizeof(BITMAPINFO) + sizeof(RGBQUAD) * paletteSize);
 	bitmapInfo->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 	bitmapInfo->bmiHeader.biWidth = screenWidth;
 	bitmapInfo->bmiHeader.biHeight = screenHeight;
 	bitmapInfo->bmiHeader.biPlanes = 1;
 //	bitmapInfo->bmiHeader.biBitCount = 32;
-	bitmapInfo->bmiHeader.biBitCount = 1;
+	bitmapInfo->bmiHeader.biBitCount = useColour ? 8 : 1;
 	bitmapInfo->bmiHeader.biCompression = BI_RGB;
 	bitmapInfo->bmiHeader.biClrUsed = 0;
 
-	bitmapInfo->bmiColors[0].rgbRed = 0;
-	bitmapInfo->bmiColors[0].rgbGreen = 0;
-	bitmapInfo->bmiColors[0].rgbBlue = 0;
-	bitmapInfo->bmiColors[1].rgbRed = 0xff;
-	bitmapInfo->bmiColors[1].rgbGreen = 0xff;
-	bitmapInfo->bmiColors[1].rgbBlue = 0xff;
+	if (useColour)
+	{
+		memcpy(bitmapInfo->bmiColors, cgaPalette, sizeof(RGBQUAD) * 16);
+	}
+	else
+	{
+		memcpy(bitmapInfo->bmiColors, monoPalette, sizeof(RGBQUAD) * 2);
+	}
 
 	screenBitmap = CreateDIBSection(hDCMem, bitmapInfo, DIB_RGB_COLORS, (VOID**)&lpBitmapBits, NULL, 0);
 
+	if (useColour)
+	{
+		DrawSurface_8BPP* surface = new DrawSurface_8BPP(screenWidth, screenHeight);
+		uint8_t* buffer = (uint8_t*)(lpBitmapBits);
+
+		int pitch = screenWidth;
+
+		for (int y = 0; y < screenHeight; y++)
+		{
+			int bufferY = (screenHeight - 1 - y);
+			surface->lines[y] = &buffer[bufferY * pitch];
+		}
+		drawSurface = surface;
+
+		for (int n = 0; n < screenWidth * screenHeight; n++)
+		{
+			buffer[n] = 0xf;
+		}
+
+		colourScheme.pageColour = 0xf;
+		colourScheme.linkColour = 1;
+		colourScheme.textColour = 0;
+		colourScheme.buttonColour = 7;
+
+		paletteLUT = cgaPaletteLUT;
+	}
+	else
 	{
 		DrawSurface_1BPP* surface = new DrawSurface_1BPP(screenWidth, screenHeight);
 		uint8_t* buffer = (uint8_t*)(lpBitmapBits);
@@ -83,22 +143,18 @@ void WindowsVideoDriver::Init()
 			surface->lines[y] = &buffer[bufferY * pitch];
 		}
 		drawSurface = surface;
-	}
 
-	if (bitmapInfo->bmiHeader.biBitCount == 1)
-	{
-		uint8_t* ptr = (uint8_t*)(lpBitmapBits);
 		for (int n = 0; n < screenWidth * screenHeight / 8; n++)
 		{
-			ptr[n] = 0xff;
+			buffer[n] = 0xff;
 		}
-	}
-	else
-	{
-		for (int n = 0; n < screenWidth * screenHeight; n++)
-		{
-			lpBitmapBits[n] = backgroundColour;
-		}
+
+		colourScheme.pageColour = 1;
+		colourScheme.linkColour = 0;
+		colourScheme.textColour = 0;
+		colourScheme.buttonColour = 1;
+
+		paletteLUT = nullptr;
 	}
 }
 

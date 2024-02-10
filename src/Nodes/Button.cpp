@@ -14,8 +14,10 @@ void ButtonNode::Draw(DrawContext& context, Node* node)
 	if (data->buttonText)
 	{
 		Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
-		uint8_t textColour = 0;
-		uint8_t buttonOutlineColour = 0;
+		uint8_t textColour = Platform::video->colourScheme.textColour;
+		uint8_t buttonOutlineColour = Platform::video->colourScheme.textColour;
+		uint8_t buttonColour = Platform::video->colourScheme.buttonColour;
+		context.surface->FillRect(context, node->anchor.x + 1, node->anchor.y + 1, node->size.x - 2, node->size.y - 2, buttonColour);
 		context.surface->HLine(context, node->anchor.x + 1, node->anchor.y, node->size.x - 2, buttonOutlineColour);
 		context.surface->HLine(context, node->anchor.x + 1, node->anchor.y + node->size.y - 1, node->size.x - 2, buttonOutlineColour);
 		context.surface->HLine(context, node->anchor.x + 1, node->anchor.y + node->size.y - 2, node->size.x - 2, buttonOutlineColour);

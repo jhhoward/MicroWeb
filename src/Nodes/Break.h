@@ -9,12 +9,14 @@ public:
 	class Data
 	{
 	public:
-		Data(int inBreakPadding, bool inDisplayBreakLine) : breakPadding(inBreakPadding), displayBreakLine(inDisplayBreakLine) {}
+		Data(int inBreakPadding, bool inDisplayBreakLine, bool inOnlyPadEmptyLines) : breakPadding(inBreakPadding), displayBreakLine(inDisplayBreakLine), onlyPadEmptyLines(inOnlyPadEmptyLines) {}
 		int breakPadding;
 		bool displayBreakLine;
+		bool onlyPadEmptyLines;
 	};
 
-	static Node* Construct(Allocator& allocator, int breakPadding = 0, bool displayBreakLine = false);
+	static Node* Construct(Allocator& allocator, int breakPadding = 0, bool displayBreakLine = false, bool onlyPadEmptyLines = false);
+	virtual void Draw(DrawContext& context, Node* element) override;
 	virtual void GenerateLayout(Layout& layout, Node* node) override;
 };
 

@@ -24,6 +24,7 @@ struct StyleOverrideMask
 			bool fontSize : 1;
 			bool fontSizeDelta : 1;
 			bool alignment : 1;
+			bool fontColour : 1;
 		};
 		uint8_t mask;
 	};
@@ -39,6 +40,7 @@ struct ElementStyle
 	FontStyle::Type fontStyle : 4;
 	int fontSize : 4;
 	ElementAlignment::Type alignment : 2;
+	uint8_t fontColour;
 };
 
 struct ElementStyleOverride
@@ -75,6 +77,12 @@ struct ElementStyleOverride
 		styleSettings.alignment = alignment;
 	}
 
+	inline void SetFontColour(uint8_t colour)
+	{
+		overrideMask.fontColour = true;
+		styleSettings.fontColour = colour;
+	}
+
 	inline void Apply(ElementStyle& style)
 	{
 		if (overrideMask.fontStyle)
@@ -92,6 +100,10 @@ struct ElementStyleOverride
 		if (overrideMask.fontSizeDelta)
 		{
 			style.fontSize += styleSettings.fontSize;
+		}
+		if (overrideMask.fontColour)
+		{
+			style.fontColour = styleSettings.fontColour;
 		}
 	}
 };

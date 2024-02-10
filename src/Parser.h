@@ -83,6 +83,8 @@ public:
 	void PushPreFormatted();
 	void PopPreFormatted();
 
+	static uint8_t ParseColourCode(const char* colourCode);
+
 private:
 	void ParseChar(char c);
 

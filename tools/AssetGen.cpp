@@ -29,6 +29,9 @@ void EncodeFont(const char* basePath, const char* name, vector<uint8_t>& output,
 void EncodeCursor(const char* basePath, const char* name, vector<uint8_t>& output);
 void EncodeImage(const char* basePath, const char* name, vector<uint8_t>& output);
 
+void GeneratePaletteLUTs(const char* filename);
+
+
 void AddEntryHeader(const char* name, vector<DataPackEntry>& entries, vector<uint8_t>& data)
 {
 	DataPackEntry entry;
@@ -119,6 +122,8 @@ void GenerateAssetPacks()
 int main(int argc, char* argv)
 {
 	GenerateAssetPacks();
+
+	GeneratePaletteLUTs("src/Palettes.inc");
 #if 0
 	// CGA resources
 	{

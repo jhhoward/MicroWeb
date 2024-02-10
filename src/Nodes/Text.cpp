@@ -13,7 +13,7 @@ void TextElement::Draw(DrawContext& context, Node* node)
 	if (!node->firstChild && data->text)
 	{
 		Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
-		uint8_t textColour = 0;
+		uint8_t textColour = node->style.fontColour;
 		context.surface->DrawString(context, font, data->text, node->anchor.x, node->anchor.y, textColour, node->style.fontStyle);
 		//Platform::video->InvertRect(node->anchor.x, node->anchor.y + 50, node->size.x, node->size.y);
 		//printf("%s [%d, %d](%d %d)", data->text, node->anchor.x, node->anchor.y, node->style.fontStyle, node->style.fontSize);
@@ -140,7 +140,10 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 		}
 	}
 
-	node->EncapsulateChildren();
+	if (node->firstChild)
+	{
+		node->EncapsulateChildren();
+	}
 }
 
 Node* SubTextElement::Construct(Allocator& allocator, const char* text)

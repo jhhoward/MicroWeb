@@ -65,6 +65,12 @@ void Layout::BreakNewLine()
 
 void Layout::ProgressCursor(Node* nodeContext, int width, int lineHeight)
 {
+	// Horrible hack to add padding / spacing between nodes. FIXME
+	if (width)
+	{
+		width += 2;
+	}
+
 	if (!lineStartNode)
 	{
 		lineStartNode = nodeContext;
@@ -131,6 +137,11 @@ void Layout::OnNodeEmitted(Node* node)
 	}
 
 	node->Handler().GenerateLayout(*this, node);
+
+	if (node->parent)
+	{
+		node->parent->OnChildLayoutChanged();
+	}
 }
 
 void Layout::PadHorizontal(int left, int right)

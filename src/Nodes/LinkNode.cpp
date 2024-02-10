@@ -6,6 +6,7 @@
 void LinkNode::ApplyStyle(Node* node)
 {
 	node->style.fontStyle = (FontStyle::Type)(node->style.fontStyle | FontStyle::Underline);
+	node->style.fontColour = Platform::video->colourScheme.linkColour;
 }
 
 Node* LinkNode::Construct(Allocator& allocator, char* url)

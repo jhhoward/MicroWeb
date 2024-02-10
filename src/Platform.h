@@ -17,6 +17,7 @@
 
 #include <stdlib.h>
 #include "Font.h"
+#include "Theme.h"
 #include "Cursor.h"
 
 struct Image;
@@ -34,6 +35,8 @@ public:
 	int screenHeight;
 
 	DrawSurface* drawSurface;
+	ColourScheme colourScheme;
+	uint8_t* paletteLUT;
 };
 
 typedef uint8_t NetworkAddress[4];   // An IPv4 address is 4 bytes

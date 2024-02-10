@@ -24,6 +24,7 @@
 #include "../Interface.h"
 #include "../Draw/Surf1bpp.h"
 #include "../Draw/Surf4bpp.h"
+#include "../Palettes.inc"
 
 #define EGA_BASE_VRAM_ADDRESS (uint8_t*) MK_FP(0xA000, 0)
 #define BYTES_PER_LINE 80
@@ -39,6 +40,7 @@ void EGADriver::SetupVars(const char* inAssetPackToUse, int inScreenMode, int in
 	screenModeToUse = inScreenMode;
 	screenWidth = 640;
 	screenHeight = inScreenHeight;
+	paletteLUT = cgaPaletteLUT;
 }
 
 void EGADriver::Init()
@@ -62,6 +64,11 @@ void EGADriver::Init()
 		drawSurface4BPP->lines[y] = (EGA_BASE_VRAM_ADDRESS)+(BYTES_PER_LINE * y);
 	}
 	drawSurface = drawSurface4BPP;
+
+	colourScheme.pageColour = 0xf;
+	colourScheme.linkColour = 1;
+	colourScheme.textColour = 0;
+	colourScheme.buttonColour = 7;
 }
 
 void EGADriver::Shutdown()

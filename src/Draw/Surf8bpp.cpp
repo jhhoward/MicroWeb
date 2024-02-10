@@ -1,15 +1,15 @@
 #include <memory.h>
-#include "Surf1bpp.h"
+#include "Surf8bpp.h"
 #include "../Font.h"
 #include "../Image.h"
 
-DrawSurface_1BPP::DrawSurface_1BPP(int inWidth, int inHeight)
+DrawSurface_8BPP::DrawSurface_8BPP(int inWidth, int inHeight)
 	: DrawSurface(inWidth, inHeight)
 {
 	lines = new uint8_t * [height];
 }
 
-void DrawSurface_1BPP::HLine(DrawContext& context, int x, int y, int count, uint8_t colour)
+void DrawSurface_8BPP::HLine(DrawContext& context, int x, int y, int count, uint8_t colour)
 {
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
@@ -33,61 +33,15 @@ void DrawSurface_1BPP::HLine(DrawContext& context, int x, int y, int count, uint
 	}
 
 	uint8_t* VRAMptr = lines[y];
-	VRAMptr += (x >> 3);
+	VRAMptr += x;
 
-	uint8_t data = *VRAMptr;
-
-	if (colour)
+	while (count--)
 	{
-		uint8_t mask = (0x80 >> (x & 7));
-
-		while (count--)
-		{
-			data |= mask;
-			x++;
-			mask = (mask >> 1) | 0x80;
-			if ((x & 7) == 0)
-			{
-				*VRAMptr++ = data;
-				while (count > 8)
-				{
-					*VRAMptr++ = 0xff;
-					count -= 8;
-				}
-				mask = 0x80;
-				data = *VRAMptr;
-			}
-		}
-
-		*VRAMptr = data;
-	}
-	else
-	{
-		uint8_t mask = ~(0x80 >> (x & 7));
-
-		while (count--)
-		{
-			data &= mask;
-			x++;
-			mask = (mask >> 1) | 0x80;
-			if ((x & 7) == 0)
-			{
-				*VRAMptr++ = data;
-				while (count > 8)
-				{
-					*VRAMptr++ = 0;
-					count -= 8;
-				}
-				mask = ~0x80;
-				data = *VRAMptr;
-			}
-		}
-
-		*VRAMptr = data;
+		*VRAMptr++ = colour;
 	}
 }
 
-void DrawSurface_1BPP::VLine(DrawContext& context, int x, int y, int count, uint8_t colour)
+void DrawSurface_8BPP::VLine(DrawContext& context, int x, int y, int count, uint8_t colour)
 {
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
@@ -114,29 +68,14 @@ void DrawSurface_1BPP::VLine(DrawContext& context, int x, int y, int count, uint
 		return;
 	}
 
-	uint8_t mask = (0x80 >> (x & 7));
-	int index = x >> 3;
-
-	if (colour)
+	while (count--)
 	{
-		while (count--)
-		{
-			(lines[y])[index] |= mask;
-			y++;
-		}
-	}
-	else
-	{
-		mask ^= 0xff;
-		while (count--)
-		{
-			(lines[y])[index] &= mask;
-			y++;
-		}
+		(lines[y])[x] = colour;
+		y++;
 	}
 }
 
-void DrawSurface_1BPP::FillRect(DrawContext& context, int x, int y, int width, int height, uint8_t colour)
+void DrawSurface_8BPP::FillRect(DrawContext& context, int x, int y, int width, int height, uint8_t colour)
 {
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
@@ -167,58 +106,12 @@ void DrawSurface_1BPP::FillRect(DrawContext& context, int x, int y, int width, i
 	while (height)
 	{
 		uint8_t* VRAMptr = lines[y];
-		VRAMptr += (x >> 3);
+		VRAMptr += x;
 		int count = width;
-		int workX = x;
-		uint8_t data = *VRAMptr;
 
-		if (colour)
+		while (count--)
 		{
-			uint8_t mask = (0x80 >> (x & 7));
-
-			while (count--)
-			{
-				data |= mask;
-				workX++;
-				mask = (mask >> 1) | 0x80;
-				if ((workX & 7) == 0)
-				{
-					*VRAMptr++ = data;
-					while (count > 8)
-					{
-						*VRAMptr++ = 0xff;
-						count -= 8;
-					}
-					mask = 0x80;
-					data = *VRAMptr;
-				}
-			}
-
-			*VRAMptr = data;
-		}
-		else
-		{
-			uint8_t mask = ~(0x80 >> (x & 7));
-
-			while (count--)
-			{
-				data &= mask;
-				workX++;
-				mask = (mask >> 1) | 0x80;
-				if ((workX & 7) == 0)
-				{
-					*VRAMptr++ = data;
-					while (count > 8)
-					{
-						*VRAMptr++ = 0;
-						count -= 8;
-					}
-					mask = ~0x80;
-					data = *VRAMptr;
-				}
-			}
-
-			*VRAMptr = data;
+			*VRAMptr++ = colour;
 		}
 
 		height--;
@@ -226,7 +119,7 @@ void DrawSurface_1BPP::FillRect(DrawContext& context, int x, int y, int width, i
 	}
 }
 
-void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* text, int x, int y, uint8_t colour, FontStyle::Type style)
+void DrawSurface_8BPP::DrawString(DrawContext& context, Font* font, const char* text, int x, int y, uint8_t colour, FontStyle::Type style)
 {
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
@@ -285,53 +178,31 @@ void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* 
 		glyphData += (firstLine * font->glyphWidthBytes);
 
 		int outY = y;
-		uint8_t* VRAMptr = lines[y] + (x >> 3);
+		uint8_t* VRAMptr = lines[y] + x;
 
-		if (!colour)
+		for (uint8_t j = firstLine; j < glyphHeight; j++)
 		{
-			for (uint8_t j = firstLine; j < glyphHeight; j++)
+			if ((style & FontStyle::Italic) && j < (font->glyphHeight >> 1))
 			{
-				uint8_t writeOffset = (uint8_t)(x) & 0x7;
-
-				if ((style & FontStyle::Italic) && j < (font->glyphHeight >> 1))
-				{
-					writeOffset++;
-				}
-
-				for (uint8_t i = 0; i < font->glyphWidthBytes; i++)
-				{
-					uint8_t glyphPixels = *glyphData++;
-
-					VRAMptr[i] &= ~(glyphPixels >> writeOffset);
-					VRAMptr[i + 1] &= ~(glyphPixels << (8 - writeOffset));
-				}
-
-				outY++;
-				VRAMptr = lines[outY] + (x >> 3);
+				VRAMptr++;
 			}
-		}
-		else
-		{
-			for (uint8_t j = firstLine; j < glyphHeight; j++)
+
+			for (uint8_t i = 0; i < font->glyphWidthBytes; i++)
 			{
-				uint8_t writeOffset = (uint8_t)(x) & 0x7;
+				uint8_t glyphPixels = *glyphData++;
 
-				if ((style & FontStyle::Italic) && j < (font->glyphHeight >> 1))
+				for (uint8_t k = 0; k < 8; k++)
 				{
-					writeOffset++;
+					if (glyphPixels & (0x80 >> k))
+					{
+						*VRAMptr = colour;
+					}
+					VRAMptr++;
 				}
-
-				for (uint8_t i = 0; i < font->glyphWidthBytes; i++)
-				{
-					uint8_t glyphPixels = *glyphData++;
-
-					VRAMptr[i] |= (glyphPixels >> writeOffset);
-					VRAMptr[i + 1] |= (glyphPixels << (8 - writeOffset));
-				}
-
-				outY++;
-				VRAMptr = lines[outY] + (x >> 3);
 			}
+
+			outY++;
+			VRAMptr = lines[outY] + x;
 		}
 
 		x += glyphWidth;
@@ -349,8 +220,9 @@ void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* 
 
 }
 
-void DrawSurface_1BPP::BlitImage(DrawContext& context, Image* image, int x, int y)
+void DrawSurface_8BPP::BlitImage(DrawContext& context, Image* image, int x, int y)
 {
+#if 0
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
 
@@ -431,10 +303,11 @@ void DrawSurface_1BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 			destRow[destByteWidth - 1] = (destRow[destByteWidth - 1] & ~mask) | (srcRow[destByteWidth] & mask);
 		}
 	}
+#endif
 }
 
 
-void DrawSurface_1BPP::InvertRect(DrawContext& context, int x, int y, int width, int height)
+void DrawSurface_8BPP::InvertRect(DrawContext& context, int x, int y, int width, int height)
 {
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
@@ -465,40 +338,22 @@ void DrawSurface_1BPP::InvertRect(DrawContext& context, int x, int y, int width,
 	while (height)
 	{
 		uint8_t* VRAMptr = lines[y];
-		VRAMptr += (x >> 3);
+		VRAMptr += x;
 		int count = width;
-		int workX = x;
-		uint8_t data = *VRAMptr;
-		uint8_t mask = (0x80 >> (x & 7));
 
 		while (count--)
 		{
-			data ^= mask;
-			workX++;
-			//mask = (mask >> 1) | 0x80;
-			mask >>= 1;
-			if ((workX & 7) == 0)
-			{
-				*VRAMptr++ = data;
-				while (count > 8)
-				{
-					*VRAMptr++ ^= 0xff;
-					count -= 8;
-				}
-				mask = 0x80;
-				data = *VRAMptr;
-			}
+			*VRAMptr++ ^= 0xf;
 		}
-
-		*VRAMptr = data;
 
 		height--;
 		y++;
 	}
 }
 
-void DrawSurface_1BPP::VerticalScrollBar(DrawContext& context, int x, int y, int height, int position, int size)
+void DrawSurface_8BPP::VerticalScrollBar(DrawContext& context, int x, int y, int height, int position, int size)
 {
+#if 0
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
 	int startY = y;
@@ -550,13 +405,14 @@ void DrawSurface_1BPP::VerticalScrollBar(DrawContext& context, int x, int y, int
 	{
 		*(uint16_t*)(&lines[y++][x]) = inner;
 	}
+#endif
 }
 
-void DrawSurface_1BPP::Clear()
+void DrawSurface_8BPP::Clear()
 {
-	int widthBytes = width >> 3;
+	int widthBytes = width;
 	for (int y = 0; y < height; y++)
 	{
-		memset(lines[y], 0xff, widthBytes);
+		memset(lines[y], 0xf, widthBytes);
 	}
 }
