@@ -17,7 +17,7 @@
 
 #include <stdlib.h>
 #include "Font.h"
-#include "Theme.h"
+#include "Colour.h"
 #include "Cursor.h"
 
 struct Image;

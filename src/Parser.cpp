@@ -109,6 +109,8 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 #endif
 				context.surface->FillRect(context, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight, 0xf);
 				page.DebugDraw(context, page.GetRootNode());
+
+				page.GetApp().StopLoad();
 			}
 
 			// We may have exited a section so update
@@ -188,7 +190,7 @@ void HTMLParser::EmitNode(Node* node)
 
 void HTMLParser::EmitImage(Image* image, int imageWidth, int imageHeight)
 {
-	Node* node = ImageNode::Construct(page.allocator, image);
+	Node* node = ImageNode::Construct(page.allocator);
 	if (node)
 	{
 		node->size.x = imageWidth;
@@ -728,14 +730,6 @@ bool AttributeParser::IsWhiteSpace(char c)
 {
 	return c == ' ' || c == '\n' || c == '\t';
 }
-
-#define RGB332(red, green, blue) (((red) & 0xe0) | (((green) & 0xe0) >> 3) | (((blue) & 0xc0) >> 6))
-
-struct NamedColour
-{
-	const char* name;
-	uint8_t colour;
-};
 
 NamedColour namedColours[] =
 {

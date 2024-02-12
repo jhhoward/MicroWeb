@@ -1,6 +1,8 @@
 #include "Layout.h"
 #include "Page.h"
 #include "Platform.h"
+#include "App.h"
+#include "Render.h"
 
 Layout::Layout(Page& inPage)
 	: page(inPage)
@@ -12,6 +14,7 @@ void Layout::Reset()
 	cursor.Clear();
 	paramStackSize = 0;
 	currentLineHeight = 0;
+	lineStartNode = nullptr;
 
 	LayoutParams& params = GetParams();
 	params.marginLeft = 0;
@@ -168,4 +171,43 @@ void Layout::PadVertical(int down)
 	cursor.x = GetParams().marginLeft;
 	cursor.y += down;
 
+}
+
+void Layout::RecalculateLayout()
+{
+	Reset();
+
+	Node* node = page.GetRootNode();
+	bool checkChildren = true;
+
+	while (node)
+	{
+		if (checkChildren && node->firstChild)
+		{
+			node = node->firstChild;
+		}
+		else if (node->next)
+		{
+			node = node->next;
+			checkChildren = true;
+		}
+		else
+		{
+			node = node->parent;
+			checkChildren = false;
+			continue;
+		}
+
+		if (node)
+		{
+			node->Handler().GenerateLayout(*this, node);
+		}
+	}
+
+	// FIXME
+	page.GetApp().ui.ScrollRelative(0);
+
+#ifdef _WIN32
+	page.DebugDumpNodeGraph(page.GetRootNode());
+#endif
 }

@@ -27,7 +27,7 @@ bool DataPack::Load(const char* path)
 	linkCursor = (MouseCursorData*)LoadAsset(fs, header, "CLINK");
 	textSelectCursor = (MouseCursorData*)LoadAsset(fs, header, "CTEXT");
 
-	imageIcon = (Image*)LoadAsset(fs, header, "IIMG");
+	imageIcon = LoadImageAsset(fs, header, "IIMG");
 
 	fonts[0] = (Font*)LoadAsset(fs, header, "FHELV1");
 	fonts[1] = (Font*)LoadAsset(fs, header, "FHELV2");
@@ -101,6 +101,19 @@ MouseCursorData* DataPack::GetMouseCursorData(MouseCursor::Type type)
 		return textSelectCursor;
 	}
 	return NULL;
+}
+
+Image* DataPack::LoadImageAsset(FILE* fs, DataPackHeader& header, const char* entryName)
+{
+	void* asset = LoadAsset(fs, header, entryName);
+	if (asset)
+	{
+		Image* image = new Image();
+		memcpy(image, asset, sizeof(ImageMetadata));
+		image->data = ((uint8_t*) asset) + sizeof(ImageMetadata);
+		return image;
+	}
+	return nullptr;
 }
 
 void* DataPack::LoadAsset(FILE* fs, DataPackHeader& header, const char* entryName, void* buffer)

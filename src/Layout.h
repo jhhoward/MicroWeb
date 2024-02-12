@@ -33,6 +33,8 @@ public:
 	void OnNodeEmitted(Node* node);
 	void ProgressCursor(Node* nodeContext, int width, int lineHeight);
 
+	void RecalculateLayout();
+
 	Coord GetCursor(int lineHeight = 0) 
 	{ 
 		Coord result = cursor;

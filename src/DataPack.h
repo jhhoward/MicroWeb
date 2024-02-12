@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "Cursor.h"
-#include "Image.h"
+#include "Image/Image.h"
 #include "Font.h"
 
 /*
@@ -68,6 +68,7 @@ struct DataPack
 
 private:
 	void* LoadAsset(FILE* fs, DataPackHeader& header, const char* entryName, void* buffer = NULL);
+	Image* LoadImageAsset(FILE* fs, DataPackHeader& header, const char* entryName);
 	int FontSizeToIndex(int fontSize);
 };
 

@@ -1,7 +1,7 @@
 #include <memory.h>
 #include "Surf8bpp.h"
 #include "../Font.h"
-#include "../Image.h"
+#include "../Image/Image.h"
 
 DrawSurface_8BPP::DrawSurface_8BPP(int inWidth, int inHeight)
 	: DrawSurface(inWidth, inHeight)
@@ -222,6 +222,72 @@ void DrawSurface_8BPP::DrawString(DrawContext& context, Font* font, const char* 
 
 void DrawSurface_8BPP::BlitImage(DrawContext& context, Image* image, int x, int y)
 {
+	if (!image->data)
+		return;
+
+	x += context.drawOffsetX;
+	y += context.drawOffsetY;
+
+	int srcWidth = image->width;
+	int srcHeight = image->height;
+	int srcPitch = image->pitch;
+	uint8_t* srcData = image->data;
+
+	// Calculate the destination width and height to copy, considering clipping region
+	int destWidth = srcWidth;
+	int destHeight = srcHeight;
+
+	if (x < context.clipLeft)
+	{
+		if (image->bpp == 1)
+		{
+			srcData += ((context.clipLeft - x) >> 3);
+		}
+		else
+		{
+			srcData += (context.clipLeft - x);
+		}
+		destWidth -= (context.clipLeft - x);
+		x = context.clipLeft;
+	}
+
+	if (x + destWidth > context.clipRight)
+	{
+		destWidth = context.clipRight - x;
+	}
+
+	if (y < context.clipTop)
+	{
+		srcData += (context.clipTop - y) * srcPitch;
+		destHeight -= (context.clipTop - y);
+		y = context.clipTop;
+	}
+
+	if (y + destHeight > context.clipBottom)
+	{
+		destHeight = context.clipBottom - y;
+	}
+
+	if (destWidth <= 0 || destHeight <= 0)
+	{
+		return; // Nothing to draw if fully outside the clipping region.
+	}
+
+	if (image->bpp == 8)
+	{
+		// Blit the image data line by line
+		for (int j = 0; j < destHeight; j++)
+		{
+			uint8_t* srcRow = srcData + (j * srcPitch);
+			uint8_t* destRow = lines[y + j] + x;
+
+			for (int i = 0; i < destWidth; i++)
+			{
+				*destRow++ = *srcRow++;
+			}
+		}
+	}
+
 #if 0
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;

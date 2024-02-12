@@ -111,9 +111,12 @@ void EncodeImage(const char* basePath, const char* imageFilename, vector<uint8_t
 		return;
 	}
 
+	uint8_t bpp = 1;
+
 	WriteOutput(outputData, (uint16_t) width);
 	WriteOutput(outputData, (uint16_t)height);
 	WriteOutput(outputData, (uint16_t)(width + 7) / 8);		// pitch
+	WriteOutput(outputData, bpp);
 
 	for (unsigned y = 0; y < height; y++)
 	{

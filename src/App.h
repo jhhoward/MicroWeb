@@ -86,6 +86,7 @@ private:
 
 	bool requestedNewPage;
 	LoadTask loadTask;
+	Node* loadTaskTargetNode;
 	bool running;
 
 	URL pageHistory[MAX_PAGE_URL_HISTORY];

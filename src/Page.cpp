@@ -18,7 +18,7 @@
 #include "Platform.h"
 #include "Page.h"
 #include "App.h"
-#include "Image.h"
+#include "Image/Image.h"
 #include "Nodes/Section.h"
 #include "Nodes/Text.h"
 #include "Nodes/Form.h"
@@ -171,4 +171,35 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 int Page::GetPageWidth()
 {
 	return app.ui.windowRect.width;
+}
+
+Node* Page::ProcessNextLoadTask(Node* lastNode, LoadTask& loadTask)
+{
+	Node* node = lastNode;
+	bool checkChildren = true;
+
+	while (node)
+	{
+		if (checkChildren && node->firstChild)
+		{
+			node = node->firstChild;
+		}
+		else if (node->next)
+		{
+			node = node->next;
+			checkChildren = true;
+		}
+		else 
+		{
+			node = node->parent;
+			checkChildren = false;
+		}
+
+		if (node && node->type == Node::Image)
+		{
+			node->Handler().LoadContent(node, loadTask);
+			return node;
+		}
+	}
+	return nullptr;
 }

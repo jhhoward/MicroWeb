@@ -49,6 +49,8 @@ public:
 
 	App& GetApp() { return app; }
 
+	Node* ProcessNextLoadTask(Node* lastNode, struct LoadTask& loadTask);
+
 private:
 	friend class AppInterface;
 

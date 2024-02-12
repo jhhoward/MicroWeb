@@ -84,6 +84,8 @@ private:
 	char lineBuffer[LINE_BUFFER_SIZE];
 	int lineBufferSize;
 	int lineBufferSendPos;
+
+	long contentRemaining;
 };
 
 

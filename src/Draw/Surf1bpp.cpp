@@ -1,7 +1,7 @@
 #include <memory.h>
 #include "Surf1bpp.h"
 #include "../Font.h"
-#include "../Image.h"
+#include "../Image/Image.h"
 
 DrawSurface_1BPP::DrawSurface_1BPP(int inWidth, int inHeight)
 	: DrawSurface(inWidth, inHeight)

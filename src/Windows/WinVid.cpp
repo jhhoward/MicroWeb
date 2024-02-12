@@ -15,7 +15,7 @@
 #include <stdio.h>
 #include <windows.h>
 #include "WinVid.h"
-#include "../Image.h"
+#include "../Image/Image.h"
 #include "../Interface.h"
 #include "../DataPack.h"
 #include "../Draw/Surf1bpp.h"

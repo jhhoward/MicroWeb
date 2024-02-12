@@ -1,6 +1,8 @@
-#pragma once
+#ifndef _IMGNODE_H_
+#define _IMGNODE_H_
 
 #include "../Node.h"
+#include "../Image/Image.h"
 
 class ImageNode: public NodeHandler
 {
@@ -8,11 +10,18 @@ public:
 	class Data
 	{
 	public:
-		Data(void* inImageData) : imageData(inImageData) {}
-		void* imageData;
+		Data() : source(nullptr) {}
+		Image image;
+		const char* source;
 	};
 
-	static Node* Construct(Allocator& allocator, void* imageData);
+	static Node* Construct(Allocator& allocator);
 	virtual void Draw(DrawContext& context, Node* element) override;
 	virtual void GenerateLayout(Layout& layout, Node* node) override;
+
+	virtual void LoadContent(Node* node, struct LoadTask& loadTask) override;
+	virtual bool ParseContent(Node* node, char* buffer, size_t count) override;
+
 };
+
+#endif

@@ -24,6 +24,9 @@ public:
 	virtual Node* Pick(Node* node, int x, int y);
 	virtual bool CanPick(Node* node) { return false; }
 	virtual bool HandleEvent(Node* node, const Event& event) { return false; }
+
+	virtual void LoadContent(Node* node, struct LoadTask& loadTask) {}
+	virtual bool ParseContent(Node* node, char* buffer, size_t count) { return false; }
 };
 
 struct Coord

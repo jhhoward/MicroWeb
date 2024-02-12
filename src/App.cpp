@@ -71,6 +71,7 @@ void App::Run(int argc, char* argv[])
 				requestedNewPage = false;
 				page.pageURL = loadTask.GetURL();
 				ui.UpdateAddressBar(page.pageURL);
+				loadTaskTargetNode = page.GetRootNode();
 			}
 
 			static char buffer[256];
@@ -78,7 +79,18 @@ void App::Run(int argc, char* argv[])
 			size_t bytesRead = loadTask.GetContent(buffer, 256);
 			if (bytesRead)
 			{
-				parser.Parse(buffer, bytesRead);
+				if (loadTaskTargetNode == page.GetRootNode())
+				{
+					parser.Parse(buffer, bytesRead);
+				}
+				else if(loadTaskTargetNode)
+				{
+					bool stillProcessing = loadTaskTargetNode->Handler().ParseContent(loadTaskTargetNode, buffer, bytesRead);
+					if (!stillProcessing)
+					{
+						loadTask.Stop();
+					}
+				}
 			}
 		}
 		else
@@ -103,6 +115,18 @@ void App::Run(int argc, char* argv[])
 						requestedNewPage = false;
 					}
 				}				
+			}
+			else
+			{
+				bool isStillConnecting = loadTask.type == LoadTask::RemoteFile && loadTask.request && loadTask.request->GetStatus() == HTTPRequest::Connecting;
+				
+				if(!isStillConnecting)
+				{
+					if (loadTaskTargetNode)
+					{
+						loadTaskTargetNode = page.ProcessNextLoadTask(loadTaskTargetNode, loadTask);
+					}
+				}
 			}
 		}
 		if (loadTask.type == LoadTask::RemoteFile && loadTask.request && loadTask.request->GetStatus() == HTTPRequest::Connecting)
@@ -210,16 +234,29 @@ size_t LoadTask::GetContent(char* buffer, size_t count)
 {
 	if (type == LoadTask::LocalFile)
 	{
-		if (fs && !feof(fs))
+		if (fs)
 		{
-			return fread(buffer, 1, count, fs);
+			if (!feof(fs))
+			{
+				return fread(buffer, 1, count, fs);
+			}
+			fclose(fs);
 		}
 	}
 	else if (type == LoadTask::RemoteFile)
 	{
-		if (request && request->GetStatus() == HTTPRequest::Downloading)
-		{
-			return request->ReadData(buffer, count);
+		if (request)
+		{ 
+			switch (request->GetStatus())
+			{
+			case HTTPRequest::Downloading:
+				return request->ReadData(buffer, count);
+			case HTTPRequest::Error:
+			case HTTPRequest::Finished:
+			case HTTPRequest::Stopped:
+				Stop();
+				break;
+			}
 		}
 	}
 	return 0;
@@ -230,6 +267,7 @@ void App::RequestNewPage(const char* url)
 	StopLoad();
 	loadTask.Load(url);
 	requestedNewPage = true;
+	loadTaskTargetNode = nullptr;
 	//ui.UpdateAddressBar(loadTask.url);
 }
 

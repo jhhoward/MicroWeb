@@ -144,6 +144,7 @@
     <ClCompile Include="..\..\src\Draw\Surf1bpp.cpp" />
     <ClCompile Include="..\..\src\Draw\Surf8bpp.cpp" />
     <ClCompile Include="..\..\src\HTTP.cpp" />
+    <ClCompile Include="..\..\src\Image\Gif.cpp" />
     <ClCompile Include="..\..\src\Layout.cpp" />
     <ClCompile Include="..\..\src\Node.cpp" />
     <ClCompile Include="..\..\src\Nodes\Block.cpp" />
@@ -172,12 +173,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\App.h" />
+    <ClInclude Include="..\..\src\Colour.h" />
     <ClInclude Include="..\..\src\Cursor.h" />
     <ClInclude Include="..\..\src\Defines.h" />
     <ClInclude Include="..\..\src\Draw\Surf1bpp.h" />
     <ClInclude Include="..\..\src\Draw\Surf8bpp.h" />
     <ClInclude Include="..\..\src\Draw\Surface.h" />
     <ClInclude Include="..\..\src\HTTP.h" />
+    <ClInclude Include="..\..\src\Image\Decoder.h" />
+    <ClInclude Include="..\..\src\Image\Gif.h" />
+    <ClInclude Include="..\..\src\Image\Image.h" />
     <ClInclude Include="..\..\src\Layout.h" />
     <ClInclude Include="..\..\src\Node.h" />
     <ClInclude Include="..\..\src\Nodes\Block.h" />

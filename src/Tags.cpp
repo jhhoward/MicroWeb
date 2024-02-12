@@ -19,7 +19,7 @@
 #include "Parser.h"
 #include "Page.h"
 #include "Platform.h"
-#include "Image.h"
+#include "Image/Image.h"
 #include "DataPack.h"
 
 #include "Nodes/Section.h"
@@ -401,7 +401,8 @@ void ImgTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 	AttributeParser attributes(attributeStr);
 	int width = -1;
 	int height = -1;
-	char* altText = NULL;
+	char* altText = nullptr;
+	char* src = nullptr;
 
 	while (attributes.Parse())
 	{
@@ -409,11 +410,15 @@ void ImgTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 		{
 			altText = (char*) attributes.Value();
 		}
-		if (!stricmp(attributes.Key(), "width"))
+		else if (!stricmp(attributes.Key(), "src"))
+		{
+			src = (char*)attributes.Value();
+		}
+		else if (!stricmp(attributes.Key(), "width"))
 		{
 			width = atoi(attributes.Value());
 		}
-		if (!stricmp(attributes.Key(), "height"))
+		else if (!stricmp(attributes.Key(), "height"))
 		{
 			height = atoi(attributes.Value());
 		}
@@ -434,6 +439,35 @@ void ImgTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 		}
 	}
 
+	Node* imageNode = ImageNode::Construct(parser.page.allocator);
+	if (imageNode)
+	{
+		ImageNode::Data* data = static_cast<ImageNode::Data*>(imageNode->data);
+		if (data)
+		{
+			if (src)
+			{
+				data->source = parser.page.allocator.AllocString(src);
+			}
+
+			if (width != -1 && height != -1)
+			{
+				Platform::video->ScaleImageDimensions(width, height);
+				imageNode->size.x = width;
+				imageNode->size.y = height;
+			}
+			else
+			{
+				imageNode->size.x = 16;
+				imageNode->size.y = 16;
+
+			}
+
+			parser.EmitNode(imageNode);
+		}
+	}
+
+	/*
 	if (width == -1 && height == -1)
 	{
 		Image* imageIcon = Assets.imageIcon;
@@ -452,6 +486,7 @@ void ImgTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 		Platform::video->ScaleImageDimensions(width, height);
 		parser.EmitImage(NULL, width, height);
 	}
+	*/
 }
 
 void MetaTagHandler::Open(class HTMLParser& parser, char* attributeStr) const

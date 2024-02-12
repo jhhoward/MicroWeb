@@ -152,7 +152,17 @@ size_t HTTPRequest::ReadData(char* buffer, size_t count)
 		}
 		else
 		{
-			return (size_t)(rc);
+			size_t bytesRead = (size_t)(rc);
+			if (contentRemaining > 0)
+			{
+				contentRemaining -= bytesRead;
+				if (contentRemaining <= 0)
+				{
+					Stop();
+				}
+			}
+
+			return bytesRead;
 		}
 	}
 	return 0;
@@ -250,7 +260,7 @@ void HTTPRequest::Update()
 		break;
 		case SendHeaders:
 		{
-			WriteLine("GET %s HTTP/1.0", path);
+			WriteLine("GET %s HTTP/1.1", path);
 			WriteLine("User-Agent: MicroWeb " __DATE__);
 			WriteLine("Host: %s", hostname);
 			WriteLine("Connection: close");
@@ -285,6 +295,8 @@ void HTTPRequest::Update()
 				//printf("Response code: %d", responseCode);
 				//getchar();
 				internalStatus = ReceiveHeaderContent;
+
+				contentRemaining = -1;
 			}
 		}
 		break;
@@ -311,8 +323,12 @@ void HTTPRequest::Update()
 						break;
 					}
 				}
+				if (!strncmp(lineBuffer, "Content-Length:", 15))
+				{
+					contentRemaining = atoi(lineBuffer + 15);
+				}
 
-				//printf("Header: %s  -- ", lineBuffer);
+				printf("Header: %s  -- \n", lineBuffer);
 				//getchar();
 			}
 		}
