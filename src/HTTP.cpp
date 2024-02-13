@@ -328,7 +328,7 @@ void HTTPRequest::Update()
 					contentRemaining = atoi(lineBuffer + 15);
 				}
 
-				printf("Header: %s  -- \n", lineBuffer);
+				//printf("Header: %s  -- \n", lineBuffer);
 				//getchar();
 			}
 		}

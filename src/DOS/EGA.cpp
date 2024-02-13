@@ -18,7 +18,7 @@
 #include <conio.h>
 #include <memory.h>
 #include <stdint.h>
-#include "../Image.h"
+#include "../Image/Image.h"
 #include "EGA.h"
 #include "../DataPack.h"
 #include "../Interface.h"

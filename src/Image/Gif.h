@@ -8,6 +8,8 @@
 #define GIF_MAX_LZW_CODE_LENGTH 12
 #define GIF_MAX_DICTIONARY_ENTRIES (1 << (GIF_MAX_LZW_CODE_LENGTH + 1))
 
+#define GIF_INTERLACE_BIT 0x40
+
 class GifDecoder : public ImageDecoder
 {
 public:
@@ -26,8 +28,12 @@ private:
 		dataLength--;
 		return result;
 	}
+	bool SkipBytes(uint8_t** data, size_t& dataLength, size_t size);
+
 	void ClearDictionary();
 	void OutputPixel(uint8_t pixelValue);
+	int CalculateLineIndex(int y);
+
 
 	enum InternalState
 	{
@@ -121,6 +127,7 @@ private:
 			int codeBit;
 			
 			int drawX, drawY;
+			int writePosition;
 		};
 		struct
 		{

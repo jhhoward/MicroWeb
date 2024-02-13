@@ -5,7 +5,7 @@
 #include "../Layout.h"
 #include "../Draw/Surface.h"
 #include "../App.h"
-#include "../Image/Decoders.h"
+#include "../Image/Decoder.h"
 
 void ImageNode::Draw(DrawContext& context, Node* node)
 {
@@ -57,23 +57,26 @@ void ImageNode::LoadContent(Node* node, LoadTask& loadTask)
 	if (data && data->source)
 	{
 		loadTask.Load(URL::GenerateFromRelative(App::Get().page.pageURL.url, data->source).url);
-		ImageDecoders.Create<GifDecoder>(App::Get().page.allocator);
-		ImageDecoders.Get()->Begin(&data->image);
+		ImageDecoder::Create(ImageDecoder::Gif, App::Get().page.allocator);
+		ImageDecoder::Get()->Begin(&data->image);
 	}
 }
 
 bool ImageNode::ParseContent(Node* node, char* buffer, size_t count)
 {
-	ImageDecoder* decoder = ImageDecoders.Get();
+	ImageDecoder* decoder = ImageDecoder::Get();
 	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
 
 	decoder->Process((uint8_t*) buffer, count);
 	if (decoder->GetState() == ImageDecoder::Success)
 	{
-		node->size.x = data->image.width;
-		node->size.y = data->image.height;
-		App::Get().page.layout.RecalculateLayout();
-		printf("Success!\n");
+		if (node->size.x != data->image.width || node->size.y != data->image.height)
+		{
+			node->size.x = data->image.width;
+			node->size.y = data->image.height;
+			App::Get().page.layout.RecalculateLayout();
+		}
+		//printf("Success!\n");
 	}
 
 	return decoder->GetState() == ImageDecoder::Decoding;

@@ -3,7 +3,7 @@
 #include <memory.h>
 #include "../Draw/Surf4bpp.h"
 #include "../Font.h"
-#include "../Image.h"
+#include "../Image/Image.h"
 
 #define GC_INDEX 0x3ce
 #define GC_DATA 0x3cf
@@ -375,6 +375,8 @@ void DrawSurface_4BPP::DrawString(DrawContext& context, Font* font, const char* 
 
 void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int y)
 {
+	if (!image->data)
+		return;
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
 
@@ -389,7 +391,14 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 
 	if (x < context.clipLeft)
 	{
-		srcData += ((context.clipLeft - x) >> 3);
+		if (image->bpp == 1)
+		{
+			srcData += ((context.clipLeft - x) >> 3);
+		}
+		else
+		{
+			srcData += (context.clipLeft - x);
+		}
 		destWidth -= (context.clipLeft - x);
 		x = context.clipLeft;
 	}
@@ -416,43 +425,81 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 		return; // Nothing to draw if fully outside the clipping region.
 	}
 
-	int srcByteWidth = (srcWidth + 7) >> 3; // Calculate the width of the source image in bytes
-	int destByteWidth = (destWidth + 7) >> 3; // Calculate the width of the destination image in bytes
-
-	// Blit the image data line by line
-	for (int j = 0; j < destHeight; j++)
+	if (image->bpp == 8)
 	{
-		uint8_t* srcRow = srcData + (j * srcPitch);
-		uint8_t* destRow = lines[y + j] + (x >> 3);
-		int xBits = 7 - (x & 0x7); // Number of bits in the first destination byte to skip
+		// Set write mode 3
+		outp(GC_INDEX, GC_MODE);
+		outp(GC_DATA, 0x3);
 
-		// Handle the first destination byte separately with proper masking
-		if (xBits == 0)
+		// Blit the image data line by line
+		for (int j = 0; j < destHeight; j++)
 		{
-			// If x is on a byte boundary, copy the whole byte from the source
-			for (int i = 0; i < destByteWidth; i++)
+			uint8_t* srcRow = srcData + (j * srcPitch);
+			uint8_t* destRow = lines[y + j] + (x >> 3);
+			uint8_t destMask = 0x80 >> (x & 7);
+
+			for (int i = 0; i < destWidth; i++)
 			{
-				destRow[i] = srcRow[i];
+				uint8_t colour = *srcRow++;
+
+				// Set bitmask
+				outp(GC_INDEX, GC_BITMASK);
+				outp(GC_DATA, destMask);
+
+				outp(GC_INDEX, GC_SET_RESET);
+				outp(GC_DATA, colour);
+
+				*destRow |= 0xff;
+
+				destMask >>= 1;
+				if (!destMask)
+				{
+					destMask = 0x80;
+					destRow++;
+				}
 			}
 		}
-		else
-		{
-			// Copy the first destination byte with proper masking
-			destRow[0] = (destRow[0] & (0xFF << xBits)) | (srcRow[0] >> (8 - xBits));
+	}
+	else
+	{
+		int srcByteWidth = (srcWidth + 7) >> 3; // Calculate the width of the source image in bytes
+		int destByteWidth = (destWidth + 7) >> 3; // Calculate the width of the destination image in bytes
 
-			// Copy the remaining bytes
-			for (int i = 1; i < destByteWidth; i++)
+		// Blit the image data line by line
+		for (int j = 0; j < destHeight; j++)
+		{
+			uint8_t* srcRow = srcData + (j * srcPitch);
+			uint8_t* destRow = lines[y + j] + (x >> 3);
+			int xBits = 7 - (x & 0x7); // Number of bits in the first destination byte to skip
+
+			// Handle the first destination byte separately with proper masking
+			if (xBits == 0)
 			{
-				destRow[i] = (srcRow[i - 1] << xBits) | (srcRow[i] >> (8 - xBits));
+				// If x is on a byte boundary, copy the whole byte from the source
+				for (int i = 0; i < destByteWidth; i++)
+				{
+					destRow[i] = srcRow[i];
+				}
 			}
-		}
+			else
+			{
+				// Copy the first destination byte with proper masking
+				destRow[0] = (destRow[0] & (0xFF << xBits)) | (srcRow[0] >> (8 - xBits));
 
-		// Handle the case when the destination image width is not a multiple of 8 bits
-		int lastBit = 7 - ((x + destWidth) & 0x7);
-		if (lastBit > 0)
-		{
-			int mask = 0xFF << lastBit;
-			destRow[destByteWidth - 1] = (destRow[destByteWidth - 1] & ~mask) | (srcRow[destByteWidth] & mask);
+				// Copy the remaining bytes
+				for (int i = 1; i < destByteWidth; i++)
+				{
+					destRow[i] = (srcRow[i - 1] << xBits) | (srcRow[i] >> (8 - xBits));
+				}
+			}
+
+			// Handle the case when the destination image width is not a multiple of 8 bits
+			int lastBit = 7 - ((x + destWidth) & 0x7);
+			if (lastBit > 0)
+			{
+				int mask = 0xFF << lastBit;
+				destRow[destByteWidth - 1] = (destRow[destByteWidth - 1] & ~mask) | (srcRow[destByteWidth] & mask);
+			}
 		}
 	}
 }

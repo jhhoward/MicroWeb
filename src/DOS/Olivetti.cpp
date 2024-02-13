@@ -18,7 +18,7 @@
 #include <conio.h>
 #include <memory.h>
 #include <stdint.h>
-#include "../Image.h"
+#include "../Image/Image.h"
 #include "Olivetti.h"
 #include "../Interface.h"
 #include "../DataPack.h"

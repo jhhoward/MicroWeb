@@ -25,7 +25,7 @@
 #include "DOSInput.h"
 #include "DOSNet.h"
 
-#include "../Image.h"
+#include "../Image/Image.h"
 #include "../Cursor.h"
 #include "../Font.h"
 #include "../Draw/Surface.h"

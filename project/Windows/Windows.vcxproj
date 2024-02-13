@@ -144,6 +144,7 @@
     <ClCompile Include="..\..\src\Draw\Surf1bpp.cpp" />
     <ClCompile Include="..\..\src\Draw\Surf8bpp.cpp" />
     <ClCompile Include="..\..\src\HTTP.cpp" />
+    <ClCompile Include="..\..\src\Image\Decoder.cpp" />
     <ClCompile Include="..\..\src\Image\Gif.cpp" />
     <ClCompile Include="..\..\src\Layout.cpp" />
     <ClCompile Include="..\..\src\Node.cpp" />

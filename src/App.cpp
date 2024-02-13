@@ -138,6 +138,8 @@ void App::Run(int argc, char* argv[])
 
 void LoadTask::Load(const char* targetURL)
 {
+	Stop();
+
 	url = targetURL;
 
 	// Check for protocol substring

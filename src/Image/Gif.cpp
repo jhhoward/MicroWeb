@@ -4,6 +4,12 @@
 #include "../Colour.h"
 #include <stdio.h>
 
+#ifdef _WIN32
+#define DEBUG_MESSAGE(...) printf(__VA_ARGS__);
+#else
+#define DEBUG_MESSAGE(...)
+#endif
+
 #define BLOCK_TYPE_EXTENSION_INTRODUCER 0x21
 #define BLOCK_TYPE_IMAGE_DESCRIPTOR 0x2C
 #define BLOCK_TYPE_TRAILER 0x3B
@@ -55,19 +61,19 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 					if(!outputImage->data)
 					{
 						// Allocation error
-						printf("Could not allocate!\n");
+						DEBUG_MESSAGE("Could not allocate!\n");
 						state = ImageDecoder::Error;
 						return;
 					}
 					
 					backgroundColour = header.backgroundColour;
 					
-					printf("Image is %d x %d\n", outputImage->width, outputImage->height);
+					DEBUG_MESSAGE("Image is %d x %d\n", outputImage->width, outputImage->height);
 					
 					if(header.fields & (1 << 7))
 					{
 						paletteSize = (1 << ((header.fields & 0x7) + 1));
-						printf("Image has a palette of %d colours\n", (int) paletteSize);
+						DEBUG_MESSAGE("Image has a palette of %d colours\n", (int) paletteSize);
 						
 						internalState = ParsePalette;
 						paletteIndex = 0;
@@ -84,7 +90,7 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 			{
 				if(FillStruct(&data, dataLength, rgb, 3))
 				{
-					//printf("RGB index %d: %x %x %x\n", paletteIndex, (int)(rgb[0]), (int)(rgb[1]), (int)(rgb[2]));
+					//DEBUG_MESSAGE("RGB index %d: %x %x %x\n", paletteIndex, (int)(rgb[0]), (int)(rgb[1]), (int)(rgb[2]));
 
 					uint8_t grey = (uint8_t)(((uint16_t)rgb[0] * 76 + (uint16_t)rgb[1] * 150 + (uint16_t)rgb[2] * 30) >> 8);
 					//palette[paletteIndex++] = grey;
@@ -128,7 +134,7 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 					break;
 					
 					default:
-					printf("Invalid block type: %x\n", (int)(blockType));
+						DEBUG_MESSAGE("Invalid block type: %x\n", (int)(blockType));
 					state = ImageDecoder::Error;
 					return;
 				}
@@ -139,9 +145,10 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 			{
 				if(FillStruct(&data, dataLength, &imageDescriptor, sizeof(ImageDescriptor)))
 				{
-					printf("Image: %d, %d %d, %d\n", imageDescriptor.x, imageDescriptor.y, imageDescriptor.width, imageDescriptor.height);
+					DEBUG_MESSAGE("Image: %d, %d %d, %d\n", imageDescriptor.x, imageDescriptor.y, imageDescriptor.width, imageDescriptor.height);
 					
 					drawX = drawY = 0;
+					writePosition = 0;
 
 					if (imageDescriptor.fields & 0x80)
 					{
@@ -175,7 +182,7 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 			case ParseLZWCodeSize:
 			{
 				lzwCodeSize = NextByte(&data, dataLength);
-				printf("LZW code size: %d\n", lzwCodeSize);
+				DEBUG_MESSAGE("LZW code size: %d\n", lzwCodeSize);
 
 				// Init LZW vars
 				code = 0;
@@ -193,7 +200,7 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 			case ParseImageSubBlockSize:
 			{
 				imageSubBlockSize = NextByte(&data, dataLength);
-				printf("Sub block size: %d bytes\n", imageSubBlockSize);
+				DEBUG_MESSAGE("Sub block size: %d bytes\n", imageSubBlockSize);
 				if(imageSubBlockSize)
 				{
 					internalState = ParseImageSubBlock;
@@ -215,7 +222,7 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 				{
 					imageSubBlockSize--;
 					uint8_t dataByte = NextByte(&data, dataLength);
-					//printf("-Data: %x\n", dataByte);
+					//DEBUG_MESSAGE("-Data: %x\n", dataByte);
 					
 					for(int n = 0; n < 8; n++)
 					{
@@ -227,12 +234,12 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 						
 						if (codeBit == codeLength)
 						{
-							//printf("code: %x [len=%d]\n", code, codeLength);
+							//DEBUG_MESSAGE("code: %x [len=%d]\n", code, codeLength);
 
 							// Code complete
 							if (code == clearCode)
 							{
-								printf("CLEAR\n");
+								DEBUG_MESSAGE("CLEAR\n");
 								codeLength = resetCodeLength;
 								ClearDictionary();
 								prev = -1;
@@ -242,10 +249,10 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 							}
 							else if (code == stopCode)
 							{
-								printf("STOP\n");
+								DEBUG_MESSAGE("STOP\n");
 								if (imageSubBlockSize)
 								{
-									printf("Malformed GIF\n");
+									DEBUG_MESSAGE("Malformed GIF\n");
 									state = ImageDecoder::Error;
 								}
 								continue;
@@ -255,7 +262,7 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 							{
 								if (code > dictionaryIndex)
 								{
-									printf("Error: code = %x, but dictionaryIndex = %x\n", code, dictionaryIndex);
+									DEBUG_MESSAGE("Error: code = %x, but dictionaryIndex = %x\n", code, dictionaryIndex);
 									state = ImageDecoder::Error;
 									return;
 								}
@@ -282,7 +289,7 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 								if(dictionaryIndex == (1 << (codeLength)) && codeLength < 12)
 								{
 									codeLength++;
-									//printf("Code length: %d\n", codeLength);
+									//DEBUG_MESSAGE("Code length: %d\n", codeLength);
 								}
 							}
 
@@ -296,12 +303,12 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 								{
 									if (stackSize >= 1024)
 									{
-										fprintf(stderr, "Stack overflow!");
+										DEBUG_MESSAGE("Stack overflow!");
 										exit(-1);
 									}
 
 									stack[stackSize++] = dictionary[code].byte;
-									//printf(" value: %x\n", dictionary[code].byte);
+									//DEBUG_MESSAGE(" value: %x\n", dictionary[code].byte);
 
 									code = dictionary[code].prev;
 								}
@@ -320,7 +327,7 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 				}
 				else
 				{
-				//printf("--\n");
+				//DEBUG_MESSAGE("--\n");
 					internalState = ParseImageSubBlockSize;
 				}
 			}
@@ -330,7 +337,7 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 			{
 				if(FillStruct(&data, dataLength, &extensionHeader, sizeof(ExtensionHeader)))
 				{
-					printf("Extension: %x Size: %d\n", (int) extensionHeader.code, (int) extensionHeader.size);
+					DEBUG_MESSAGE("Extension: %x Size: %d\n", (int) extensionHeader.code, (int) extensionHeader.size);
 					internalState = ParseExtensionContents;
 				}
 			}
@@ -338,14 +345,9 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 			
 			case ParseExtensionContents:
 			{
-				if(extensionHeader.size == 0)
+				if(SkipBytes(&data, dataLength, extensionHeader.size))
 				{
 					internalState = ParseExtensionSubBlockSize;
-				}
-				else
-				{
-					NextByte(&data, dataLength);
-					extensionHeader.size--;
 				}
 			}
 			break;
@@ -366,12 +368,7 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 			
 			case ParseExtensionSubBlock:
 			{
-				if(extensionSubBlockSize > 0)
-				{
-					NextByte(&data, dataLength);
-					extensionSubBlockSize--;
-				}
-				else
+				if(SkipBytes(&data, dataLength, extensionSubBlockSize))
 				{
 					internalState = ParseExtensionSubBlockSize;
 				}
@@ -380,6 +377,26 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 		}
 	}
 }
+
+bool GifDecoder::SkipBytes(uint8_t** data, size_t& dataLength, size_t size)
+{
+	size_t bytesLeft = size - structFillPosition;
+	if (bytesLeft <= dataLength)
+	{
+		*data += bytesLeft;
+		dataLength -= bytesLeft;
+		structFillPosition = 0;
+		return true;
+	}
+	else
+	{
+		*data += dataLength;
+		structFillPosition += dataLength;
+		dataLength = 0;
+		return false;
+	}
+}
+
 
 bool GifDecoder::FillStruct(uint8_t** data, size_t& dataLength, void* dest, size_t size)
 {
@@ -426,10 +443,43 @@ void GifDecoder::OutputPixel(uint8_t pixelValue)
 	}
 	else*/
 	{
-		outputImage->data[drawX++] = paletteLUT[pixelValue];
+		outputImage->data[writePosition++] = paletteLUT[pixelValue];
+
+		if (imageDescriptor.fields & GIF_INTERLACE_BIT)
+		{
+			drawX++;
+			if (drawX == imageDescriptor.width)
+			{
+				drawX = 0;
+				drawY++;
+				int outputLine = CalculateLineIndex(drawY);
+				writePosition = outputLine * header.width;
+			}
+		}
 		//outputImage->data[drawX++] = palette[pixelValue * 3];
 		//outputImage->data[drawX++] = palette[pixelValue * 3 + 1];
 		//outputImage->data[drawX++] = palette[pixelValue * 3 + 2];
 		//outputImage->data[drawX++] = pixelValue == header.backgroundColour ? 0 : 255;
 	}
+}
+
+// Compute output index of y-th input line, in frame of height h. 
+int GifDecoder::CalculateLineIndex(int y)
+{
+	int p; /* number of lines in current pass */
+
+	p = (header.height - 1) / 8 + 1;
+	if (y < p) /* pass 1 */
+		return y * 8;
+	y -= p;
+	p = (header.height - 5) / 8 + 1;
+	if (y < p) /* pass 2 */
+		return y * 8 + 4;
+	y -= p;
+	p = (header.height - 3) / 4 + 1;
+	if (y < p) /* pass 3 */
+		return y * 4 + 2;
+	y -= p;
+	/* pass 4 */
+	return y * 2 + 1;
 }

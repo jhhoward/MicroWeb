@@ -194,6 +194,10 @@ void Layout::RecalculateLayout()
 		else
 		{
 			node = node->parent;
+			if (node)
+			{
+				node->EncapsulateChildren();
+			}
 			checkChildren = false;
 			continue;
 		}
@@ -201,6 +205,10 @@ void Layout::RecalculateLayout()
 		if (node)
 		{
 			node->Handler().GenerateLayout(*this, node);
+			/*if (node->parent)
+			{
+				node->parent->OnChildLayoutChanged();
+			}*/
 		}
 	}
 
