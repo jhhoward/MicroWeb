@@ -21,8 +21,8 @@
 #include <new>
 #pragma warning(disable:4996)
 
-// 32K chunk size including next chunk pointer
-#define CHUNK_DATA_SIZE (32 * 1024 - sizeof(struct Chunk*))
+// 16K chunk size including next chunk pointer
+#define CHUNK_DATA_SIZE (16 * 1024 - sizeof(struct Chunk*))
 
 class LinearAllocator
 {

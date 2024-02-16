@@ -16,7 +16,7 @@ ImageDecoder* ImageDecoder::Get()
 	return (ImageDecoder*)(ImageDecoderUnion.buffer);
 }
 
-ImageDecoder* ImageDecoder::Create(DecoderType type, LinearAllocator& allocator)
+ImageDecoder* ImageDecoder::Create(DecoderType type)
 {
-	return new (ImageDecoderUnion.buffer) GifDecoder(allocator);
+	return new (ImageDecoderUnion.buffer) GifDecoder();
 }

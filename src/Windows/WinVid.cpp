@@ -245,3 +245,15 @@ void WindowsVideoDriver::Paint(HWND hwnd)
 	EndPaint(hwnd, &ps);
 }
 
+void WindowsVideoDriver::ScaleImageDimensions(int& width, int& height)
+{
+	height = (height / verticalScale);
+
+	int maxWidth = screenWidth - 16;
+
+	if (width > maxWidth)
+	{
+		height = (height * maxWidth) / width;
+		width = maxWidth;
+	}
+}

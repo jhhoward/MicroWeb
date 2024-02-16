@@ -2,6 +2,7 @@
 #include "Surf8bpp.h"
 #include "../Font.h"
 #include "../Image/Image.h"
+#include "../Memory/MemBlock.h"
 
 DrawSurface_8BPP::DrawSurface_8BPP(int inWidth, int inHeight)
 	: DrawSurface(inWidth, inHeight)
@@ -222,7 +223,7 @@ void DrawSurface_8BPP::DrawString(DrawContext& context, Font* font, const char* 
 
 void DrawSurface_8BPP::BlitImage(DrawContext& context, Image* image, int x, int y)
 {
-	if (!image->data)
+	if (!image->lines)
 		return;
 
 	x += context.drawOffsetX;
@@ -231,7 +232,8 @@ void DrawSurface_8BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 	int srcWidth = image->width;
 	int srcHeight = image->height;
 	int srcPitch = image->pitch;
-	uint8_t* srcData = image->data;
+	int srcX = 0;
+	int srcY = 0;
 
 	// Calculate the destination width and height to copy, considering clipping region
 	int destWidth = srcWidth;
@@ -241,11 +243,11 @@ void DrawSurface_8BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 	{
 		if (image->bpp == 1)
 		{
-			srcData += ((context.clipLeft - x) >> 3);
+			srcX += ((context.clipLeft - x) >> 3);
 		}
 		else
 		{
-			srcData += (context.clipLeft - x);
+			srcX += (context.clipLeft - x);
 		}
 		destWidth -= (context.clipLeft - x);
 		x = context.clipLeft;
@@ -258,7 +260,7 @@ void DrawSurface_8BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 
 	if (y < context.clipTop)
 	{
-		srcData += (context.clipTop - y) * srcPitch;
+		srcY += (context.clipTop - y);
 		destHeight -= (context.clipTop - y);
 		y = context.clipTop;
 	}
@@ -278,12 +280,12 @@ void DrawSurface_8BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 		// Blit the image data line by line
 		for (int j = 0; j < destHeight; j++)
 		{
-			uint8_t* srcRow = srcData + (j * srcPitch);
+			uint8_t* src = image->lines[srcY + j].Get<uint8_t>() + srcX;
 			uint8_t* destRow = lines[y + j] + x;
 
 			for (int i = 0; i < destWidth; i++)
 			{
-				*destRow++ = *srcRow++;
+				*destRow++ = *src++;
 			}
 		}
 	}

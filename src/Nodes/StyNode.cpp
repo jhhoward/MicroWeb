@@ -1,5 +1,5 @@
 #include "StyNode.h"
-#include "../LinAlloc.h"
+#include "../Memory/Memory.h"
 #include "../Layout.h"
 
 void StyleNode::ApplyStyle(Node* node)

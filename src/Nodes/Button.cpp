@@ -2,7 +2,7 @@
 #include "Button.h"
 #include "../DataPack.h"
 #include "../Draw/Surface.h"
-#include "../LinAlloc.h"
+#include "../Memory/LinAlloc.h"
 #include "../Layout.h"
 #include "../Event.h"
 #include "../App.h"

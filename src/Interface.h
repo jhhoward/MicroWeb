@@ -16,7 +16,6 @@
 #define _INTERFACE_H_
 #include "Platform.h"
 #include "URL.h"
-#include "LinAlloc.h"
 #include "Node.h"
 
 #define MAX_TITLE_LENGTH 80
@@ -79,8 +78,6 @@ private:
 	int oldButtons;
 	int oldMouseX, oldMouseY;
 	int oldPageHeight;
-
-	LinearAllocator allocator;
 
 	Node* rootInterfaceNode;
 	Node* titleNode;

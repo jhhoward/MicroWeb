@@ -3,17 +3,17 @@
 
 #include <stdint.h>
 #include "Decoder.h"
-#include "../LinAlloc.h"
 
 #define GIF_MAX_LZW_CODE_LENGTH 12
 #define GIF_MAX_DICTIONARY_ENTRIES (1 << (GIF_MAX_LZW_CODE_LENGTH + 1))
 
 #define GIF_INTERLACE_BIT 0x40
+#define GIF_LINE_BUFFER_MAX_SIZE 640
 
 class GifDecoder : public ImageDecoder
 {
 public:
-	GifDecoder(LinearAllocator& inAllocator);
+	GifDecoder();
 	
 	virtual void Begin(Image* image);
 	virtual void Process(uint8_t* data, size_t dataLength);
@@ -32,7 +32,10 @@ private:
 
 	void ClearDictionary();
 	void OutputPixel(uint8_t pixelValue);
+	
 	int CalculateLineIndex(int y);
+	void ProcessLineBuffer();
+	void EmitLine(int y);
 
 
 	enum InternalState
@@ -83,7 +86,6 @@ private:
 	};
 	#pragma pack(pop)
 
-	LinearAllocator& allocator;
 	ImageDecoder::State state;
 	InternalState internalState;
 	
@@ -127,7 +129,14 @@ private:
 			int codeBit;
 			
 			int drawX, drawY;
-			int writePosition;
+			int outputLine;
+
+			uint8_t lineBuffer[GIF_LINE_BUFFER_MAX_SIZE];
+			int lineBufferSize;
+			int linesProcessed;
+			int lineBufferDivider;
+			int lineBufferSkipCount;
+			int lineBufferFlushCount;
 		};
 		struct
 		{

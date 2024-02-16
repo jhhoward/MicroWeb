@@ -30,7 +30,7 @@ public:
 	virtual State GetState() = 0;
 	
 	static ImageDecoder* Get();
-	static ImageDecoder* Create(DecoderType type, LinearAllocator& allocator);
+	static ImageDecoder* Create(DecoderType type);
 
 protected:
 	Image* outputImage;

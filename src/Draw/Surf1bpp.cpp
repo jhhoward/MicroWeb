@@ -351,12 +351,14 @@ void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* 
 
 void DrawSurface_1BPP::BlitImage(DrawContext& context, Image* image, int x, int y)
 {
+#if 0
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
 
 	int srcWidth = image->width;
 	int srcHeight = image->height;
 	int srcPitch = image->pitch;
+	int startX = 0;
 	uint8_t* srcData = image->data;
 
 	// Calculate the destination width and height to copy, considering clipping region
@@ -431,6 +433,7 @@ void DrawSurface_1BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 			destRow[destByteWidth - 1] = (destRow[destByteWidth - 1] & ~mask) | (srcRow[destByteWidth] & mask);
 		}
 	}
+#endif
 }
 
 

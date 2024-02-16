@@ -13,11 +13,11 @@ struct ImageMetadata
 
 struct Image : ImageMetadata
 {
-	Image() : data(nullptr) 
+	Image() : lines(nullptr) 
 	{
 		width = height = pitch = bpp = 0;
 	}
-	uint8_t* data;
+	struct MemBlockHandle* lines;
 };
 
 #endif

@@ -15,7 +15,6 @@
 #ifndef _PAGE_H_
 #define _PAGE_H_
 
-#include "LinAlloc.h"
 #include "URL.h"
 #include "Layout.h"
 
@@ -36,7 +35,6 @@ public:
 
 	Node* GetRootNode() { return rootNode; }
 
-	LinearAllocator allocator;
 	Layout layout;
 
 	int GetPageWidth();

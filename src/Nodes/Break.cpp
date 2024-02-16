@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "../Layout.h"
-#include "../LinAlloc.h"
+#include "../Memory/LinAlloc.h"
 #include "../Draw/Surface.h"
 
 #include "Break.h"

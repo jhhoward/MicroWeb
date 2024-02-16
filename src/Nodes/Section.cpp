@@ -1,6 +1,6 @@
 
 #include "Section.h"
-#include "../LinAlloc.h"
+#include "../Memory/Memory.h"
 #include "../Layout.h"
 
 Node* SectionElement::Construct(Allocator& allocator, SectionElement::Type sectionType)

@@ -1,7 +1,7 @@
 #include "../Platform.h"
 #include "../Page.h"
 #include "Text.h"
-#include "../LinAlloc.h"
+#include "../Memory/Memory.h"
 #include "../Layout.h"
 #include "../Draw/Surface.h"
 #include "../DataPack.h"
@@ -85,7 +85,7 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 			{
 				if (!subTextNode)
 				{
-					subTextNode = SubTextElement::Construct(layout.page.allocator, &text[startIndex]);
+					subTextNode = SubTextElement::Construct(MemoryManager::pageAllocator, &text[startIndex]);
 					node->AddChild(subTextNode);
 				}
 				else 
@@ -124,7 +124,7 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 		{
 			if (!subTextNode)
 			{
-				subTextNode = SubTextElement::Construct(layout.page.allocator, &text[startIndex]);
+				subTextNode = SubTextElement::Construct(MemoryManager::pageAllocator, &text[startIndex]);
 				node->AddChild(subTextNode);
 			}
 			else

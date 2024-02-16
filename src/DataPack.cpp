@@ -110,7 +110,7 @@ Image* DataPack::LoadImageAsset(FILE* fs, DataPackHeader& header, const char* en
 	{
 		Image* image = new Image();
 		memcpy(image, asset, sizeof(ImageMetadata));
-		image->data = ((uint8_t*) asset) + sizeof(ImageMetadata);
+		//image->data = ((uint8_t*) asset) + sizeof(ImageMetadata);
 		return image;
 	}
 	return nullptr;

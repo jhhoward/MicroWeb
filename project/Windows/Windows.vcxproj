@@ -147,6 +147,8 @@
     <ClCompile Include="..\..\src\Image\Decoder.cpp" />
     <ClCompile Include="..\..\src\Image\Gif.cpp" />
     <ClCompile Include="..\..\src\Layout.cpp" />
+    <ClCompile Include="..\..\src\Memory\MemBlock.cpp" />
+    <ClCompile Include="..\..\src\Memory\Memory.cpp" />
     <ClCompile Include="..\..\src\Node.cpp" />
     <ClCompile Include="..\..\src\Nodes\Block.cpp" />
     <ClCompile Include="..\..\src\Nodes\Break.cpp" />
@@ -185,6 +187,9 @@
     <ClInclude Include="..\..\src\Image\Gif.h" />
     <ClInclude Include="..\..\src\Image\Image.h" />
     <ClInclude Include="..\..\src\Layout.h" />
+    <ClInclude Include="..\..\src\Memory\LinAlloc.h" />
+    <ClInclude Include="..\..\src\Memory\MemBlock.h" />
+    <ClInclude Include="..\..\src\Memory\Memory.h" />
     <ClInclude Include="..\..\src\Node.h" />
     <ClInclude Include="..\..\src\Nodes\Block.h" />
     <ClInclude Include="..\..\src\Nodes\Break.h" />
@@ -200,7 +205,6 @@
     <ClInclude Include="..\..\src\Nodes\Text.h" />
     <ClInclude Include="..\..\src\Font.h" />
     <ClInclude Include="..\..\src\Interface.h" />
-    <ClInclude Include="..\..\src\LinAlloc.h" />
     <ClInclude Include="..\..\src\Page.h" />
     <ClInclude Include="..\..\src\Parser.h" />
     <ClInclude Include="..\..\src\Platform.h" />

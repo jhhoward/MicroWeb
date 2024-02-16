@@ -1,7 +1,7 @@
 #include "../Platform.h"
 #include "../Page.h"
 #include "ImgNode.h"
-#include "../LinAlloc.h"
+#include "../Memory/Memory.h"
 #include "../Layout.h"
 #include "../Draw/Surface.h"
 #include "../App.h"
@@ -13,7 +13,7 @@ void ImageNode::Draw(DrawContext& context, Node* node)
 	//printf("--IMG [%d, %d]\n", node->anchor.x, node->anchor.y);
 	uint8_t outlineColour = 0;
 
-	if (data->image.data)
+	if (data->image.lines)
 	{
 		context.surface->BlitImage(context, &data->image, node->anchor.x, node->anchor.y);
 	}
@@ -57,7 +57,7 @@ void ImageNode::LoadContent(Node* node, LoadTask& loadTask)
 	if (data && data->source)
 	{
 		loadTask.Load(URL::GenerateFromRelative(App::Get().page.pageURL.url, data->source).url);
-		ImageDecoder::Create(ImageDecoder::Gif, App::Get().page.allocator);
+		ImageDecoder::Create(ImageDecoder::Gif);
 		ImageDecoder::Get()->Begin(&data->image);
 	}
 }

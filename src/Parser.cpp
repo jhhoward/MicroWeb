@@ -23,6 +23,7 @@
 #include "Nodes/Text.h"
 #include "Nodes/ImgNode.h"
 #include "Nodes/Break.h"
+#include "Memory/Memory.h"
 
 // debug
 #include "Platform.h"
@@ -165,7 +166,7 @@ void HTMLParser::AppendTextBuffer(char c)
 
 void HTMLParser::EmitText(const char* text)
 {
-	Node* textElement = TextElement::Construct(page.allocator, text);
+	Node* textElement = TextElement::Construct(MemoryManager::pageAllocator, text);
 	if (textElement)
 	{
 		textElement->style = CurrentContext().node->style;
@@ -190,7 +191,7 @@ void HTMLParser::EmitNode(Node* node)
 
 void HTMLParser::EmitImage(Image* image, int imageWidth, int imageHeight)
 {
-	Node* node = ImageNode::Construct(page.allocator);
+	Node* node = ImageNode::Construct(MemoryManager::pageAllocator);
 	if (node)
 	{
 		node->size.x = imageWidth;
@@ -318,7 +319,7 @@ bool HTMLParser::IsWhiteSpace(char c)
 
 void HTMLParser::Parse(char* buffer, size_t count)
 {
-	while (count && page.allocator.GetError() == LinearAllocator::Error_None)
+	while (count && MemoryManager::pageAllocator.GetError() == LinearAllocator::Error_None)
 	{
 		char c = *buffer++;
 		count--;
@@ -487,7 +488,7 @@ void HTMLParser::ParseChar(char c)
 				{
 					FlushTextBuffer();
 					
-					EmitNode(BreakNode::Construct(page.allocator));
+					EmitNode(BreakNode::Construct(MemoryManager::pageAllocator));
 					// TODO-refactor
 					//page.BreakTextLine();
 					break;

@@ -2,6 +2,9 @@
 #include "Image.h"
 #include "../Platform.h"
 #include "../Colour.h"
+#include "../Memory/Memory.h"
+#include "../Page.h"
+#include "../App.h"
 #include <stdio.h>
 
 #ifdef _WIN32
@@ -14,8 +17,8 @@
 #define BLOCK_TYPE_IMAGE_DESCRIPTOR 0x2C
 #define BLOCK_TYPE_TRAILER 0x3B
 
-GifDecoder::GifDecoder(LinearAllocator& inAllocator) 
-: allocator(inAllocator), state(ImageDecoder::Stopped)
+GifDecoder::GifDecoder() 
+: state(ImageDecoder::Stopped)
 {
 }
 
@@ -27,6 +30,7 @@ void GifDecoder::Begin(Image* image)
 
 	structFillPosition = 0;
 	internalState = ParseHeader;
+	lineBufferSkipCount = 0;
 }
 
 void GifDecoder::Process(uint8_t* data, size_t dataLength)
@@ -45,25 +49,53 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 				if(FillStruct(&data, dataLength, &header, sizeof(Header)))
 				{
 					// Header structure is complete
-					if(memcmp(header.versionTag, "GIF89a", 6))
+					if(memcmp(header.versionTag, "GIF89a", 6) && memcmp(header.versionTag, "GIF87a", 6))
 					{
 						// Not a GIF89a
 						state = ImageDecoder::Error;
 						return;
 					}
+
+					// If the image width is wider than the buffer, we will skip every N pixels
+					lineBufferDivider = 1;
+					while (header.width / lineBufferDivider > GIF_LINE_BUFFER_MAX_SIZE)
+					{
+						lineBufferDivider++;
+					}
 					
-					outputImage->width = header.width;
-					outputImage->height = header.height;
-					outputImage->pitch = header.width;
+					if (outputImage->width == 0 && outputImage->height == 0)
+					{
+						int width = header.width;
+						int height = header.height;
+						Platform::video->ScaleImageDimensions(width, height);
+
+						outputImage->width = width;
+						outputImage->height = height;
+						outputImage->pitch = width;
+					}
 					//outputImage->data = (uint8_t*) allocator.Alloc((header.width * header.height) >> 3);
 					//outputImage->data = (uint8_t*) allocator.Alloc((header.width * header.height) * 3);
-					outputImage->data = (uint8_t*)allocator.Alloc(outputImage->pitch * header.height); 
-					if(!outputImage->data)
+					
+					outputImage->lines = (MemBlockHandle*)MemoryManager::pageAllocator.Alloc(sizeof(MemBlockHandle) * outputImage->height);
+					//outputImage->data = (uint8_t*)allocator.Alloc(outputImage->pitch * header.height); 
+					if(!outputImage->lines)
 					{
 						// Allocation error
 						DEBUG_MESSAGE("Could not allocate!\n");
 						state = ImageDecoder::Error;
 						return;
+					}
+
+					for (int j = 0; j < outputImage->height; j++)
+					{
+						outputImage->lines[j] = MemoryManager::pageBlockAllocator.Allocate(outputImage->width);
+						if (!outputImage->lines[j].IsAllocated())
+						{
+							// Allocation error
+							DEBUG_MESSAGE("Could not allocate!\n");
+							state = ImageDecoder::Error;
+							return;
+						}
 					}
 					
 					backgroundColour = header.backgroundColour;
@@ -106,7 +138,7 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 							paletteLUT[n] = Platform::video->paletteLUT[RGB332(palette[n * 3], palette[n * 3 + 1], palette[n * 3 + 2])];
 						}
 
-						paletteLUT[header.backgroundColour] = Platform::video->colourScheme.pageColour;
+						//paletteLUT[header.backgroundColour] = Platform::video->colourScheme.pageColour;
 
 						internalState = ParseDataBlock;
 					}
@@ -148,7 +180,11 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 					DEBUG_MESSAGE("Image: %d, %d %d, %d\n", imageDescriptor.x, imageDescriptor.y, imageDescriptor.width, imageDescriptor.height);
 					
 					drawX = drawY = 0;
-					writePosition = 0;
+					outputLine = 0;
+
+					linesProcessed = 0;
+					lineBufferSize = 0;
+					lineBufferFlushCount = 0;
 
 					if (imageDescriptor.fields & 0x80)
 					{
@@ -253,7 +289,10 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 								if (imageSubBlockSize)
 								{
 									DEBUG_MESSAGE("Malformed GIF\n");
-									state = ImageDecoder::Error;
+									// FIXME
+									//state = ImageDecoder::Success;
+									//return;
+									//state = ImageDecoder::Error;
 								}
 								continue;
 							}
@@ -313,10 +352,27 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 									code = dictionary[code].prev;
 								}
 								
-								while(stackSize)
+								while (stackSize)
 								{
-									OutputPixel(stack[stackSize - 1]);
+									if (lineBufferSkipCount == lineBufferDivider - 1)
+									{
+										lineBuffer[lineBufferSize++] = stack[stackSize - 1];
+										lineBufferSkipCount = 0;
+									}
+									else
+									{
+										lineBufferSkipCount++;
+									}
+
+									lineBufferFlushCount++;
 									stackSize--;
+
+									if (lineBufferFlushCount == imageDescriptor.width)
+									{
+										ProcessLineBuffer();
+										lineBufferSize = 0;
+										lineBufferFlushCount = 0;
+									}
 								}
 							}
 							
@@ -443,18 +499,28 @@ void GifDecoder::OutputPixel(uint8_t pixelValue)
 	}
 	else*/
 	{
-		outputImage->data[writePosition++] = paletteLUT[pixelValue];
+		outputImage->lines[outputLine].Get<uint8_t>()[drawX] = paletteLUT[pixelValue];
+		outputImage->lines[outputLine].Commit();
+		drawX++;
 
-		if (imageDescriptor.fields & GIF_INTERLACE_BIT)
+		if (drawX == imageDescriptor.width)
 		{
-			drawX++;
-			if (drawX == imageDescriptor.width)
+			drawX = 0;
+			drawY++;
+			if (imageDescriptor.fields & GIF_INTERLACE_BIT)
 			{
-				drawX = 0;
-				drawY++;
-				int outputLine = CalculateLineIndex(drawY);
-				writePosition = outputLine * header.width;
+				outputLine = CalculateLineIndex(drawY);
 			}
+			else
+			{
+				outputLine = drawY;
+			}
+
+			if (outputLine >= imageDescriptor.height)
+			{
+				outputLine = imageDescriptor.height - 1;
+			}
+
 		}
 		//outputImage->data[drawX++] = palette[pixelValue * 3];
 		//outputImage->data[drawX++] = palette[pixelValue * 3 + 1];
@@ -483,3 +549,64 @@ int GifDecoder::CalculateLineIndex(int y)
 	/* pass 4 */
 	return y * 2 + 1;
 }
+
+void GifDecoder::ProcessLineBuffer()
+{
+	int outputY = linesProcessed;
+	
+	if (imageDescriptor.fields & GIF_INTERLACE_BIT)
+	{
+		outputY = CalculateLineIndex(linesProcessed);
+	}
+
+	if (outputImage->height == header.height)
+	{
+		EmitLine(outputY);
+	}
+	else
+	{
+		int first = outputY * outputImage->height / header.height;
+		int last = (outputY + 1) * outputImage->height / header.height;
+
+		for (int y = first; y < last; y++)
+		{
+			EmitLine(y);
+		}
+	}
+
+	linesProcessed++;
+}
+
+void GifDecoder::EmitLine(int y)
+{
+	uint8_t* output = outputImage->lines[y].Get<uint8_t>();
+	
+	if (outputImage->width == lineBufferSize)
+	{
+		for (int i = 0; i < lineBufferSize; i++)
+		{
+			output[i] = paletteLUT[lineBuffer[i]];
+		}
+	}
+	else
+	{
+		int dy = lineBufferSize;
+		int dx = outputImage->width;
+		int D = 2 * dy - dx;
+		int y = 0;
+
+		for (int i = 0; i < outputImage->width; i++)
+		{
+			output[i] = paletteLUT[lineBuffer[y]];
+			while (D > 0)
+			{
+				y++;
+				D -= 2 * dx;
+			}
+			D += 2 * dy;
+		}
+	}
+
+	outputImage->lines[y].Commit();
+}
+

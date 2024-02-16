@@ -25,6 +25,7 @@
 #include "Draw/Surface.h"
 #include "DataPack.h"
 #include "Event.h"
+#include "Memory/Memory.h"
 
 AppInterface::AppInterface(App& inApp) : app(inApp)
 {
@@ -201,7 +202,7 @@ void AppInterface::Update()
 		case 'm':
 		{
 			char tempMessage[50];
-			snprintf(tempMessage, 50, "Allocated: %dK Used: %dK\n", (int)(app.page.allocator.TotalAllocated() / 1024), (int)(app.page.allocator.TotalUsed() / 1024));
+			snprintf(tempMessage, 50, "Allocated: %dK Used: %dK\n", (int)(MemoryManager::pageAllocator.TotalAllocated() / 1024), (int)(MemoryManager::pageAllocator.TotalUsed() / 1024));
 			app.ui.SetStatusMessage(tempMessage);
 		}
 			break;
@@ -295,6 +296,7 @@ void AppInterface::UpdatePageScrollBar()
 
 void AppInterface::GenerateInterfaceNodes()
 {
+	LinearAllocator& allocator = MemoryManager::interfaceAllocator;
 	rootInterfaceNode = SectionElement::Construct(allocator, SectionElement::Interface);
 	rootInterfaceNode->style.alignment = ElementAlignment::Left;
 	rootInterfaceNode->style.fontSize = 1;

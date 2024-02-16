@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "../Layout.h"
-#include "../LinAlloc.h"
+#include "../Memory/Memory.h"
 #include "Block.h"
 
 Node* BlockNode::Construct(Allocator& allocator, int horizontalPadding, int verticalPadding)
