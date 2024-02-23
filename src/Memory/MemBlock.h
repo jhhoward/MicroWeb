@@ -22,10 +22,10 @@ struct MemBlockHandle
 	Type type;
 
 	MemBlockHandle() : type(Unallocated), allocatedSize(0) {}
-	void* Get();
+	void* GetPtr();
 	
 	template <typename T>
-	inline T* Get() { return (T*)Get(); }
+	inline T* Get() { return (T*)GetPtr(); }
 	void Commit();
 
 	bool IsAllocated() { return type != Unallocated; }

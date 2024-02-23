@@ -78,6 +78,8 @@ public:
 	Node* FindParentOfType(Node::Type searchType);
 	void Redraw();
 
+	Node* GetNextInTree();
+
 	Type type;
 
 	ElementStyle style;

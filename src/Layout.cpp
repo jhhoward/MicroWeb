@@ -176,7 +176,12 @@ void Layout::PadVertical(int down)
 void Layout::RecalculateLayout()
 {
 	Reset();
-
+	
+	//for (Node* node = page.GetRootNode(); node; node = node->GetNextInTree())
+	//{
+	//	node->Handler().GenerateLayout(*this, node);
+	//}
+	
 	Node* node = page.GetRootNode();
 	bool checkChildren = true;
 

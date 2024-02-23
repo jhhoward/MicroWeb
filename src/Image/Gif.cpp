@@ -138,7 +138,7 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 							paletteLUT[n] = Platform::video->paletteLUT[RGB332(palette[n * 3], palette[n * 3 + 1], palette[n * 3 + 2])];
 						}
 
-						//paletteLUT[header.backgroundColour] = Platform::video->colourScheme.pageColour;
+						paletteLUT[header.backgroundColour] = Platform::video->colourScheme.pageColour;
 
 						internalState = ParseDataBlock;
 					}
@@ -204,7 +204,10 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 			{
 				if (FillStruct(&data, dataLength, &rgb, 3))
 				{
-					// TODO: use local colour table for something
+					if (paletteIndex != header.backgroundColour)
+					{
+						paletteLUT[paletteIndex] = Platform::video->paletteLUT[RGB332(rgb[0], rgb[1], rgb[2])];
+					}
 
 					paletteIndex++;
 					if (paletteIndex == localColourTableLength)

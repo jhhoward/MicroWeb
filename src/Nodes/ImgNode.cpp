@@ -54,7 +54,7 @@ void ImageNode::GenerateLayout(Layout& layout, Node* node)
 void ImageNode::LoadContent(Node* node, LoadTask& loadTask)
 {
 	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
-	if (data && data->source)
+	if (data && data->source && !data->image.lines)
 	{
 		loadTask.Load(URL::GenerateFromRelative(App::Get().page.pageURL.url, data->source).url);
 		ImageDecoder::Create(ImageDecoder::Gif);
@@ -65,12 +65,38 @@ void ImageNode::LoadContent(Node* node, LoadTask& loadTask)
 bool ImageNode::ParseContent(Node* node, char* buffer, size_t count)
 {
 	ImageDecoder* decoder = ImageDecoder::Get();
-	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
 
 	decoder->Process((uint8_t*) buffer, count);
 	if (decoder->GetState() == ImageDecoder::Success)
 	{
-		if (node->size.x != data->image.width || node->size.y != data->image.height)
+		ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
+
+		// Loop through image nodes in case this image is used multiple times
+		bool needsLayoutRefresh = false;
+		for (Node* n = node; n; n = n->GetNextInTree())
+		{
+			if (n->type == Node::Image)
+			{
+				ImageNode::Data* otherData = static_cast<ImageNode::Data*>(n->data);
+
+				if (otherData->source && !strcmp(data->source, otherData->source))
+				{
+					if (n != node)
+					{
+						otherData->image = data->image;
+					}
+
+					if (n->size.x != data->image.width || n->size.y != data->image.height)
+					{
+						n->size.x = data->image.width;
+						n->size.y = data->image.height;
+						needsLayoutRefresh = true;
+					}
+				}
+			}
+		}
+
+		if (needsLayoutRefresh)
 		{
 			node->size.x = data->image.width;
 			node->size.y = data->image.height;

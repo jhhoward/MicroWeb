@@ -176,31 +176,15 @@ int Page::GetPageWidth()
 
 Node* Page::ProcessNextLoadTask(Node* lastNode, LoadTask& loadTask)
 {
-	Node* node = lastNode;
-	bool checkChildren = true;
-
-	while (node)
+	Node* node;
+	for (node = lastNode->GetNextInTree(); node; node = node->GetNextInTree())
 	{
-		if (checkChildren && node->firstChild)
-		{
-			node = node->firstChild;
-		}
-		else if (node->next)
-		{
-			node = node->next;
-			checkChildren = true;
-		}
-		else 
-		{
-			node = node->parent;
-			checkChildren = false;
-		}
-
 		if (node && node->type == Node::Image)
 		{
 			node->Handler().LoadContent(node, loadTask);
 			return node;
 		}
 	}
+
 	return nullptr;
 }

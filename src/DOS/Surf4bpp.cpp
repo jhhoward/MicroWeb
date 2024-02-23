@@ -4,6 +4,7 @@
 #include "../Draw/Surf4bpp.h"
 #include "../Font.h"
 #include "../Image/Image.h"
+#include "../Memory/MemBlock.h"
 
 #define GC_INDEX 0x3ce
 #define GC_DATA 0x3cf
@@ -375,7 +376,7 @@ void DrawSurface_4BPP::DrawString(DrawContext& context, Font* font, const char* 
 
 void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int y)
 {
-	if (!image->data)
+	if (!image->lines)
 		return;
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
@@ -383,7 +384,8 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 	int srcWidth = image->width;
 	int srcHeight = image->height;
 	int srcPitch = image->pitch;
-	uint8_t* srcData = image->data;
+	int srcX = 0;
+	int srcY = 0;
 
 	// Calculate the destination width and height to copy, considering clipping region
 	int destWidth = srcWidth;
@@ -393,11 +395,11 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 	{
 		if (image->bpp == 1)
 		{
-			srcData += ((context.clipLeft - x) >> 3);
+			srcX += ((context.clipLeft - x) >> 3);
 		}
 		else
 		{
-			srcData += (context.clipLeft - x);
+			srcX += (context.clipLeft - x);
 		}
 		destWidth -= (context.clipLeft - x);
 		x = context.clipLeft;
@@ -410,7 +412,7 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 
 	if (y < context.clipTop)
 	{
-		srcData += (context.clipTop - y) * srcPitch;
+		srcY += (context.clipTop - y);
 		destHeight -= (context.clipTop - y);
 		y = context.clipTop;
 	}
@@ -434,13 +436,13 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 		// Blit the image data line by line
 		for (int j = 0; j < destHeight; j++)
 		{
-			uint8_t* srcRow = srcData + (j * srcPitch);
+			uint8_t* src = image->lines[srcY + j].Get<uint8_t>() + srcX;
 			uint8_t* destRow = lines[y + j] + (x >> 3);
 			uint8_t destMask = 0x80 >> (x & 7);
 
 			for (int i = 0; i < destWidth; i++)
 			{
-				uint8_t colour = *srcRow++;
+				uint8_t colour = *src++;
 
 				// Set bitmask
 				outp(GC_INDEX, GC_BITMASK);
@@ -468,7 +470,7 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 		// Blit the image data line by line
 		for (int j = 0; j < destHeight; j++)
 		{
-			uint8_t* srcRow = srcData + (j * srcPitch);
+			uint8_t* src = image->lines[srcY + j].Get<uint8_t>() + srcX;
 			uint8_t* destRow = lines[y + j] + (x >> 3);
 			int xBits = 7 - (x & 0x7); // Number of bits in the first destination byte to skip
 
@@ -478,18 +480,18 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 				// If x is on a byte boundary, copy the whole byte from the source
 				for (int i = 0; i < destByteWidth; i++)
 				{
-					destRow[i] = srcRow[i];
+					destRow[i] = src[i];
 				}
 			}
 			else
 			{
 				// Copy the first destination byte with proper masking
-				destRow[0] = (destRow[0] & (0xFF << xBits)) | (srcRow[0] >> (8 - xBits));
+				destRow[0] = (destRow[0] & (0xFF << xBits)) | (src[0] >> (8 - xBits));
 
 				// Copy the remaining bytes
 				for (int i = 1; i < destByteWidth; i++)
 				{
-					destRow[i] = (srcRow[i - 1] << xBits) | (srcRow[i] >> (8 - xBits));
+					destRow[i] = (src[i - 1] << xBits) | (src[i] >> (8 - xBits));
 				}
 			}
 
@@ -498,7 +500,7 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 			if (lastBit > 0)
 			{
 				int mask = 0xFF << lastBit;
-				destRow[destByteWidth - 1] = (destRow[destByteWidth - 1] & ~mask) | (srcRow[destByteWidth] & mask);
+				destRow[destByteWidth - 1] = (destRow[destByteWidth - 1] & ~mask) | (src[destByteWidth] & mask);
 			}
 		}
 	}

@@ -2,7 +2,7 @@
 #include "LinAlloc.h"
 #include "Memory.h"
 
-void* MemBlockHandle::Get()
+void* MemBlockHandle::GetPtr()
 {
 	switch (type)
 	{

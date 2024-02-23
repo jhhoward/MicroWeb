@@ -228,3 +228,28 @@ void Node::Redraw()
 
 	Platform::input->ShowMouse();
 }
+
+Node* Node::GetNextInTree()
+{
+	Node* node = this;
+	bool checkChildren = true;
+
+	while (node)
+	{
+		if (checkChildren && node->firstChild)
+		{
+			return node->firstChild;
+		}
+		else if (node->next)
+		{
+			return node->next;
+		}
+		else
+		{
+			node = node->parent;
+			checkChildren = false;
+		}
+	}
+
+	return nullptr;
+}

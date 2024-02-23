@@ -1,7 +1,7 @@
 bin = MicroWeb.exe
 SRC_PATH = ..\..\src
 OBJDIR=obj
-objects = MicroWeb.obj App.obj Parser.obj Tags.obj Platform.obj CGA.obj EGA.obj Hercules.obj Olivetti.obj Font.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj Layout.obj Node.obj Text.obj Section.obj ImgNode.obj Block.obj StyNode.obj LinkNode.obj Break.obj Render.obj Button.obj Field.obj DataPack.obj Surf1bpp.obj Surf4bpp.obj Form.obj Status.obj Scroll.obj HTTP.obj Decoder.obj Image.obj
+objects = MicroWeb.obj App.obj Parser.obj Tags.obj Platform.obj CGA.obj EGA.obj Hercules.obj Olivetti.obj Font.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj Layout.obj Node.obj Text.obj Section.obj ImgNode.obj Block.obj StyNode.obj LinkNode.obj Break.obj Render.obj Button.obj Field.obj DataPack.obj Surf1bpp.obj Surf4bpp.obj Form.obj Status.obj Scroll.obj HTTP.obj Decoder.obj Gif.obj MemBlock.obj Memory.obj
 memory_model = -ml
 CC = wpp
 CFLAGS = -zq -0 -ot -bt=DOS -w2 $(memory_model) -fi=$(SRC_PATH)\Defines.h
@@ -109,7 +109,13 @@ DataPack.obj: $(SRC_PATH)\DataPack.cpp
 Decoder.obj: $(SRC_PATH)\Image\Decoder.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
-Image.obj: $(SRC_PATH)\Image\Gif.cpp
+Gif.obj: $(SRC_PATH)\Image\Gif.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+MemBlock.obj: $(SRC_PATH)\Memory\MemBlock.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+Memory.obj: $(SRC_PATH)\Memory\Memory.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 CGA.obj: $(SRC_PATH)\DOS\CGA.cpp
