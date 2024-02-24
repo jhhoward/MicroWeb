@@ -96,7 +96,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\App.cpp" />
+    <ClCompile Include="..\..\src\Colour.cpp" />
     <ClCompile Include="..\..\src\DataPack.cpp" />
+    <ClCompile Include="..\..\src\DOS\BIOSVid.cpp" />
     <ClCompile Include="..\..\src\DOS\CGA.cpp" />
     <ClCompile Include="..\..\src\DOS\DOSInput.cpp" />
     <ClCompile Include="..\..\src\DOS\DOSNet.cpp" />
@@ -124,6 +126,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\App.h" />
+    <ClInclude Include="..\..\src\DOS\BIOSVid.h" />
     <ClInclude Include="..\..\src\DOS\DOSNet.h" />
     <ClInclude Include="..\..\src\DOS\EGA.h" />
     <ClInclude Include="..\..\src\DOS\Hercules.h" />

@@ -3,11 +3,13 @@
 #include "../Font.h"
 #include "../Image/Image.h"
 #include "../Memory/MemBlock.h"
+#include "../Colour.h"
 
 DrawSurface_8BPP::DrawSurface_8BPP(int inWidth, int inHeight)
 	: DrawSurface(inWidth, inHeight)
 {
 	lines = new uint8_t * [height];
+	bpp = 8;
 }
 
 void DrawSurface_8BPP::HLine(DrawContext& context, int x, int y, int count, uint8_t colour)
@@ -241,14 +243,7 @@ void DrawSurface_8BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 
 	if (x < context.clipLeft)
 	{
-		if (image->bpp == 1)
-		{
-			srcX += ((context.clipLeft - x) >> 3);
-		}
-		else
-		{
-			srcX += (context.clipLeft - x);
-		}
+		srcX += (context.clipLeft - x);
 		destWidth -= (context.clipLeft - x);
 		x = context.clipLeft;
 	}
@@ -285,7 +280,44 @@ void DrawSurface_8BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 
 			for (int i = 0; i < destWidth; i++)
 			{
-				*destRow++ = *src++;
+				uint8_t pixel = *src++;
+
+				if (pixel != TRANSPARENT_COLOUR_VALUE)
+				{
+					*destRow = pixel;
+				}
+				destRow++;
+			}
+		}
+	}
+	else if (image->bpp == 1)
+	{
+		// Blit the image data line by line
+		for (int j = 0; j < destHeight; j++)
+		{
+			uint8_t* src = image->lines[srcY + j].Get<uint8_t>() + (srcX >> 3);
+			uint8_t srcMask = 0x80 >> (srcX & 7);
+			uint8_t* destRow = lines[y + j] + x;
+			uint8_t black = 0;
+			uint8_t white = 0xf;
+			uint8_t buffer = *src++;
+
+			for (int i = 0; i < destWidth; i++)
+			{
+				if (buffer & srcMask)
+				{
+					*destRow++ = white;
+				}
+				else
+				{
+					*destRow++ = black;
+				}
+				srcMask >>= 1;
+				if (!srcMask)
+				{
+					srcMask = 0x80;
+					buffer = *src++;
+				}
 			}
 		}
 	}

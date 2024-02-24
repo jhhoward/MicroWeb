@@ -5,6 +5,7 @@
 #include "../Memory/Memory.h"
 #include "../Page.h"
 #include "../App.h"
+#include "../Draw/Surface.h"
 #include <stdio.h>
 
 #ifdef _WIN32
@@ -16,6 +17,7 @@
 #define BLOCK_TYPE_EXTENSION_INTRODUCER 0x21
 #define BLOCK_TYPE_IMAGE_DESCRIPTOR 0x2C
 #define BLOCK_TYPE_TRAILER 0x3B
+#define BLOCK_TYPE_GRAPHIC_CONTROL_EXTENSION 0xF9
 
 GifDecoder::GifDecoder() 
 : state(ImageDecoder::Stopped)
@@ -26,11 +28,12 @@ void GifDecoder::Begin(Image* image)
 {
 	state = ImageDecoder::Decoding;
 	outputImage = image;
-	outputImage->bpp = 8;
+	outputImage->bpp = Platform::video->drawSurface->bpp == 1 ? 1 : 8;
 
 	structFillPosition = 0;
 	internalState = ParseHeader;
 	lineBufferSkipCount = 0;
+	transparentColourIndex = -1;
 }
 
 void GifDecoder::Process(uint8_t* data, size_t dataLength)
@@ -71,13 +74,18 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 
 						outputImage->width = width;
 						outputImage->height = height;
-						outputImage->pitch = width;
 					}
-					//outputImage->data = (uint8_t*) allocator.Alloc((header.width * header.height) >> 3);
-					//outputImage->data = (uint8_t*) allocator.Alloc((header.width * header.height) * 3);
-					
+
+					if (outputImage->bpp == 1)
+					{
+						outputImage->pitch = (outputImage->width + 7) / 8;
+					}
+					else // 8bpp
+					{
+						outputImage->pitch = outputImage->width;
+					}
+
 					outputImage->lines = (MemBlockHandle*)MemoryManager::pageAllocator.Alloc(sizeof(MemBlockHandle) * outputImage->height);
-					//outputImage->data = (uint8_t*)allocator.Alloc(outputImage->pitch * header.height); 
 					if(!outputImage->lines)
 					{
 						// Allocation error
@@ -88,13 +96,18 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 
 					for (int j = 0; j < outputImage->height; j++)
 					{
-						outputImage->lines[j] = MemoryManager::pageBlockAllocator.Allocate(outputImage->width);
+						outputImage->lines[j] = MemoryManager::pageBlockAllocator.Allocate(outputImage->pitch);
 						if (!outputImage->lines[j].IsAllocated())
 						{
 							// Allocation error
 							DEBUG_MESSAGE("Could not allocate!\n");
 							state = ImageDecoder::Error;
 							return;
+						}
+						void* pixels = outputImage->lines[j].GetPtr();
+						if (pixels)
+						{
+							memset(pixels, TRANSPARENT_COLOUR_VALUE, outputImage->pitch);
 						}
 					}
 					
@@ -124,7 +137,7 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 				{
 					//DEBUG_MESSAGE("RGB index %d: %x %x %x\n", paletteIndex, (int)(rgb[0]), (int)(rgb[1]), (int)(rgb[2]));
 
-					uint8_t grey = (uint8_t)(((uint16_t)rgb[0] * 76 + (uint16_t)rgb[1] * 150 + (uint16_t)rgb[2] * 30) >> 8);
+					//uint8_t grey = (uint8_t)(((uint16_t)rgb[0] * 76 + (uint16_t)rgb[1] * 150 + (uint16_t)rgb[2] * 30) >> 8);
 					//palette[paletteIndex++] = grey;
 					palette[paletteIndex * 3] = rgb[0];
 					palette[paletteIndex * 3 + 1] = rgb[1];
@@ -133,12 +146,25 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 
 					if(paletteIndex == paletteSize)
 					{
-						for (int n = 0; n < paletteSize; n++)
+						if (outputImage->bpp == 8)
 						{
-							paletteLUT[n] = Platform::video->paletteLUT[RGB332(palette[n * 3], palette[n * 3 + 1], palette[n * 3 + 2])];
+							for (int n = 0; n < paletteSize; n++)
+							{
+								paletteLUT[n] = Platform::video->paletteLUT[RGB332(palette[n * 3], palette[n * 3 + 1], palette[n * 3 + 2])];
+							}
+						}
+						else
+						{
+							for (int n = 0; n < paletteSize; n++)
+							{
+								paletteLUT[n] = RGB_TO_GREY(palette[n * 3], palette[n * 3 + 1], palette[n * 3 + 2]);
+							}
 						}
 
-						paletteLUT[header.backgroundColour] = Platform::video->colourScheme.pageColour;
+						if (transparentColourIndex >= 0)
+						{
+							paletteLUT[transparentColourIndex] = TRANSPARENT_COLOUR_VALUE;
+						}
 
 						internalState = ParseDataBlock;
 					}
@@ -204,14 +230,34 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 			{
 				if (FillStruct(&data, dataLength, &rgb, 3))
 				{
-					if (paletteIndex != header.backgroundColour)
-					{
-						paletteLUT[paletteIndex] = Platform::video->paletteLUT[RGB332(rgb[0], rgb[1], rgb[2])];
-					}
+					palette[paletteIndex * 3] = rgb[0];
+					palette[paletteIndex * 3 + 1] = rgb[1];
+					palette[paletteIndex * 3 + 2] = rgb[2];
 
 					paletteIndex++;
+
 					if (paletteIndex == localColourTableLength)
 					{
+						if (outputImage->bpp == 8)
+						{
+							for (int n = 0; n < localColourTableLength; n++)
+							{
+								paletteLUT[n] = Platform::video->paletteLUT[RGB332(palette[n * 3], palette[n * 3 + 1], palette[n * 3 + 2])];
+							}
+						}
+						else
+						{
+							for (int n = 0; n < localColourTableLength; n++)
+							{
+								paletteLUT[n] = RGB_TO_GREY(palette[n * 3], palette[n * 3 + 1], palette[n * 3 + 2]);
+							}
+						}
+
+						if (transparentColourIndex >= 0)
+						{
+							paletteLUT[transparentColourIndex] = TRANSPARENT_COLOUR_VALUE;
+						}
+
 						internalState = ParseLZWCodeSize;
 					}
 				}
@@ -397,7 +443,15 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 				if(FillStruct(&data, dataLength, &extensionHeader, sizeof(ExtensionHeader)))
 				{
 					DEBUG_MESSAGE("Extension: %x Size: %d\n", (int) extensionHeader.code, (int) extensionHeader.size);
-					internalState = ParseExtensionContents;
+
+					if (extensionHeader.code == BLOCK_TYPE_GRAPHIC_CONTROL_EXTENSION)
+					{
+						internalState = ParseGraphicControlExtension;
+					}
+					else
+					{
+						internalState = ParseExtensionContents;
+					}
 				}
 			}
 			break;
@@ -406,6 +460,20 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 			{
 				if(SkipBytes(&data, dataLength, extensionHeader.size))
 				{
+					internalState = ParseExtensionSubBlockSize;
+				}
+			}
+			break;
+
+			case ParseGraphicControlExtension:
+			{
+				if (FillStruct(&data, dataLength, &graphicControlExtension, sizeof(GraphicControlExtension)))
+				{
+					if (graphicControlExtension.packedFields & 1)
+					{
+						transparentColourIndex = graphicControlExtension.transparentColourIndex;
+						paletteLUT[transparentColourIndex] = TRANSPARENT_COLOUR_VALUE;
+					}
 					internalState = ParseExtensionSubBlockSize;
 				}
 			}
@@ -584,29 +652,188 @@ void GifDecoder::EmitLine(int y)
 {
 	uint8_t* output = outputImage->lines[y].Get<uint8_t>();
 	
-	if (outputImage->width == lineBufferSize)
+	if (outputImage->bpp == 8)
 	{
-		for (int i = 0; i < lineBufferSize; i++)
+		bool useColourDithering = false;
+
+		if (useColourDithering)
 		{
-			output[i] = paletteLUT[lineBuffer[i]];
+			const int8_t* ditherPattern = colourDitherMatrix + 4 * (y & 3);
+			int ditherIndex = 0;
+
+			if (outputImage->width == lineBufferSize)
+			{
+				for (int i = 0; i < lineBufferSize; i++)
+				{
+					int offset = ditherPattern[ditherIndex];
+					ditherIndex = (ditherIndex + 1) & 3;
+
+					if (lineBuffer[i] == transparentColourIndex)
+					{
+						output[i] = TRANSPARENT_COLOUR_VALUE;
+						continue;
+					}
+
+					int index = lineBuffer[i] * 3;
+					int red = palette[index] + offset;
+					if (red > 255)
+						red = 255;
+					int green = palette[index + 1] + offset;
+					if (green > 255)
+						green = 255;
+					int blue = palette[index + 2] + offset;
+					if (blue > 255)
+						blue = 255;
+
+					output[i] = Platform::video->paletteLUT[RGB332(red, green, blue)];
+				}
+			}
+			else
+			{
+				int dy = lineBufferSize;
+				int dx = outputImage->width;
+				int D = 2 * dy - dx;
+				int x = 0;
+
+				for (int i = 0; i < outputImage->width; i++)
+				{
+					int offset = ditherPattern[ditherIndex];
+					ditherIndex = (ditherIndex + 1) & 3;
+
+					if (lineBuffer[i] == transparentColourIndex)
+					{
+						output[i] = TRANSPARENT_COLOUR_VALUE;
+					}
+					else
+					{
+						int index = lineBuffer[x] * 3;
+						int red = palette[index] + offset;
+						if (red > 255)
+							red = 255;
+						int green = palette[index + 1] + offset;
+						if (green > 255)
+							green = 255;
+						int blue = palette[index + 2] + offset;
+						if (blue > 255)
+							blue = 255;
+
+						output[i] = Platform::video->paletteLUT[RGB332(red, green, blue)];
+					}
+
+					while (D > 0)
+					{
+						x++;
+						D -= 2 * dx;
+					}
+					D += 2 * dy;
+				}
+			}
+
+		}
+		else
+		{
+			if (outputImage->width == lineBufferSize)
+			{
+				for (int i = 0; i < lineBufferSize; i++)
+				{
+					output[i] = paletteLUT[lineBuffer[i]];
+				}
+			}
+			else
+			{
+				int dy = lineBufferSize;
+				int dx = outputImage->width;
+				int D = 2 * dy - dx;
+				int x = 0;
+
+				for (int i = 0; i < outputImage->width; i++)
+				{
+					output[i] = paletteLUT[lineBuffer[x]];
+					while (D > 0)
+					{
+						x++;
+						D -= 2 * dx;
+					}
+					D += 2 * dy;
+				}
+			}
 		}
 	}
 	else
 	{
-		int dy = lineBufferSize;
-		int dx = outputImage->width;
-		int D = 2 * dy - dx;
-		int y = 0;
+		const uint8_t* ditherPattern = greyDitherMatrix + 16 * (y & 15);
+		uint8_t buffer = 0;
+		uint8_t mask = 0x80;
+		int ditherIndex = 0;
 
-		for (int i = 0; i < outputImage->width; i++)
+		if (outputImage->width == lineBufferSize)
 		{
-			output[i] = paletteLUT[lineBuffer[y]];
-			while (D > 0)
+			for (int i = 0; i < lineBufferSize; i++)
 			{
-				y++;
-				D -= 2 * dx;
+				uint8_t value = paletteLUT[lineBuffer[i]];
+				uint8_t threshold = ditherPattern[ditherIndex];
+
+				if (value > threshold)
+				{
+					buffer |= mask;
+				}
+
+				ditherIndex = (ditherIndex + 1) & 15;
+
+				mask >>= 1;
+				if (!mask)
+				{
+					*output++ = buffer;
+					buffer = 0;
+					mask = 0x80;
+				}
 			}
-			D += 2 * dy;
+
+			if (mask != 0x80)
+			{
+				*output = buffer;
+			}
+		}
+		else
+		{
+			
+			int dy = lineBufferSize;
+			int dx = outputImage->width;
+			int D = 2 * dy - dx;
+			int x = 0;
+
+			for (int i = 0; i < outputImage->width; i++)
+			{
+				uint8_t value = paletteLUT[lineBuffer[x]];
+				uint8_t threshold = ditherPattern[ditherIndex];
+
+				if (value > threshold)
+				{
+					buffer |= mask;
+				}
+
+				ditherIndex = (ditherIndex + 1) & 15;
+
+				mask >>= 1;
+				if (!mask)
+				{
+					*output++ = buffer;
+					buffer = 0;
+					mask = 0x80;
+				}
+
+				while (D > 0)
+				{
+					x++;
+					D -= 2 * dx;
+				}
+				D += 2 * dy;
+			}
+			
+			if (mask != 0x80)
+			{
+				*output = buffer;
+			}
 		}
 	}
 

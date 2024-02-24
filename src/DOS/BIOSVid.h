@@ -12,19 +12,19 @@
 // GNU General Public License for more details.
 //
 
-#ifndef _CGA_H_
-#define _CGA_H_
+#ifndef _BIOSVID_H_
+#define _BIOSVID_H_
 
 #include "../Platform.h"
 
 struct Image;
 
-class CGADriver : public VideoDriver
+class BIOSVideoDriver : public VideoDriver
 {
 public:
-	CGADriver();
+	BIOSVideoDriver();
 
-	virtual void Init(VideoModeInfo* videoMode);
+	virtual void Init(VideoModeInfo* inVideoModeInfo);
 	virtual void Shutdown();
 
 	virtual void ScaleImageDimensions(int& width, int& height);
@@ -34,6 +34,7 @@ private:
 	void SetScreenMode(int screenMode);
 
 	int startingScreenMode;
+	VideoModeInfo* videoModeInfo;
 };
 
 #endif

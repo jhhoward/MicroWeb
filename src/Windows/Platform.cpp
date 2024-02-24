@@ -18,6 +18,7 @@
 #include "WinInput.h"
 #include "WinNet.h"
 #include "../Draw/Surface.h"
+#include "../VidModes.h"
 
 WindowsVideoDriver winVid;
 WindowsNetworkDriver winNetworkDriver;
@@ -30,31 +31,21 @@ InputDriver* Platform::input = &winInputDriver;
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 HWND hWnd;
 
-void Platform::Init(int argc, char* argv[])
+bool Platform::Init(int argc, char* argv[])
 {
-	WNDCLASSW wc = { 0 };
-	HINSTANCE hInstance = GetModuleHandle(NULL);
-
-	wc.style = CS_HREDRAW | CS_VREDRAW;
-	wc.lpszClassName = L"Pixels";
-	wc.hInstance = hInstance;
-	wc.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
-	wc.lpfnWndProc = WndProc;
-	wc.hCursor = LoadCursor(0, IDC_ARROW);
-
-	RECT wr = { 0, 0, winVid.screenWidth, (int)(winVid.screenHeight * winVid.verticalScale) };
-	AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);
-
-	RegisterClassW(&wc);
-	hWnd = CreateWindowW(wc.lpszClassName, L"MicroWeb",
-		WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-		100, 100, wr.right - wr.left, wr.bottom - wr.top, NULL, NULL, hInstance, NULL);
+	VideoModeInfo* videoMode = ShowVideoModePicker(6);
+	if (!videoMode)
+	{
+		return false;
+	}
 
 	network->Init();
-	video->Init();
+	video->Init(videoMode);
 	video->drawSurface->Clear();
 	input->Init();
 	input->ShowMouse();
+
+	return true;
 }
 
 void Platform::Shutdown()

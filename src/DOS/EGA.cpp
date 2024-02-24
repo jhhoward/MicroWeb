@@ -24,7 +24,7 @@
 #include "../Interface.h"
 #include "../Draw/Surf1bpp.h"
 #include "../Draw/Surf4bpp.h"
-#include "../Palettes.inc"
+#include "../Colour.h"
 
 #define EGA_BASE_VRAM_ADDRESS (uint8_t*) MK_FP(0xA000, 0)
 #define BYTES_PER_LINE 80
@@ -43,7 +43,7 @@ void EGADriver::SetupVars(const char* inAssetPackToUse, int inScreenMode, int in
 	paletteLUT = cgaPaletteLUT;
 }
 
-void EGADriver::Init()
+void EGADriver::Init(VideoModeInfo* videoMode)
 {
 	startingScreenMode = GetScreenMode();
 	SetScreenMode(screenModeToUse);

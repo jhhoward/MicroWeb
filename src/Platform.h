@@ -22,11 +22,12 @@
 
 struct Image;
 class DrawSurface;
+struct VideoModeInfo;
 
 class VideoDriver
 {
 public:
-	virtual void Init() = 0;
+	virtual void Init(VideoModeInfo* videoMode) = 0;
 	virtual void Shutdown() = 0;
 
 	virtual void ScaleImageDimensions(int& width, int& height) {}
@@ -92,7 +93,7 @@ public:
 class Platform
 {
 public:
-	static void Init(int argc, char* argv[]);
+	static bool Init(int argc, char* argv[]);
 	static void Shutdown();
 	static void Update();
 

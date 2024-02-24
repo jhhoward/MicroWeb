@@ -14,14 +14,9 @@
 
 #include <i86.h>
 #include "../Platform.h"
-#ifdef HP95LX
-#include "HP95LX.h"
-#else
-#include "CGA.h"
-#include "EGA.h"
 #include "Hercules.h"
-#include "Olivetti.h"
-#endif
+#include "../VidModes.h"
+#include "BIOSVid.h"
 #include "DOSInput.h"
 #include "DOSNet.h"
 
@@ -93,32 +88,30 @@ bool DetectHercules();
 	modify [ax cx dx] \
 	value [al]
 
-static void AutoDetectVideoDriver()
+static int AutoDetectVideoMode()
 {
 	union REGS inreg, outreg;
-#ifdef HP95LX
+	const int HP95LX = 11;
+	const int Hercules = 8;
+	const int CGA = 0;
+	const int EGA = 4;
+	const int VGA = 6;
+
+	// Look for HP 95LX
 	inreg.x.ax = 0x4dd4;
 	int86(0x15, &inreg, &outreg);
 	if (outreg.x.bx == 0x4850)
 	{
-		Platform::video = new HP95LXVideoDriver();
-		printf("Detected HP 95LX\n");
-		return;
+		return HP95LX;
 	}
 
-	fprintf(stderr, "This build only works with the HP 95LX, 100LX and 200LX\n");
-	exit(1);
-#else
 	// First try detect presence of VGA card
 	inreg.x.ax = 0x1200;		
 	inreg.h.bl = 0x32;
 	int86(0x10, &inreg, &outreg);
-
 	if (outreg.h.al == 0x12)
 	{
-		Platform::video = new VGADriver();
-		printf("Detected VGA\n");
-		return;
+		return VGA;
 	}
 
 	// Attempt to detect EGA card
@@ -128,18 +121,14 @@ static void AutoDetectVideoDriver()
 
 	if (outreg.h.bl < 4)
 	{
-		Platform::video = new EGADriver();
-		printf("Detected EGA\n");
-		return;
+		return EGA;
 	}
 
 	// Attempt to detect CGA
 	// Note we are preferring CGA over Hercules because some CGA devices are errorneously reporting Hercules support
 	if (Find6845(0x3d4))
 	{
-		Platform::video = new CGADriver();
-		printf("Detected CGA\n");
-		return;
+		return CGA;
 	}
 
 	bool isMono = Find6845(0x3b4);
@@ -147,70 +136,44 @@ static void AutoDetectVideoDriver()
 	// Attempt to detect Hercules
 	if (isMono && DetectHercules())
 	{
-		Platform::video = new HerculesDriver();
-		printf("Detected Hercules\n");
-		return;
+		return Hercules;
 	}
 
-	if (isMono)
-	{
-		fprintf(stderr, "MDA cards not supported!\n");
-	}
-	else
-	{
-		fprintf(stderr, "Could not detect video card!\n");
-	}
-	exit(1);
-#endif
+	return CGA;
 }
 
-void Platform::Init(int argc, char* argv[])
+bool Platform::Init(int argc, char* argv[])
 {
 	bool inverse = false;
 	video = NULL;
 
 	for (int n = 1; n < argc; n++)
 	{
-#ifndef HP95LX
-		if (!stricmp(argv[n], "-v") && !video)
-		{
-			video = new VGADriver();
-		}
-		if (!stricmp(argv[n], "-e") && !video)
-		{
-			video = new EGADriver();
-		}
-		if (!stricmp(argv[n], "-c") && !video)
-		{
-			video = new CGADriver();
-		}
-		if (!stricmp(argv[n], "-o") && !video)
-		{
-			video = new OlivettiDriver(0x40);
-		}
-		if (!stricmp(argv[n], "-t3100") && !video)
-		{
-			video = new OlivettiDriver(0x74);
-		}
-		if (!stricmp(argv[n], "-h") && !video)
-		{
-			video = new HerculesDriver();
-		}
-#endif
 		if (!stricmp(argv[n], "-i"))
 		{
 			inverse = true;
 		}
 	}
 
-	if (!video)
+	int suggestedMode = AutoDetectVideoMode();
+	VideoModeInfo* videoMode = ShowVideoModePicker(suggestedMode);
+	if (!videoMode)
 	{
-		AutoDetectVideoDriver();
+		return false;
 	}
 
-	network->Init();
-	video->Init();
+	if (videoMode->biosVideoMode == HERCULES_MODE)
+	{
+		video = new HerculesDriver();
+	}
+	else
+	{
+		video = new BIOSVideoDriver();
+	}
+
+	video->Init(videoMode);
 	video->drawSurface->Clear();
+	network->Init();
 	input->Init();
 
 	if (inverse)
@@ -218,6 +181,8 @@ void Platform::Init(int argc, char* argv[])
 		// TODO-refactor
 		//video->InvertScreen();
 	}
+
+	return true;
 }
 
 void Platform::Shutdown()

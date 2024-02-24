@@ -35,7 +35,7 @@ OlivettiDriver::OlivettiDriver(int inScreenModeToUse)
 	screenHeight = 400;
 }
 
-void OlivettiDriver::Init()
+void OlivettiDriver::Init(VideoModeInfo* videoMode)
 {
 	startingScreenMode = GetScreenMode();
 	SetScreenMode(screenModeToUse);

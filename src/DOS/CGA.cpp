@@ -35,7 +35,7 @@ CGADriver::CGADriver()
 	screenHeight = 200;
 }
 
-void CGADriver::Init()
+void CGADriver::Init(VideoModeInfo* videoMode)
 {
 	startingScreenMode = GetScreenMode();
 	SetScreenMode(6);
@@ -49,6 +49,12 @@ void CGADriver::Init()
 		drawSurface1BPP->lines[y + 1] = (CGA_PAGE2_VRAM_ADDRESS) + (40 * y);
 	}
 	drawSurface = drawSurface1BPP;
+
+	colourScheme.pageColour = 1;
+	colourScheme.linkColour = 0;
+	colourScheme.textColour = 0;
+	colourScheme.buttonColour = 1;
+
 }
 
 void CGADriver::Shutdown()

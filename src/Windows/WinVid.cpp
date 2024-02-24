@@ -20,28 +20,19 @@
 #include "../DataPack.h"
 #include "../Draw/Surf1bpp.h"
 #include "../Draw/Surf8bpp.h"
-#include "../Palettes.inc"
+#include "../VidModes.h"
 
 //#define SCREEN_WIDTH 800
 //#define SCREEN_HEIGHT 600
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
+#define USE_COLOUR 0
 
 extern HWND hWnd;
+LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
 WindowsVideoDriver::WindowsVideoDriver()
 {
-	screenWidth = SCREEN_WIDTH;
-	screenHeight = SCREEN_HEIGHT;
-	foregroundColour = RGB(0, 0, 0);
-	backgroundColour = RGB(255, 255, 255);
-	verticalScale = ((screenWidth * 3.0f) / 4.0f) / screenHeight;
-	//verticalScale = 1.0f;
-
-	Assets.Load("Default.dat");
-//	Assets.Load("EGA.dat");
-	//Assets.Load("Lowres.dat");
-//	Assets.Load("CGA.dat");
 }
 
 const RGBQUAD monoPalette[] =
@@ -70,12 +61,38 @@ const RGBQUAD cgaPalette[] =
 	{ 0xFF, 0xFF, 0xFF }, // Entry 15 - White
 };
 
-void WindowsVideoDriver::Init()
+void WindowsVideoDriver::Init(VideoModeInfo* videoMode)
 {
+	screenWidth = videoMode->screenWidth;
+	screenHeight = videoMode->screenHeight;
+	verticalScale = videoMode->aspectRatio; // ((screenWidth * 3.0f) / 4.0f) / screenHeight;
+	//verticalScale = 1.0f;
+	Assets.LoadPreset((DataPack::Preset) videoMode->dataPackIndex);
+
+	// Create window
+	WNDCLASSW wc = { 0 };
+	HINSTANCE hInstance = GetModuleHandle(NULL);
+
+	wc.style = CS_HREDRAW | CS_VREDRAW;
+	wc.lpszClassName = L"Pixels";
+	wc.hInstance = hInstance;
+	wc.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
+	wc.lpfnWndProc = WndProc;
+	wc.hCursor = LoadCursor(0, IDC_ARROW);
+
+	RECT wr = { 0, 0, screenWidth, (int)(screenHeight * verticalScale) };
+	AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);
+
+	RegisterClassW(&wc);
+	hWnd = CreateWindowW(wc.lpszClassName, L"MicroWeb",
+		WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+		100, 100, wr.right - wr.left, wr.bottom - wr.top, NULL, NULL, hInstance, NULL);
+
+	// Create bitmap for window contents
 	HDC hDC = GetDC(hWnd);
 	HDC hDCMem = CreateCompatibleDC(hDC);
 
-	bool useColour = true;
+	bool useColour = videoMode->bpp != 1;
 	int paletteSize = useColour ? 256 : 2;
 
 	bitmapInfo = (BITMAPINFO*)malloc(sizeof(BITMAPINFO) + sizeof(RGBQUAD) * paletteSize);
@@ -119,10 +136,7 @@ void WindowsVideoDriver::Init()
 			buffer[n] = 0xf;
 		}
 
-		colourScheme.pageColour = 0xf;
-		colourScheme.linkColour = 1;
-		colourScheme.textColour = 0;
-		colourScheme.buttonColour = 7;
+		colourScheme = egaColourScheme;
 
 		paletteLUT = cgaPaletteLUT;
 	}
@@ -149,10 +163,7 @@ void WindowsVideoDriver::Init()
 			buffer[n] = 0xff;
 		}
 
-		colourScheme.pageColour = 1;
-		colourScheme.linkColour = 0;
-		colourScheme.textColour = 0;
-		colourScheme.buttonColour = 1;
+		colourScheme = monochromeColourScheme;
 
 		paletteLUT = nullptr;
 	}

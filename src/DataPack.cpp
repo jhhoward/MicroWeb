@@ -8,6 +8,20 @@ DataPack Assets;
 
 #pragma warning(disable:4996)
 
+const char* DataPack::datapackFilenames[] =
+{
+	"CGA.DAT",
+	"EGA.DAT",
+	"DEFAULT.DAT",
+	"LOWRES.DAT"
+};
+
+bool DataPack::LoadPreset(DataPack::Preset preset)
+{
+	return Load(datapackFilenames[preset]);
+}
+
+
 bool DataPack::Load(const char* path)
 {
 	FILE* fs = fopen(path, "rb");
@@ -146,3 +160,4 @@ void* DataPack::LoadAsset(FILE* fs, DataPackHeader& header, const char* entryNam
 
 	return buffer;
 }
+

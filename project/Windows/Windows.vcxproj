@@ -140,6 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\App.cpp" />
+    <ClCompile Include="..\..\src\Colour.cpp" />
     <ClCompile Include="..\..\src\DataPack.cpp" />
     <ClCompile Include="..\..\src\Draw\Surf1bpp.cpp" />
     <ClCompile Include="..\..\src\Draw\Surf8bpp.cpp" />
@@ -169,6 +170,7 @@
     <ClCompile Include="..\..\src\Parser.cpp" />
     <ClCompile Include="..\..\src\Render.cpp" />
     <ClCompile Include="..\..\src\Tags.cpp" />
+    <ClCompile Include="..\..\src\VidModes.cpp" />
     <ClCompile Include="..\..\src\Windows\Platform.cpp" />
     <ClCompile Include="..\..\src\Windows\WinInput.cpp" />
     <ClCompile Include="..\..\src\Windows\WinNet.cpp" />
@@ -212,6 +214,7 @@
     <ClInclude Include="..\..\src\Style.h" />
     <ClInclude Include="..\..\src\Tags.h" />
     <ClInclude Include="..\..\src\URL.h" />
+    <ClInclude Include="..\..\src\VidModes.h" />
     <ClInclude Include="..\..\src\Windows\WinInput.h" />
     <ClInclude Include="..\..\src\Windows\WinNet.h" />
     <ClInclude Include="..\..\src\Windows\WinVid.h" />

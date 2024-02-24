@@ -52,6 +52,7 @@ private:
 		ParseExtensionContents,
 		ParseExtensionSubBlockSize,
 		ParseExtensionSubBlock,
+		ParseGraphicControlExtension
 	};
 
 	#pragma pack(push, 1)
@@ -84,6 +85,13 @@ private:
 		int32_t prev;
 		int len;
 	};
+
+	struct GraphicControlExtension
+	{
+		uint8_t packedFields;
+		uint16_t delayTime;
+		uint8_t transparentColourIndex;
+	};
 	#pragma pack(pop)
 
 	ImageDecoder::State state;
@@ -93,6 +101,7 @@ private:
 	uint8_t paletteLUT[256];		// GIF palette colour to video mode palette colour
 	int paletteSize;
 	uint8_t backgroundColour;
+	int transparentColourIndex;
 	uint8_t lzwCodeSize;
 
 	size_t structFillPosition;
@@ -143,6 +152,7 @@ private:
 			// ParseExtension  temporary vars
 			ExtensionHeader extensionHeader;
 			uint8_t extensionSubBlockSize;
+			GraphicControlExtension graphicControlExtension;
 		};		
 	//};
 };

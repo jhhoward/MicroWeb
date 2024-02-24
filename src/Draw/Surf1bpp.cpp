@@ -2,11 +2,13 @@
 #include "Surf1bpp.h"
 #include "../Font.h"
 #include "../Image/Image.h"
+#include "../Memory/MemBlock.h"
 
 DrawSurface_1BPP::DrawSurface_1BPP(int inWidth, int inHeight)
 	: DrawSurface(inWidth, inHeight)
 {
 	lines = new uint8_t * [height];
+	bpp = 1;
 }
 
 void DrawSurface_1BPP::HLine(DrawContext& context, int x, int y, int count, uint8_t colour)
@@ -351,15 +353,17 @@ void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* 
 
 void DrawSurface_1BPP::BlitImage(DrawContext& context, Image* image, int x, int y)
 {
-#if 0
+	if (!image->lines || image->bpp != 1)
+		return;
+
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
 
 	int srcWidth = image->width;
 	int srcHeight = image->height;
-	int srcPitch = image->pitch;
 	int startX = 0;
-	uint8_t* srcData = image->data;
+	int srcX = 0;
+	int srcY = 0;
 
 	// Calculate the destination width and height to copy, considering clipping region
 	int destWidth = srcWidth;
@@ -367,7 +371,7 @@ void DrawSurface_1BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 
 	if (x < context.clipLeft)
 	{
-		srcData += ((context.clipLeft - x) >> 3);
+		srcX += (context.clipLeft - x);
 		destWidth -= (context.clipLeft - x);
 		x = context.clipLeft;
 	}
@@ -379,7 +383,7 @@ void DrawSurface_1BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 
 	if (y < context.clipTop)
 	{
-		srcData += (context.clipTop - y) * srcPitch;
+		srcY += (context.clipTop - y);
 		destHeight -= (context.clipTop - y);
 		y = context.clipTop;
 	}
@@ -395,45 +399,45 @@ void DrawSurface_1BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 	}
 
 	int srcByteWidth = (srcWidth + 7) >> 3; // Calculate the width of the source image in bytes
-	int destByteWidth = (destWidth + 7) >> 3; // Calculate the width of the destination image in bytes
+//	int destByteWidth = (destWidth + 7) >> 3; // Calculate the width of the destination image in bytes
+	int destByteWidth = (destWidth) >> 3; // Calculate the width of the destination image in bytes
 
 	// Blit the image data line by line
 	for (int j = 0; j < destHeight; j++)
 	{
-		uint8_t* srcRow = srcData + (j * srcPitch);
-		uint8_t* destRow = lines[y + j] + (x >> 3);
-		int xBits = 7 - (x & 0x7); // Number of bits in the first destination byte to skip
+		uint8_t* src = image->lines[j + srcY].Get<uint8_t>() + (srcX >> 3);
+		uint8_t* dest = lines[y + j] + (x >> 3);
+		uint8_t srcMask = 0x80 >> (srcX & 7);
+		uint8_t destMask = 0x80 >> (x & 7);
+		uint8_t srcBuffer = *src++;
+		uint8_t destBuffer = *dest;
 
-		// Handle the first destination byte separately with proper masking
-		if (xBits == 0)
+		for (int i = 0; i < destWidth; i++)
 		{
-			// If x is on a byte boundary, copy the whole byte from the source
-			for (int i = 0; i < destByteWidth; i++)
+			if (srcBuffer & srcMask)
 			{
-				destRow[i] = srcRow[i];
+				destBuffer |= destMask;
+			}
+			else
+			{
+				destBuffer &= ~destMask;
+			}
+			srcMask >>= 1;
+			if (!srcMask)
+			{
+				srcMask = 0x80;
+				srcBuffer = *src++;
+			}
+			destMask >>= 1;
+			if (!destMask)
+			{
+				*dest++ = destBuffer;
+				destBuffer = *dest;
+				destMask = 0x80;
 			}
 		}
-		else
-		{
-			// Copy the first destination byte with proper masking
-			destRow[0] = (destRow[0] & (0xFF << xBits)) | (srcRow[0] >> (8 - xBits));
-
-			// Copy the remaining bytes
-			for (int i = 1; i < destByteWidth; i++)
-			{
-				destRow[i] = (srcRow[i - 1] << xBits) | (srcRow[i] >> (8 - xBits));
-			}
-		}
-
-		// Handle the case when the destination image width is not a multiple of 8 bits
-		int lastBit = 7 - ((x + destWidth) & 0x7);
-		if (lastBit > 0)
-		{
-			int mask = 0xFF << lastBit;
-			destRow[destByteWidth - 1] = (destRow[destByteWidth - 1] & ~mask) | (srcRow[destByteWidth] & mask);
-		}
+		*dest = destBuffer;
 	}
-#endif
 }
 
 

@@ -32,7 +32,9 @@ public:
 	virtual void BlitImage(DrawContext& context, Image* image, int x, int y) = 0;
 	virtual void VerticalScrollBar(DrawContext& context, int x, int y, int height, int position, int size) = 0;
 
+	uint8_t** lines;
 	int width, height;
+	uint8_t bpp;
 };
 
 #endif

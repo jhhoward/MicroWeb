@@ -24,7 +24,7 @@ class OlivettiDriver : public VideoDriver
 public:
 	OlivettiDriver(int screenModeToUse);
 
-	virtual void Init();
+	virtual void Init(VideoModeInfo* videoMode);
 	virtual void Shutdown();
 
 	virtual void ScaleImageDimensions(int& width, int& height);

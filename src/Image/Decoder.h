@@ -34,6 +34,10 @@ public:
 
 protected:
 	Image* outputImage;
+
+	static const uint8_t greyDitherMatrix[256];
+	static const int8_t colourDitherMatrix[16];
+
 };
 
 

@@ -24,7 +24,7 @@ class WindowsVideoDriver : public VideoDriver
 public:
 	WindowsVideoDriver();
 
-	virtual void Init();
+	virtual void Init(VideoModeInfo* videoMode);
 	virtual void Shutdown();
 
 	virtual void ClearScreen();
@@ -38,11 +38,9 @@ public:
 private:
 	void SetPixel(int x, int y, uint32_t colour);
 	void InvertPixel(int x, int y, uint32_t colour);
-	void FillRect(int x, int y, int width, int height, uint32_t colour);
 
 	BITMAPINFO* bitmapInfo;
 	uint32_t* lpBitmapBits;
 	HBITMAP screenBitmap;
 
-	uint32_t foregroundColour, backgroundColour;
 };

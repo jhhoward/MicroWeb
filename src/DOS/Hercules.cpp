@@ -41,7 +41,7 @@ static uint8_t graphicsModeCRTC[] = { 0x35, 0x2d, 0x2e, 0x07, 0x5b, 0x02, 0x57, 
 static uint8_t textModeCRTC[] = { 0x61, 0x50, 0x52, 0x0f, 0x19, 0x06, 0x19, 0x19, 0x02, 0x0d, 0x0b, 0x0c };
 
 
-void HerculesDriver::Init()
+void HerculesDriver::Init(VideoModeInfo* videoMode)
 {
 	SetGraphicsMode();
 
@@ -57,6 +57,7 @@ void HerculesDriver::Init()
 		drawSurface1BPP->lines[y + 3] = (BASE_VRAM_ADDRESS) + offset + 0x6000;
 	}
 	drawSurface = drawSurface1BPP;
+	colourScheme = monochromeColourScheme;
 }
 
 void HerculesDriver::Shutdown()

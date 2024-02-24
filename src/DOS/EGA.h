@@ -24,7 +24,7 @@ class EGADriver : public VideoDriver
 public:
 	EGADriver();
 
-	virtual void Init();
+	virtual void Init(VideoModeInfo* videoMode);
 	virtual void Shutdown();
 
 	virtual void ScaleImageDimensions(int& width, int& height);

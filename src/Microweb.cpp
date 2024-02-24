@@ -20,7 +20,10 @@
 
 int main(int argc, char* argv[])
 {
-	Platform::Init(argc, argv);
+	if (!Platform::Init(argc, argv))
+	{
+		return 0;
+	}
 
 	App* app = new App();
 

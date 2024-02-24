@@ -5,6 +5,7 @@
 #include "../Font.h"
 #include "../Image/Image.h"
 #include "../Memory/MemBlock.h"
+#include "../Colour.h"
 
 #define GC_INDEX 0x3ce
 #define GC_DATA 0x3cf
@@ -46,6 +47,7 @@ DrawSurface_4BPP::DrawSurface_4BPP(int inWidth, int inHeight)
 	: DrawSurface(inWidth, inHeight)
 {
 	lines = new uint8_t * [height];
+	bpp = 4;
 }
 
 void DrawSurface_4BPP::HLine(DrawContext& context, int x, int y, int count, uint8_t colour)
@@ -444,14 +446,17 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 			{
 				uint8_t colour = *src++;
 
-				// Set bitmask
-				outp(GC_INDEX, GC_BITMASK);
-				outp(GC_DATA, destMask);
+				if (colour != TRANSPARENT_COLOUR_VALUE)
+				{
+					// Set bitmask
+					outp(GC_INDEX, GC_BITMASK);
+					outp(GC_DATA, destMask);
 
-				outp(GC_INDEX, GC_SET_RESET);
-				outp(GC_DATA, colour);
+					outp(GC_INDEX, GC_SET_RESET);
+					outp(GC_DATA, colour);
 
-				*destRow |= 0xff;
+					*destRow |= 0xff;
+				}
 
 				destMask >>= 1;
 				if (!destMask)

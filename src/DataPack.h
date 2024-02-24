@@ -52,6 +52,14 @@ struct DataPackHeader
 
 struct DataPack
 {
+	enum Preset
+	{
+		CGA,
+		EGA,
+		Default,
+		Lowres
+	};
+
 	MouseCursorData* pointerCursor;
 	MouseCursorData* linkCursor;
 	MouseCursorData* textSelectCursor;
@@ -62,6 +70,7 @@ struct DataPack
 	Font* monoFonts[NUM_FONT_SIZES];
 	Font* boldMonoFonts[NUM_FONT_SIZES];
 
+	bool LoadPreset(Preset preset);
 	bool Load(const char* path);
 	Font* GetFont(int fontSize, FontStyle::Type fontStyle);
 	MouseCursorData* GetMouseCursorData(MouseCursor::Type type);
@@ -70,6 +79,7 @@ private:
 	void* LoadAsset(FILE* fs, DataPackHeader& header, const char* entryName, void* buffer = NULL);
 	Image* LoadImageAsset(FILE* fs, DataPackHeader& header, const char* entryName);
 	int FontSizeToIndex(int fontSize);
+	static const char* datapackFilenames[];
 };
 
 extern DataPack Assets;

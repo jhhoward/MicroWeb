@@ -1,7 +1,7 @@
 bin = MicroWeb.exe
 SRC_PATH = ..\..\src
 OBJDIR=obj
-objects = MicroWeb.obj App.obj Parser.obj Tags.obj Platform.obj CGA.obj EGA.obj Hercules.obj Olivetti.obj Font.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj Layout.obj Node.obj Text.obj Section.obj ImgNode.obj Block.obj StyNode.obj LinkNode.obj Break.obj Render.obj Button.obj Field.obj DataPack.obj Surf1bpp.obj Surf4bpp.obj Form.obj Status.obj Scroll.obj HTTP.obj Decoder.obj Gif.obj MemBlock.obj Memory.obj
+objects = MicroWeb.obj App.obj Parser.obj Tags.obj Platform.obj Colour.obj Hercules.obj BIOSVid.obj VidModes.obj Font.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj Layout.obj Node.obj Text.obj Section.obj ImgNode.obj Block.obj StyNode.obj LinkNode.obj Break.obj Render.obj Button.obj Field.obj DataPack.obj Surf1bpp.obj Surf4bpp.obj Surf8bpp.obj Form.obj Status.obj Scroll.obj HTTP.obj Decoder.obj Gif.obj MemBlock.obj Memory.obj
 memory_model = -ml
 CC = wpp
 CFLAGS = -zq -0 -ot -bt=DOS -w2 $(memory_model) -fi=$(SRC_PATH)\Defines.h
@@ -118,16 +118,16 @@ MemBlock.obj: $(SRC_PATH)\Memory\MemBlock.cpp
 Memory.obj: $(SRC_PATH)\Memory\Memory.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
-CGA.obj: $(SRC_PATH)\DOS\CGA.cpp
+VidModes.obj: $(SRC_PATH)\VidModes.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+Colour.obj: $(SRC_PATH)\Colour.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+BIOSVid.obj: $(SRC_PATH)\DOS\BIOSVid.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 Hercules.obj: $(SRC_PATH)\DOS\Hercules.cpp
-	 $(CC) -fo=$@ $(CFLAGS) $<
-
-Olivetti.obj: $(SRC_PATH)\DOS\Olivetti.cpp
-	 $(CC) -fo=$@ $(CFLAGS) $<
-
-EGA.obj: $(SRC_PATH)\DOS\EGA.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 DOSInput.obj: $(SRC_PATH)\DOS\DOSInput.cpp
@@ -140,6 +140,9 @@ Surf1bpp.obj: $(SRC_PATH)\Draw\Surf1bpp.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 Surf4bpp.obj: $(SRC_PATH)\DOS\Surf4bpp.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+Surf8bpp.obj: $(SRC_PATH)\Draw\Surf8bpp.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 clean: .symbolic
