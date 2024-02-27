@@ -32,6 +32,7 @@
 #include "Nodes/Button.h"
 #include "Nodes/Field.h"
 #include "Nodes/Form.h"
+#include "Nodes/Table.h"
 
 static const HTMLTagHandler* tagHandlers[] =
 {
@@ -54,7 +55,7 @@ static const HTMLTagHandler* tagHandlers[] =
 	new BlockTagHandler("div", false),
 	new BlockTagHandler("dt", false),
 	new BlockTagHandler("dd", false, 16),
-	new BlockTagHandler("tr", false),			// Table rows shouldn't really be a block but we don't have table support yet
+//	new BlockTagHandler("tr", false),			// Table rows shouldn't really be a block but we don't have table support yet
 	new BlockTagHandler("ul", true, 16),
 	new BrTagHandler(),
 	new AlignmentTagHandler("center", ElementAlignment::Center),
@@ -80,6 +81,10 @@ static const HTMLTagHandler* tagHandlers[] =
 	new ImgTagHandler(),
 	new MetaTagHandler(),
 	new PreformattedTagHandler("pre"),
+	new TableTagHandler(),
+	new TableRowTagHandler(),
+	new TableCellTagHandler("td"),
+	new TableCellTagHandler("th"),
 	NULL
 };
 
@@ -546,4 +551,34 @@ void PreformattedTagHandler::Close(class HTMLParser& parser) const
 	parser.PopPreFormatted();
 	parser.PopContext(this);
 	parser.EmitNode(BreakNode::Construct(MemoryManager::pageAllocator));
+}
+
+void TableTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
+{
+	parser.PushContext(TableNode::Construct(MemoryManager::pageAllocator), this);
+}
+
+void TableTagHandler::Close(class HTMLParser& parser) const
+{
+	parser.PopContext(this);
+}
+
+void TableRowTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
+{
+	parser.PushContext(TableRowNode::Construct(MemoryManager::pageAllocator), this);
+}
+
+void TableRowTagHandler::Close(class HTMLParser& parser) const
+{
+	parser.PopContext(this);
+}
+
+void TableCellTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
+{
+	parser.PushContext(TableCellNode::Construct(MemoryManager::pageAllocator), this);
+}
+
+void TableCellTagHandler::Close(class HTMLParser& parser) const
+{
+	parser.PopContext(this);
 }

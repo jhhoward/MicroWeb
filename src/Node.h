@@ -61,6 +61,9 @@ public:
 		Form,
 		StatusBar,
 		ScrollBar,
+		Table,
+		TableRow,
+		TableCell,
 		NumNodeTypes
 	};
 

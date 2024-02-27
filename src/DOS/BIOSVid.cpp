@@ -63,8 +63,37 @@ void BIOSVideoDriver::Init(VideoModeInfo* inVideoModeInfo)
 	{
 		drawSurface = new DrawSurface_8BPP(screenWidth, screenHeight);
 		screenPitch = screenWidth;
-		colourScheme = egaColourScheme;
-		paletteLUT = cgaPaletteLUT;
+		colourScheme = colourScheme666;
+		paletteLUT = new uint8_t[256];
+		for (int n = 0; n < 256; n++)
+		{
+			int r = (n & 0xe0);
+			int g = (n & 0x1c) << 3;
+			int b = (n & 3) << 6;
+
+			int rgbBlue = ((long)b * 255) / 0xc0;
+			int rgbGreen = ((long)g * 255) / 0xe0;
+			int rgbRed = ((long)r * 255) / 0xe0;
+
+			paletteLUT[n] = RGB666(rgbRed, rgbGreen, rgbBlue);
+		}
+
+		// Set palette to RGB666
+		outp(0x03C6, 0xff);
+		outp(0x03C8, 16);
+
+		for (int r = 0; r < 6; r++)
+		{
+			for (int g = 0; g < 6; g++)
+			{
+				for (int b = 0; b < 6; b++)
+				{
+					outp(0x03C9, (r * 63) / 5);
+					outp(0x03C9, (g * 63) / 5);
+					outp(0x03C9, (b * 63) / 5);
+				}
+			}
+		}
 	}
 
 	if (videoModeInfo->vramPage3)
@@ -147,4 +176,11 @@ void BIOSVideoDriver::ScaleImageDimensions(int& width, int& height)
 	height /= videoModeInfo->aspectRatio;
 	// Scale to 4:3
 	//height = (height * 5) / 12;
+	int maxWidth = screenWidth - 16;
+
+	if (width > maxWidth)
+	{
+		height = ((long)height * maxWidth) / width;
+		width = maxWidth;
+	}
 }

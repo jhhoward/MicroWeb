@@ -5,6 +5,7 @@
 
 #define RGB332(red, green, blue) (((red) & 0xe0) | (((green) & 0xe0) >> 3) | (((blue) & 0xc0) >> 6))
 #define RGB_TO_GREY(red, green, blue) (((red) * 76 + (green) * 150 + (blue) * 30) >> 8)
+#define RGB666(red, green, blue) ( ( ( (red) * 5) / 255) * 36) + ( ( ( (green) * 5) / 255) * 6) + ( ( ( (blue) * 5) / 255) ) + 16 
 
 #define TRANSPARENT_COLOUR_VALUE 0xff
 
@@ -24,6 +25,7 @@ struct NamedColour
 
 extern ColourScheme monochromeColourScheme;
 extern ColourScheme egaColourScheme;
+extern ColourScheme colourScheme666;
 
 extern uint8_t cgaPaletteLUT[];
 

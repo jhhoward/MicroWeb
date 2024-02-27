@@ -387,7 +387,7 @@ void AppInterface::SetTitle(const char* title)
 
 	DrawContext context(Platform::video->drawSurface, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight);
 	Platform::input->HideMouse();
-	uint8_t fillColour = 0xf;
+	uint8_t fillColour = Platform::video->colourScheme.pageColour;
 	context.surface->FillRect(context, 0, 0, titleNode->size.x, titleNode->size.y, fillColour);
 	titleNode->Handler().Draw(context, titleNode);
 	Platform::input->ShowMouse();
@@ -450,7 +450,7 @@ void AppInterface::ScrollRelative(int delta)
 	DrawContext context;
 	app.pageRenderer.GenerateDrawContext(context, NULL);
 	context.drawOffsetY = 0;
-	context.surface->FillRect(context, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight, 0xf);
+	context.surface->FillRect(context, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight, Platform::video->colourScheme.pageColour);
 	app.pageRenderer.GenerateDrawContext(context, NULL);
 	app.pageRenderer.DrawAll(context, app.page.GetRootNode());
 }

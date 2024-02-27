@@ -14,6 +14,7 @@
 #include "Nodes/Form.h"
 #include "Nodes/Status.h"
 #include "Nodes/Scroll.h"
+#include "Nodes/Table.h"
 
 NodeHandler* Node::nodeHandlers[Node::NumNodeTypes] =
 {
@@ -29,7 +30,10 @@ NodeHandler* Node::nodeHandlers[Node::NumNodeTypes] =
 	new TextFieldNode(),
 	new FormNode(),
 	new StatusBarNode(),
-	new ScrollBarNode()
+	new ScrollBarNode(),
+	new TableNode(),
+	new TableRowNode(),
+	new TableCellNode()
 };
 
 Node::Node(Type inType, void* inData)

@@ -109,6 +109,24 @@ void WindowsVideoDriver::Init(VideoModeInfo* videoMode)
 	if (useColour)
 	{
 		memcpy(bitmapInfo->bmiColors, cgaPalette, sizeof(RGBQUAD) * 16);
+
+		if (videoMode->bpp == 8)
+		{
+			int index = 16;
+			for (int r = 0; r < 6; r++)
+			{
+				for (int g = 0; g < 6; g++)
+				{
+					for (int b = 0; b < 6; b++)
+					{
+						bitmapInfo->bmiColors[index].rgbRed = (r * 255) / 5;
+						bitmapInfo->bmiColors[index].rgbGreen = (g * 255) / 5;
+						bitmapInfo->bmiColors[index].rgbBlue = (b * 255) / 5;
+						index++;
+					}
+				}
+			}
+		}
 	}
 	else
 	{
@@ -136,9 +154,31 @@ void WindowsVideoDriver::Init(VideoModeInfo* videoMode)
 			buffer[n] = 0xf;
 		}
 
-		colourScheme = egaColourScheme;
 
-		paletteLUT = cgaPaletteLUT;
+		if (videoMode->bpp == 8)
+		{
+			colourScheme = colourScheme666;
+			//paletteLUT = cgaPaletteLUT;
+
+			paletteLUT = new uint8_t[256];
+			for (int n = 0; n < 256; n++)
+			{
+				int r = (n & 0xe0);
+				int g = (n & 0x1c) << 3;
+				int b = (n & 3) << 6;
+
+				int rgbBlue = (b * 255) / 0xc0;
+				int rgbGreen = (g * 255) / 0xe0;
+				int rgbRed = (r * 255) / 0xe0;
+
+				paletteLUT[n] = RGB666(rgbRed, rgbGreen, rgbBlue);
+			}
+		}
+		else
+		{
+			colourScheme = egaColourScheme;
+			paletteLUT = cgaPaletteLUT;
+		}
 	}
 	else
 	{
@@ -258,6 +298,12 @@ void WindowsVideoDriver::Paint(HWND hwnd)
 
 void WindowsVideoDriver::ScaleImageDimensions(int& width, int& height)
 {
+	if (screenWidth <= 320)
+	{
+		width /= 2;
+		height /= 2;
+	}
+
 	height = (height / verticalScale);
 
 	int maxWidth = screenWidth - 16;
@@ -266,5 +312,14 @@ void WindowsVideoDriver::ScaleImageDimensions(int& width, int& height)
 	{
 		height = (height * maxWidth) / width;
 		width = maxWidth;
+	}
+
+	if (width == 0)
+	{
+		width = 1;
+	}
+	if (height == 0)
+	{
+		height = 1;
 	}
 }

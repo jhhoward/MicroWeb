@@ -700,7 +700,7 @@ void GifDecoder::EmitLine(int y)
 					int offset = ditherPattern[ditherIndex];
 					ditherIndex = (ditherIndex + 1) & 3;
 
-					if (lineBuffer[i] == transparentColourIndex)
+					if (lineBuffer[x] == transparentColourIndex)
 					{
 						output[i] = TRANSPARENT_COLOUR_VALUE;
 					}

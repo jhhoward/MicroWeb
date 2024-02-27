@@ -24,3 +24,15 @@ ColourScheme egaColourScheme =
 	// Button
 	7
 };
+
+ColourScheme colourScheme666 =
+{
+	// Page
+	RGB666(0xff, 0xff, 0xff),
+	// Text
+	RGB666(0, 0, 0),
+	// Link
+	RGB666(0, 0, 0xee),
+	// Button
+	RGB666(0xcc, 0xcc, 0xcc),
+};

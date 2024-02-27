@@ -86,7 +86,12 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 		"Block",
 		"Button",
 		"TextField",
-		"Form"
+		"Form",
+		"StatusBar",
+		"ScrollBar",
+		"Table",
+		"TableRow",
+		"TableCell"
 	};
 
 	static const char* sectionTypeNames[] =

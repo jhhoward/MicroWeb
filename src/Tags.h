@@ -178,6 +178,30 @@ public:
 	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
 };
 
+class TableTagHandler : public HTMLTagHandler
+{
+public:
+	TableTagHandler() : HTMLTagHandler("table") {}
+	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
+	virtual void Close(class HTMLParser& parser) const;
+};
+
+class TableRowTagHandler : public HTMLTagHandler
+{
+public:
+	TableRowTagHandler() : HTMLTagHandler("tr") {}
+	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
+	virtual void Close(class HTMLParser& parser) const;
+};
+
+class TableCellTagHandler : public HTMLTagHandler
+{
+public:
+	TableCellTagHandler(const char* name) : HTMLTagHandler(name) {}
+	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
+	virtual void Close(class HTMLParser& parser) const;
+};
+
 const HTMLTagHandler* DetermineTag(const char* str);
 
 #endif

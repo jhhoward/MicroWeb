@@ -11,14 +11,40 @@ Layout::Layout(Page& inPage)
 
 void Layout::Reset()
 {
-	cursor.Clear();
 	paramStackSize = 0;
+	cursorStackSize = 0;
 	currentLineHeight = 0;
 	lineStartNode = nullptr;
+	Cursor().Clear();
 
 	LayoutParams& params = GetParams();
 	params.marginLeft = 0;
 	params.marginRight = page.GetPageWidth();
+}
+
+void Layout::PushCursor()
+{
+	if (cursorStackSize < MAX_CURSOR_STACK_SIZE - 1)
+	{
+		cursorStack[cursorStackSize + 1] = cursorStack[cursorStackSize];
+		cursorStackSize++;
+	}
+	else
+	{
+		// TODO error
+	}
+}
+
+void Layout::PopCursor()
+{
+	if (cursorStackSize > 0)
+	{
+		cursorStackSize--;
+	}
+	else
+	{
+		// TODO: error
+	}
 }
 
 void Layout::PushLayout()
@@ -60,8 +86,8 @@ void Layout::BreakNewLine()
 		lineStartNode->parent->OnChildLayoutChanged();
 	}
 
-	cursor.x = GetParams().marginLeft;
-	cursor.y += currentLineHeight;
+	Cursor().x = GetParams().marginLeft;
+	Cursor().y += currentLineHeight;
 	currentLineHeight = 0;
 	lineStartNode = nullptr;
 }
@@ -87,7 +113,7 @@ void Layout::ProgressCursor(Node* nodeContext, int width, int lineHeight)
 		currentLineHeight = lineHeight;
 	}
 
-	cursor.x += width;
+	Cursor().x += width;
 }
 
 void Layout::TranslateNodes(Node* node, int deltaX, int deltaY, bool visitSiblings)
@@ -160,16 +186,26 @@ void Layout::PadHorizontal(int left, int right)
 		params.marginLeft += left;
 		params.marginRight -= right;
 	}
-	if (cursor.x < params.marginLeft)
+	if (Cursor().x < params.marginLeft)
 	{
-		cursor.x = params.marginLeft;
+		Cursor().x = params.marginLeft;
+	}
+}
+
+void Layout::RestrictHorizontal(int maxWidth)
+{
+	LayoutParams& params = GetParams();
+	int marginRight = Cursor().x + maxWidth;
+	if (marginRight < params.marginRight)
+	{
+		params.marginRight = marginRight;
 	}
 }
 
 void Layout::PadVertical(int down)
 {
-	cursor.x = GetParams().marginLeft;
-	cursor.y += down;
+	Cursor().x = GetParams().marginLeft;
+	Cursor().y += down;
 
 }
 

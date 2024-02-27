@@ -4,6 +4,7 @@
 #include "../Image/Image.h"
 #include "../Memory/MemBlock.h"
 #include "../Colour.h"
+#include "../Platform.h"
 
 DrawSurface_8BPP::DrawSurface_8BPP(int inWidth, int inHeight)
 	: DrawSurface(inWidth, inHeight)
@@ -513,6 +514,6 @@ void DrawSurface_8BPP::Clear()
 	int widthBytes = width;
 	for (int y = 0; y < height; y++)
 	{
-		memset(lines[y], 0xf, widthBytes);
+		memset(lines[y], Platform::video->colourScheme.pageColour, widthBytes);
 	}
 }

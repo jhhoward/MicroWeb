@@ -171,9 +171,9 @@ bool Platform::Init(int argc, char* argv[])
 		video = new BIOSVideoDriver();
 	}
 
+	network->Init();
 	video->Init(videoMode);
 	video->drawSurface->Clear();
-	network->Init();
 	input->Init();
 
 	if (inverse)
