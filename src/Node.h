@@ -79,6 +79,17 @@ public:
 	bool IsPointInsideChildren(int x, int y);
 	void OnChildLayoutChanged();
 	Node* FindParentOfType(Node::Type searchType);
+	template <typename T>
+	T* FindParentDataOfType(Node::Type searchType)
+	{
+		Node* parent = FindParentOfType(searchType);
+		if (parent)
+		{
+			return static_cast<T*>(parent->data);
+		}
+		return nullptr;
+	}
+
 	void Redraw();
 
 	Node* GetNextInTree();

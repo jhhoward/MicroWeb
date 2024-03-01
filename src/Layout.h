@@ -36,6 +36,7 @@ public:
 	void ProgressCursor(Node* nodeContext, int width, int lineHeight);
 
 	void RecalculateLayout();
+	void RecalculateLayoutForNode(Node* node);
 
 	Coord GetCursor(int lineHeight = 0) 
 	{ 

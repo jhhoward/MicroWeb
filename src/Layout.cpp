@@ -75,11 +75,11 @@ void Layout::PopLayout()
 void Layout::BreakNewLine()
 {
 	// Recenter items if required
-	if (lineStartNode && lineStartNode->style.alignment == ElementAlignment::Center)
-	{
-		int shift = AvailableWidth() / 2;
-		TranslateNodes(lineStartNode, shift, 0, true);
-	}
+	//if (lineStartNode && lineStartNode->style.alignment == ElementAlignment::Center)
+	//{
+	//	int shift = AvailableWidth() / 2;
+	//	TranslateNodes(lineStartNode, shift, 0, true);
+	//}
 
 	if (lineStartNode && lineStartNode->parent)
 	{
@@ -209,6 +209,50 @@ void Layout::PadVertical(int down)
 
 }
 
+void Layout::RecalculateLayoutForNode(Node* targetNode)
+{
+	Node* node = targetNode;
+	bool checkChildren = true;
+
+	node->Handler().BeginLayoutContext(*this, node);
+	node->Handler().GenerateLayout(*this, node);
+
+	while (node)
+	{
+		if (checkChildren && node->firstChild)
+		{
+			node = node->firstChild;
+		}
+		else if (node->next)
+		{
+			node = node->next;
+			checkChildren = true;
+		}
+		else
+		{
+			node = node->parent;
+			if (node)
+			{
+				node->Handler().EndLayoutContext(*this, node);
+			}
+
+			if (node == targetNode)
+			{
+				break;
+			}
+			checkChildren = false;
+			continue;
+		}
+
+		if (node)
+		{
+			node->Handler().BeginLayoutContext(*this, node);
+			node->Handler().GenerateLayout(*this, node);
+		}
+	}
+
+}
+
 void Layout::RecalculateLayout()
 {
 	Reset();
@@ -237,7 +281,8 @@ void Layout::RecalculateLayout()
 			node = node->parent;
 			if (node)
 			{
-				node->EncapsulateChildren();
+				node->Handler().EndLayoutContext(*this, node);
+//				node->EncapsulateChildren();
 			}
 			checkChildren = false;
 			continue;
@@ -245,6 +290,7 @@ void Layout::RecalculateLayout()
 
 		if (node)
 		{
+			node->Handler().BeginLayoutContext(*this, node);
 			node->Handler().GenerateLayout(*this, node);
 			/*if (node->parent)
 			{

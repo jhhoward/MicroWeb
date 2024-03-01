@@ -3,18 +3,26 @@
 
 #include "../Node.h"
 
-class TableNode : public NodeHandler
+
+class TableCellNode : public NodeHandler
 {
 public:
 	class Data
 	{
 	public:
-		Data()  {}
+		Data() : columnIndex(0), rowIndex(0), columnSpan(1), rowSpan(1), nextCell(nullptr) {}
+		Node* node;
+		int columnIndex;
+		int rowIndex;
+		int columnSpan;
+		int rowSpan;
+		TableCellNode::Data* nextCell;
 	};
 
 	static Node* Construct(Allocator& allocator);
 	virtual void BeginLayoutContext(Layout& layout, Node* node) override;
 	virtual void EndLayoutContext(Layout& layout, Node* node) override;
+	virtual void Draw(DrawContext& context, Node* node) override;
 };
 
 class TableRowNode : public NodeHandler
@@ -23,7 +31,11 @@ public:
 	class Data
 	{
 	public:
-		Data() {}
+		Data() : rowIndex(0), numCells(0), nextRow(nullptr), firstCell(nullptr) {}
+		int rowIndex;
+		int numCells;
+		TableRowNode::Data* nextRow;
+		TableCellNode::Data* firstCell;
 	};
 
 	static Node* Construct(Allocator& allocator);
@@ -31,18 +43,36 @@ public:
 	virtual void EndLayoutContext(Layout& layout, Node* node) override;
 };
 
-class TableCellNode : public NodeHandler
+class TableNode : public NodeHandler
 {
 public:
 	class Data
 	{
 	public:
-		Data() {}
+		struct ColumnInfo
+		{
+			int preferredWidth;
+			int calculatedWidth;
+		};
+
+		Data() : numColumns(0), numRows(0), cellSpacing(2), cellPadding(2), columns(nullptr), firstRow(nullptr), cells(nullptr) {}
+
+		bool IsGeneratingLayout() { return columns == nullptr; }
+
+		int numColumns;
+		int numRows;
+		int cellSpacing;
+		int cellPadding;
+		ColumnInfo* columns;
+		TableRowNode::Data* firstRow;
+		TableCellNode::Data** cells;
 	};
 
 	static Node* Construct(Allocator& allocator);
 	virtual void BeginLayoutContext(Layout& layout, Node* node) override;
 	virtual void EndLayoutContext(Layout& layout, Node* node) override;
+	virtual void Draw(DrawContext& context, Node* node) override;
+
 };
 
 #endif
