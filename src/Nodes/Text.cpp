@@ -6,20 +6,6 @@
 #include "../Draw/Surface.h"
 #include "../DataPack.h"
 
-void TextElement::Draw(DrawContext& context, Node* node)
-{
-	TextElement::Data* data = static_cast<TextElement::Data*>(node->data);
-
-	if (!node->firstChild && data->text)
-	{
-		Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
-		uint8_t textColour = node->style.fontColour;
-		context.surface->DrawString(context, font, data->text, node->anchor.x, node->anchor.y, textColour, node->style.fontStyle);
-		//Platform::video->InvertRect(node->anchor.x, node->anchor.y + 50, node->size.x, node->size.y);
-		//printf("%s [%d, %d](%d %d)", data->text, node->anchor.x, node->anchor.y, node->style.fontStyle, node->style.fontSize);
-	}
-}
-
 Node* TextElement::Construct(Allocator& allocator, const char* text)
 {
 	const char* textString = allocator.AllocString(text);
@@ -41,7 +27,8 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
 	int lineHeight = font->glyphHeight;
 
-	/* TODO: optimisation
+#if 0
+	// TODO: optimisation
 	if (data->lastAvailableWidth != -1)
 	{
 		// We must be regenerating this text element, see if we can just shuffle position rather than
@@ -49,7 +36,7 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 		if (data->lastAvailableWidth == layout.AvailableWidth())
 		{
 			Coord cursor = layout.GetCursor(lineHeight);
-			Coord previousAnchor = node->firstChild ? node->firstChild->anchor : node->anchor;
+			Coord previousAnchor = node->firstChild->anchor;
 			Coord offset;
 			offset.x = cursor.x - previousAnchor.x;
 			offset.y = cursor.y - previousAnchor.y;
@@ -71,18 +58,15 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 	}
 
 	data->lastAvailableWidth = layout.AvailableWidth();
-	*/
+#endif
+	
 
 	// Clear out SubTextElement children if we are regenerating the layout
 	for (Node* child = node->firstChild; child; child = child->next)
 	{
-		TextElement::Data* childData = static_cast<TextElement::Data*>(child->data);
-		if (childData->text && child != node->firstChild)
-		{
-			// Remove break and replace with white space
-			childData->text[-1] = ' ';
-		}
-		childData->text = nullptr;
+		SubTextElement::Data* childData = static_cast<SubTextElement::Data*>(child->data);
+		childData->startIndex = 0;
+		childData->length = 0;
 		child->anchor = layout.GetCursor();
 		child->size.Clear();
 	}
@@ -95,9 +79,10 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 	int width = 0;
 	Node* subTextNode = node->firstChild;
 
-	for(charIndex = 0; data->text[charIndex]; charIndex++)
+	for(charIndex = 0; ; charIndex++)
 	{
 		char c = data->text[charIndex];
+		bool isEnd = data->text[charIndex + 1] == 0;
 
 		if (c == ' ' || c == '\t')
 		{
@@ -105,84 +90,95 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 			lastBreakPointWidth = width;
 		}
 
-		width += font->GetGlyphWidth(c, node->style.fontStyle);
+		if (c == '\x1f')
+		{
+			// Non breaking space
+			data->text[charIndex] = ' ';
+		}
 
-		if (width > layout.AvailableWidth())
+		int glyphWidth = font->GetGlyphWidth(c, node->style.fontStyle);
+		width += glyphWidth;
+
+		bool cannotFit = width > layout.AvailableWidth();
+
+		if (cannotFit && !lastBreakPoint && layout.AvailableWidth() < layout.MaxAvailableWidth())
+		{
+			// Nothing could fit on the line before the break, just add a line break
+			layout.BreakNewLine();
+			cannotFit = width > layout.AvailableWidth();
+		}
+
+		if (cannotFit || isEnd)
 		{
 			// Needs a line break
-			if (startIndex == lastBreakPoint)
+
+			int emitStartPosition = startIndex;
+			int emitLength;
+			int emitWidth;
+			int nextIndex;
+
+			if (isEnd && !cannotFit)
 			{
-				// Nothing could fit on the line before the break
-				layout.BreakNewLine();
+				// End of the line so just emit everything
+				emitLength = charIndex + 1 - emitStartPosition;
+				emitWidth = width;
+				nextIndex = -1;
+			}
+			else if (lastBreakPoint)
+			{
+				// There was a space or tab that we can break at
+				emitLength = lastBreakPoint - emitStartPosition;
+				emitWidth = lastBreakPointWidth;
+				nextIndex = lastBreakPoint + 1;
 			}
 			else
 			{
-				if (!subTextNode)
-				{
-					subTextNode = SubTextElement::Construct(MemoryManager::pageAllocator, &text[startIndex]);
-					node->AddChild(subTextNode);
-				}
-				else 
-				{
-					TextElement::Data* childData = static_cast<TextElement::Data*>(subTextNode->data);
-					childData->text = &text[startIndex];
-				}
-
-				subTextNode->anchor = layout.GetCursor(lineHeight);
-				subTextNode->size.x = lastBreakPointWidth;
-				subTextNode->size.y = lineHeight;
-
-				text[lastBreakPoint] = '\0';
-				startIndex = lastBreakPoint + 1;
-				width -= lastBreakPointWidth;
-
-				layout.ProgressCursor(subTextNode, lastBreakPointWidth, lineHeight);
-				layout.BreakNewLine();
-
-				subTextNode = subTextNode->next;
+				// Need to break in the middle of a word
+				emitLength = charIndex - emitStartPosition;
+				emitWidth = width - glyphWidth;
+				nextIndex = charIndex;
 			}
-		}
-	}
-
-	if (charIndex > startIndex)
-	{
-		if (startIndex == 0 && !subTextNode)
-		{
-			// No sub text nodes needed
-			node->anchor = layout.GetCursor(lineHeight);
-			node->size.x = width;
-			node->size.y = lineHeight;
-			layout.ProgressCursor(node, width, lineHeight);
-		}
-		else
-		{
+			
 			if (!subTextNode)
 			{
-				subTextNode = SubTextElement::Construct(MemoryManager::pageAllocator, &text[startIndex]);
+				subTextNode = SubTextElement::Construct(MemoryManager::pageAllocator, emitStartPosition, emitLength);
 				node->AddChild(subTextNode);
 			}
 			else
 			{
-				TextElement::Data* childData = static_cast<TextElement::Data*>(subTextNode->data);
-				childData->text = &text[startIndex];
+				SubTextElement::Data* subTextData = static_cast<SubTextElement::Data*>(subTextNode->data);
+				subTextData->startIndex = emitStartPosition;
+				subTextData->length = emitLength;
 			}
+
 			subTextNode->anchor = layout.GetCursor(lineHeight);
-			subTextNode->size.x = width;
+			subTextNode->size.x = emitWidth;
 			subTextNode->size.y = lineHeight;
 
-			layout.ProgressCursor(subTextNode, width, lineHeight);
+			startIndex = nextIndex;
+			width -= emitWidth;
+
+			layout.ProgressCursor(subTextNode, emitWidth, lineHeight);
+			subTextNode = subTextNode->next;
+
+			if (isEnd)
+			{
+				break;
+			}
+
+			lastBreakPoint = 0;
+			lastBreakPointWidth = 0;
+
+			layout.BreakNewLine();
 		}
 	}
 
-	if (node->firstChild)
-	{
-		node->EncapsulateChildren();
-	}
+	node->EncapsulateChildren();
 }
 
-Node* SubTextElement::Construct(Allocator& allocator, const char* text)
+Node* SubTextElement::Construct(Allocator& allocator, int startIndex, int length)
 {
-	TextElement::Data* data = allocator.Alloc<TextElement::Data>(text);
+	SubTextElement::Data* data = allocator.Alloc<SubTextElement::Data>(startIndex, length);
 	if (data)
 	{
 		return allocator.Alloc<Node>(Node::SubText, data);
@@ -194,4 +190,25 @@ Node* SubTextElement::Construct(Allocator& allocator, const char* text)
 void SubTextElement::GenerateLayout(Layout& layout, Node* node)
 {
 	TextElement::Data* data = static_cast<TextElement::Data*>(node->data);
+}
+
+void SubTextElement::Draw(DrawContext& context, Node* node)
+{
+	TextElement::Data* textData = static_cast<TextElement::Data*>(node->parent->data);
+	SubTextElement::Data* subTextData = static_cast<SubTextElement::Data*>(node->data);
+
+	if (textData && subTextData && textData->text)
+	{
+		Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+		uint8_t textColour = node->style.fontColour;
+		char* text = textData->text + subTextData->startIndex;
+		char temp = text[subTextData->length];
+		text[subTextData->length] = 0;
+
+		context.surface->DrawString(context, font, text, node->anchor.x, node->anchor.y, textColour, node->style.fontStyle);
+
+		text[subTextData->length] = temp;
+		//Platform::video->InvertRect(node->anchor.x, node->anchor.y + 50, node->size.x, node->size.y);
+		//printf("%s [%d, %d](%d %d)", data->text, node->anchor.x, node->anchor.y, node->style.fontStyle, node->style.fontSize);
+	}
 }

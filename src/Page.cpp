@@ -112,11 +112,21 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 	
 	switch (node->type)
 	{
-	case Node::Text:
-	case Node::SubText:
+		case Node::Text:
 		{
 			TextElement::Data* data = static_cast<TextElement::Data*>(node->data);
-			printf("<%s> [%d,%d:%d,%d] %s\n", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y, data->text);
+			printf("<%s> [%d,%d:%d,%d]\n", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y);
+		}
+		break;
+	case Node::SubText:
+		{
+			TextElement::Data* data = static_cast<TextElement::Data*>(node->parent->data);
+			SubTextElement::Data* subData = static_cast<SubTextElement::Data*>(node->data);
+			char* text = data->text + subData->startIndex;
+			char temp = text[subData->length];
+			text[subData->length] = 0;
+			printf("<%s> [%d,%d:%d,%d] %s\n", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y, text);
+			text[subData->length] = temp;
 		}
 		break;
 	case Node::Section:

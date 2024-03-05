@@ -139,7 +139,7 @@ const char* ampersandEscapeSequences[14 * 2] =
 	"amp",	"&",
 	"lt",	"<",
 	"gt",	">",
-	"nbsp",	" ",
+	"nbsp",	"\x1f",
 	"pound",	"£",
 	"brvbar",	"¦",
 	"uml",	"\"",
