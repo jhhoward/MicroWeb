@@ -22,7 +22,7 @@ void BreakNode::Draw(DrawContext& context, Node* node)
 	if (data->displayBreakLine)
 	{
 		uint8_t outlineColour = 0;
-		context.surface->HLine(context, node->anchor.x, node->anchor.y, node->size.x, outlineColour);
+		context.surface->HLine(context, node->anchor.x, node->anchor.y + node->size.y / 2, node->size.x, outlineColour);
 	}
 }
 
@@ -48,7 +48,11 @@ void BreakNode::GenerateLayout(Layout& layout, Node* node)
 
 	node->anchor = layout.GetCursor();
 	node->anchor.x += 8;
-	node->anchor.y -= breakPadding / 2;
+	node->anchor.y -= breakPadding;
 	node->size.x = layout.AvailableWidth() - 16;
-	node->size.y = data->displayBreakLine ? 1 : 0;
+	node->size.y = breakPadding;
+	if (!breakPadding && data->displayBreakLine)
+	{
+		node->size.y = 1;
+	}
 }

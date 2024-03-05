@@ -18,6 +18,9 @@ void BlockNode::BeginLayoutContext(Layout& layout, Node* node)
 	BlockNode::Data* data = static_cast<BlockNode::Data*>(node->data);
 
 	layout.BreakNewLine();
+	node->anchor = layout.GetCursor();
+	node->size.x = layout.MaxAvailableWidth();
+
 	layout.PadVertical(data->verticalPadding);
 	layout.PushLayout();
 	layout.PadHorizontal(data->horizontalPadding, data->horizontalPadding);
@@ -25,11 +28,13 @@ void BlockNode::BeginLayoutContext(Layout& layout, Node* node)
 
 void BlockNode::EndLayoutContext(Layout& layout, Node* node)
 {
-	NodeHandler::EndLayoutContext(layout, node);
+
+	//NodeHandler::EndLayoutContext(layout, node);
 
 	BlockNode::Data* data = static_cast<BlockNode::Data*>(node->data);
 
 	layout.PopLayout();
 	layout.BreakNewLine();
 	layout.PadVertical(data->verticalPadding);
+	node->size.y = layout.GetCursor().y - node->anchor.y;
 }

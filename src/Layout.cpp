@@ -15,6 +15,7 @@ void Layout::Reset()
 	cursorStackSize = 0;
 	currentLineHeight = 0;
 	lineStartNode = nullptr;
+	lastNodeContext = nullptr;
 	Cursor().Clear();
 
 	LayoutParams& params = GetParams();
@@ -80,11 +81,17 @@ void Layout::BreakNewLine()
 	//	int shift = AvailableWidth() / 2;
 	//	TranslateNodes(lineStartNode, shift, 0, true);
 	//}
-
-	if (lineStartNode && lineStartNode->parent)
+	
+	if (lineStartNode && lineStartNode->style.alignment == ElementAlignment::Center)
 	{
-		lineStartNode->parent->OnChildLayoutChanged();
+		int shift = AvailableWidth() / 2;
+	//	TranslateNodes(lineStartNode, lastNodeContext, shift, 0);
 	}
+
+	//if (lineStartNode && lineStartNode->parent)
+	//{
+	//	lineStartNode->parent->OnChildLayoutChanged();
+	//}
 
 	Cursor().x = GetParams().marginLeft;
 	Cursor().y += currentLineHeight;
@@ -105,17 +112,40 @@ void Layout::ProgressCursor(Node* nodeContext, int width, int lineHeight)
 		lineStartNode = nodeContext;
 	}
 
+	lastNodeContext = nodeContext;
+
 	if (lineHeight > currentLineHeight)
 	{
 		// Line height has increased so move everything down accordingly
 		int deltaY = lineHeight - currentLineHeight;
-		TranslateNodes(lineStartNode, 0, deltaY, true);
+//		TranslateNodes(lineStartNode, 0, deltaY, true);
+		TranslateNodes(lineStartNode, nodeContext, 0, deltaY);
 		currentLineHeight = lineHeight;
 	}
 
 	Cursor().x += width;
 }
 
+void Layout::TranslateNodes(Node* start, Node* end, int deltaX, int deltaY)
+{
+	for (Node* node = start; node; node = node->GetNextInTree())
+	{
+		node->anchor.x += deltaX;
+		node->anchor.y += deltaY;
+
+		//if (node->parent)
+		//{
+		//	node->parent->OnChildLayoutChanged();
+		//}
+
+		if (node == end)
+		{
+			break;
+		}
+	}
+}
+
+/*
 void Layout::TranslateNodes(Node* node, int deltaX, int deltaY, bool visitSiblings)
 {
 	while (node)
@@ -157,6 +187,7 @@ void Layout::TranslateNodes(Node* node, int deltaX, int deltaY, bool visitSiblin
 		}
 	}
 }
+*/
 
 void Layout::OnNodeEmitted(Node* node)
 {
@@ -167,10 +198,10 @@ void Layout::OnNodeEmitted(Node* node)
 
 	node->Handler().GenerateLayout(*this, node);
 
-	if (node->parent)
-	{
-		node->parent->OnChildLayoutChanged();
-	}
+	//if (node->parent)
+	//{
+	//	node->parent->OnChildLayoutChanged();
+	//}
 }
 
 void Layout::PadHorizontal(int left, int right)

@@ -42,6 +42,11 @@ void TableNode::BeginLayoutContext(Layout& layout, Node* node)
 {
 	TableNode::Data* data = static_cast<TableNode::Data*>(node->data);
 
+	if (data->state == Data::FinishedLayout)
+	{
+		data->state = Data::GeneratingLayout;
+	}
+
 	layout.BreakNewLine();
 	layout.PushCursor();
 	layout.PushLayout();
@@ -59,7 +64,8 @@ void TableNode::BeginLayoutContext(Layout& layout, Node* node)
 
 void TableNode::EndLayoutContext(Layout& layout, Node* node)
 {
-	NodeHandler::EndLayoutContext(layout, node);
+	//NodeHandler::EndLayoutContext(layout, node);
+	node->EncapsulateChildren();
 
 	TableNode::Data* data = static_cast<TableNode::Data*>(node->data);
 
@@ -68,81 +74,84 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 
 	if (data->IsGeneratingLayout())
 	{
-		// Calculate number of rows and columns
-		data->numRows = data->numColumns = 0;
-
-		for (TableRowNode::Data* row = data->firstRow; row; row = row->nextRow)
+		if (!data->HasGeneratedCellGrid())
 		{
-			int columnCount = 0;
-			for (TableCellNode::Data* cell = row->firstCell; cell; cell = cell->nextCell)
+			// Calculate number of rows and columns
+			data->numRows = data->numColumns = 0;
+
+			for (TableRowNode::Data* row = data->firstRow; row; row = row->nextRow)
 			{
-				columnCount += cell->columnSpan;
-			}
-			data->numRows++;
+				int columnCount = 0;
+				for (TableCellNode::Data* cell = row->firstCell; cell; cell = cell->nextCell)
+				{
+					columnCount += cell->columnSpan;
+				}
+				data->numRows++;
 
-			if (columnCount > data->numColumns)
+				if (columnCount > data->numColumns)
+				{
+					data->numColumns = columnCount;
+				}
+			}
+
+
+			if (!data->cells)
 			{
-				data->numColumns = columnCount;
+				data->cells = (TableCellNode::Data**)MemoryManager::pageAllocator.Alloc(sizeof(TableCellNode::Data*) * data->numRows * data->numColumns);
 			}
-		}
 
+			if (!data->columns)
+			{
+				data->columns = (TableNode::Data::ColumnInfo*)MemoryManager::pageAllocator.Alloc(sizeof(TableNode::Data::ColumnInfo) * data->numColumns);
+			}
 
-		if (!data->cells)
-		{
-			data->cells = (TableCellNode::Data**)MemoryManager::pageAllocator.Alloc(sizeof(TableCellNode::Data*) * data->numRows * data->numColumns);
-		}
+			if (!data->cells || !data->columns)
+			{
+				// TODO: allocation error
+				return;
+			}
 
-		if (!data->columns)
-		{
-			data->columns = (TableNode::Data::ColumnInfo*)MemoryManager::pageAllocator.Alloc(sizeof(TableNode::Data::ColumnInfo) * data->numColumns);
-		}
+			for (int n = 0; n < data->numRows * data->numColumns; n++)
+			{
+				data->cells[n] = nullptr;
+			}
 
-		if (!data->cells || !data->columns)
-		{
-			// TODO: allocation error
-			return;
-		}
+			// Fill a grid array with pointers to cells
+			int rowIndex = 0;
+			for (TableRowNode::Data* row = data->firstRow; row; row = row->nextRow)
+			{
+				int columnIndex = 0;
 
-		for (int n = 0; n < data->numRows * data->numColumns; n++)
-		{
-			data->cells[n] = nullptr;
+				for (TableCellNode::Data* cell = row->firstCell; cell; cell = cell->nextCell)
+				{
+					while (data->cells[rowIndex * data->numColumns + columnIndex] && columnIndex < data->numColumns)
+					{
+						columnIndex++;
+					}
+					if (columnIndex == data->numColumns)
+					{
+						break;
+					}
+
+					for (int j = 0; j < cell->rowSpan; j++)
+					{
+						for (int i = 0; i < cell->columnSpan; i++)
+						{
+							data->cells[j * data->numColumns + i] = cell;
+						}
+					}
+
+					cell->columnIndex = columnIndex;
+					cell->rowIndex = rowIndex;
+					columnIndex += cell->columnSpan;
+				}
+				rowIndex++;
+			}
 		}
 
 		for (int n = 0; n < data->numColumns; n++)
 		{
 			data->columns[n].preferredWidth = 16;
-		}
-
-		// Fill a grid array with pointers to cells
-		int rowIndex = 0;
-		for (TableRowNode::Data* row = data->firstRow; row; row = row->nextRow)
-		{
-			int columnIndex = 0;
-
-			for (TableCellNode::Data* cell = row->firstCell; cell; cell = cell->nextCell)
-			{
-				while (data->cells[rowIndex * data->numColumns + columnIndex] && columnIndex < data->numColumns)
-				{
-					columnIndex++;
-				}
-				if (columnIndex == data->numColumns)
-				{
-					break;
-				}
-
-				for (int j = 0; j < cell->rowSpan; j++)
-				{
-					for (int i = 0; i < cell->columnSpan; i++)
-					{
-						data->cells[j * data->numColumns + i] = cell;
-					}
-				}
-
-				cell->columnIndex = columnIndex;
-				cell->rowIndex = rowIndex;
-				columnIndex += cell->columnSpan;
-			}
-			rowIndex++;
 		}
 
 		for (TableRowNode::Data* row = data->firstRow; row; row = row->nextRow)
@@ -167,7 +176,7 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 			totalPreferredWidth += data->columns[i].preferredWidth;
 		}
 
-		int maxAvailableWidth = layout.MaxAvailableWidth();
+		int maxAvailableWidth = layout.MaxAvailableWidth() - data->cellSpacing * 2;
 		if (totalPreferredWidth > maxAvailableWidth)
 		{
 			// TODO resize widths to fit
@@ -177,7 +186,10 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 			}
 		}
 
+		data->state = Data::FinalisingLayout;
 		layout.RecalculateLayoutForNode(node);
+		layout.PadVertical(node->size.y + (data->cellPadding + data->cellSpacing) * 2);
+		data->state = Data::FinishedLayout;
 	}
 
 	layout.BreakNewLine();
@@ -204,23 +216,26 @@ void TableRowNode::BeginLayoutContext(Layout& layout, Node* node)
 	{
 		if (tableData->IsGeneratingLayout())
 		{
-			if (!tableData->firstRow)
+			if (!tableData->HasGeneratedCellGrid())
 			{
-				tableData->firstRow = data;
-			}
-			else
-			{
-				for (TableRowNode::Data* row = tableData->firstRow; row; row = row->nextRow)
+				if (!tableData->firstRow)
 				{
-					if (row->nextRow == nullptr)
+					tableData->firstRow = data;
+				}
+				else
+				{
+					for (TableRowNode::Data* row = tableData->firstRow; row; row = row->nextRow)
 					{
-						row->nextRow = data;
-						break;
+						if (row->nextRow == nullptr)
+						{
+							row->nextRow = data;
+							break;
+						}
 					}
 				}
+				data->rowIndex = tableData->numRows;
+				tableData->numRows++;
 			}
-			data->rowIndex = tableData->numRows;
-			tableData->numRows++;
 		}
 		else
 		{
@@ -235,7 +250,8 @@ void TableRowNode::BeginLayoutContext(Layout& layout, Node* node)
 
 void TableRowNode::EndLayoutContext(Layout& layout, Node* node)
 {
-	NodeHandler::EndLayoutContext(layout, node);
+	//NodeHandler::EndLayoutContext(layout, node);
+	node->EncapsulateChildren();
 
 	TableRowNode::Data* data = static_cast<TableRowNode::Data*>(node->data);
 	TableNode::Data* tableData = node->FindParentDataOfType<TableNode::Data>(Node::Table);
@@ -276,25 +292,28 @@ void TableCellNode::BeginLayoutContext(Layout& layout, Node* node)
 	{
 		if (tableData->IsGeneratingLayout())
 		{
-			if (!rowData->firstCell)
+			if (!tableData->HasGeneratedCellGrid())
 			{
-				rowData->firstCell = data;
-			}
-			else
-			{
-				for (TableCellNode::Data* cell = rowData->firstCell; cell; cell = cell->nextCell)
+				if (!rowData->firstCell)
 				{
-					if (!cell->nextCell)
+					rowData->firstCell = data;
+				}
+				else
+				{
+					for (TableCellNode::Data* cell = rowData->firstCell; cell; cell = cell->nextCell)
 					{
-						cell->nextCell = data;
-						break;
+						if (!cell->nextCell)
+						{
+							cell->nextCell = data;
+							break;
+						}
 					}
 				}
-			}
 
-			data->rowIndex = rowData->rowIndex;
-			data->columnIndex = rowData->numCells;
-			rowData->numCells++;
+				data->rowIndex = rowData->rowIndex;
+				data->columnIndex = rowData->numCells;
+				rowData->numCells++;
+			}
 		}
 		else
 		{
@@ -309,8 +328,17 @@ void TableCellNode::BeginLayoutContext(Layout& layout, Node* node)
 void TableCellNode::EndLayoutContext(Layout& layout, Node* node)
 {
 	//NodeHandler::EndLayoutContext(layout, node);
-	node->EncapsulateChildren();
+	if (node->firstChild)
+	{
+		node->EncapsulateChildren();
+	}
+	else
+	{
+		// Cell was empty
+		node->anchor = layout.GetCursor();
+	}
 
+	layout.BreakNewLine();
 	layout.PopCursor();
 	layout.PopLayout();
 

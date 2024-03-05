@@ -204,7 +204,7 @@ Node* NodeHandler::Pick(Node* node, int x, int y)
 
 void NodeHandler::EndLayoutContext(Layout& layout, Node* node)
 {
-	if (node->size.x == 0 && node->size.y == 0)
+	//if (node->size.x == 0 && node->size.y == 0)
 	{
 		node->EncapsulateChildren();
 	}

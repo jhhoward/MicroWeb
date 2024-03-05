@@ -54,11 +54,19 @@ public:
 			int preferredWidth;
 			int calculatedWidth;
 		};
+		enum State
+		{
+			GeneratingLayout,
+			FinalisingLayout,
+			FinishedLayout
+		};
 
-		Data() : numColumns(0), numRows(0), cellSpacing(2), cellPadding(2), columns(nullptr), firstRow(nullptr), cells(nullptr) {}
+		Data() : state(GeneratingLayout), numColumns(0), numRows(0), cellSpacing(2), cellPadding(2), columns(nullptr), firstRow(nullptr), cells(nullptr) {}
 
-		bool IsGeneratingLayout() { return columns == nullptr; }
+		bool IsGeneratingLayout() { return state == GeneratingLayout; }
+		bool HasGeneratedCellGrid() { return cells != nullptr;  }
 
+		State state;
 		int numColumns;
 		int numRows;
 		int cellSpacing;

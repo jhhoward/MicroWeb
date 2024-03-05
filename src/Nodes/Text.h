@@ -8,8 +8,9 @@ public:
 	class Data
 	{
 	public:
-		Data(const char* inText) : text(const_cast<char*>(inText)) {}
+		Data(const char* inText) : text(const_cast<char*>(inText)), lastAvailableWidth(-1) {}
 		char* text;
+		int lastAvailableWidth;
 	};
 	
 	static Node* Construct(Allocator& allocator, const char* text);

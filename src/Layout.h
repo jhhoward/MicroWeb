@@ -49,6 +49,7 @@ public:
 	int MaxAvailableWidth() { return GetParams().marginRight - GetParams().marginLeft; }
 
 	Node* lineStartNode;
+	Node* lastNodeContext;
 
 	Coord& Cursor()
 	{
@@ -65,7 +66,7 @@ public:
 	LayoutParams paramStack[MAX_LAYOUT_PARAMS_STACK_SIZE];
 	int paramStackSize;
 
-	void TranslateNodes(Node* node, int deltaX, int deltaY, bool visitSiblings = false);
+	void TranslateNodes(Node* start, Node* end, int deltaX, int deltaY);
 };
 
 /*

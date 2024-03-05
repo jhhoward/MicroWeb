@@ -38,8 +38,40 @@ Node* TextElement::Construct(Allocator& allocator, const char* text)
 void TextElement::GenerateLayout(Layout& layout, Node* node)
 {
 	TextElement::Data* data = static_cast<TextElement::Data*>(node->data);
-	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);	// TODO: Get font from active style
+	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
 	int lineHeight = font->glyphHeight;
+
+	/* TODO: optimisation
+	if (data->lastAvailableWidth != -1)
+	{
+		// We must be regenerating this text element, see if we can just shuffle position rather than
+		// completely regenerating the whole layout
+		if (data->lastAvailableWidth == layout.AvailableWidth())
+		{
+			Coord cursor = layout.GetCursor(lineHeight);
+			Coord previousAnchor = node->firstChild ? node->firstChild->anchor : node->anchor;
+			Coord offset;
+			offset.x = cursor.x - previousAnchor.x;
+			offset.y = cursor.y - previousAnchor.y;
+
+			if (offset.x || offset.y)
+			{
+				node->anchor.x += offset.x;
+				node->anchor.y += offset.y;
+
+				for (Node* n = node->firstChild; n; n = n->next)
+				{
+					n->anchor.x += offset.x;
+					n->anchor.y += offset.y;
+				}
+			}
+
+			return;
+		}
+	}
+
+	data->lastAvailableWidth = layout.AvailableWidth();
+	*/
 
 	// Clear out SubTextElement children if we are regenerating the layout
 	for (Node* child = node->firstChild; child; child = child->next)
@@ -51,6 +83,8 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 			childData->text[-1] = ' ';
 		}
 		childData->text = nullptr;
+		child->anchor = layout.GetCursor();
+		child->size.Clear();
 	}
 
 	char* text = data->text;
