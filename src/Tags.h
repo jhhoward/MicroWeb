@@ -197,9 +197,11 @@ public:
 class TableCellTagHandler : public HTMLTagHandler
 {
 public:
-	TableCellTagHandler(const char* name) : HTMLTagHandler(name) {}
+	TableCellTagHandler(const char* name, bool inIsHeader) : HTMLTagHandler(name), isHeader(inIsHeader) {}
 	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
 	virtual void Close(class HTMLParser& parser) const;
+private:
+	bool isHeader;
 };
 
 const HTMLTagHandler* DetermineTag(const char* str);

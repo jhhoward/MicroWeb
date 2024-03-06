@@ -35,7 +35,7 @@ void Layout::BreakNewLine()
 	if (lineStartNode && lineStartNode->style.alignment == ElementAlignment::Center)
 	{
 		int shift = AvailableWidth() / 2;
-	//	TranslateNodes(lineStartNode, lastNodeContext, shift, 0);
+		TranslateNodes(lineStartNode, lastNodeContext, shift, 0);
 	}
 
 	//if (lineStartNode && lineStartNode->parent)

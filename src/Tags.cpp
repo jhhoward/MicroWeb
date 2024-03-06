@@ -83,8 +83,8 @@ static const HTMLTagHandler* tagHandlers[] =
 	new PreformattedTagHandler("pre"),
 	new TableTagHandler(),
 	new TableRowTagHandler(),
-	new TableCellTagHandler("td"),
-	new TableCellTagHandler("th"),
+	new TableCellTagHandler("td", false),
+	new TableCellTagHandler("th", true),
 	NULL
 };
 
@@ -575,7 +575,7 @@ void TableRowTagHandler::Close(class HTMLParser& parser) const
 
 void TableCellTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	parser.PushContext(TableCellNode::Construct(MemoryManager::pageAllocator), this);
+	parser.PushContext(TableCellNode::Construct(MemoryManager::pageAllocator, isHeader), this);
 }
 
 void TableCellTagHandler::Close(class HTMLParser& parser) const

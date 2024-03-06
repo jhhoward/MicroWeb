@@ -10,8 +10,9 @@ public:
 	class Data
 	{
 	public:
-		Data() : columnIndex(0), rowIndex(0), columnSpan(1), rowSpan(1), nextCell(nullptr) {}
+		Data(bool inIsHeader) : isHeader(inIsHeader), columnIndex(0), rowIndex(0), columnSpan(1), rowSpan(1), nextCell(nullptr) {}
 		Node* node;
+		bool isHeader;
 		int columnIndex;
 		int rowIndex;
 		int columnSpan;
@@ -19,7 +20,8 @@ public:
 		TableCellNode::Data* nextCell;
 	};
 
-	static Node* Construct(Allocator& allocator);
+	static Node* Construct(Allocator& allocator, bool isHeader);
+	virtual void ApplyStyle(Node* node);
 	virtual void BeginLayoutContext(Layout& layout, Node* node) override;
 	virtual void EndLayoutContext(Layout& layout, Node* node) override;
 	virtual void Draw(DrawContext& context, Node* node) override;
@@ -71,6 +73,7 @@ public:
 		int numRows;
 		int cellSpacing;
 		int cellPadding;
+		int totalWidth;
 		ColumnInfo* columns;
 		TableRowNode::Data* firstRow;
 		TableCellNode::Data** cells;

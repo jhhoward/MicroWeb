@@ -30,7 +30,7 @@ void TableNode::Draw(DrawContext& context, Node* node)
 	uint8_t borderColour = Platform::video->colourScheme.textColour;
 	int x = node->anchor.x - data->cellSpacing - data->cellPadding;
 	int y = node->anchor.y - data->cellSpacing - data->cellPadding;
-	int w = node->size.x + (data->cellSpacing + data->cellPadding) * 2;
+	int w = data->totalWidth; // node->size.x + (data->cellSpacing + data->cellPadding) * 2;
 	int h = node->size.y + (data->cellSpacing + data->cellPadding) * 2;
 	context.surface->HLine(context, x, y, w, borderColour);
 	context.surface->HLine(context, x, y + h - 1, w, borderColour);
@@ -170,13 +170,14 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 			}
 		}
 
-		int totalPreferredWidth = data->cellSpacing * (data->numColumns - 1);
+		int totalPreferredWidth = data->cellSpacing * (data->numColumns + 1);
 		for (int i = 0; i < data->numColumns; i++)
 		{
 			totalPreferredWidth += data->columns[i].preferredWidth;
 		}
 
-		int maxAvailableWidth = layout.MaxAvailableWidth() - data->cellSpacing * 2;
+		int totalCellSpacing = (data->numColumns + 1) * data->cellSpacing;
+		int maxAvailableWidth = layout.MaxAvailableWidth() - totalCellSpacing;
 		if (totalPreferredWidth > maxAvailableWidth)
 		{
 			// TODO resize widths to fit
@@ -186,9 +187,30 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 			}
 		}
 
+		int totalWidth = totalCellSpacing;
+		for (int i = 0; i < data->numColumns; i++)
+		{
+			totalWidth += data->columns[i].preferredWidth;
+		}
+		data->totalWidth = totalWidth;
+
+		layout.PushLayout();
+		if (node->style.alignment == ElementAlignment::Center)
+		{
+			int available = layout.AvailableWidth();
+			if (totalWidth < available)
+			{
+				layout.PadHorizontal((available - totalWidth) / 2, 0);
+			}
+		}
+
 		data->state = Data::FinalisingLayout;
 		layout.RecalculateLayoutForNode(node);
+		
+		layout.PopLayout();
+
 		layout.PadVertical(node->size.y + (data->cellPadding + data->cellSpacing) * 2);
+
 		data->state = Data::FinishedLayout;
 	}
 
@@ -267,9 +289,9 @@ void TableRowNode::EndLayoutContext(Layout& layout, Node* node)
 
 // Table cell node
 
-Node* TableCellNode::Construct(Allocator& allocator)
+Node* TableCellNode::Construct(Allocator& allocator, bool isHeader)
 {
-	TableCellNode::Data* data = allocator.Alloc<TableCellNode::Data>();
+	TableCellNode::Data* data = allocator.Alloc<TableCellNode::Data>(isHeader);
 	if (data)
 	{
 		Node* node = allocator.Alloc<Node>(Node::TableCell, data);
@@ -278,6 +300,21 @@ Node* TableCellNode::Construct(Allocator& allocator)
 	}
 	return nullptr;
 }
+
+void TableCellNode::ApplyStyle(Node* node)
+{
+	TableCellNode::Data* data = static_cast<TableCellNode::Data*>(node->data);
+	if (data->isHeader)
+	{
+		node->style.alignment = ElementAlignment::Center;
+		node->style.fontStyle = FontStyle::Bold;
+	}
+	else
+	{
+		node->style.alignment = ElementAlignment::Left;
+	}
+}
+
 
 void TableCellNode::BeginLayoutContext(Layout& layout, Node* node)
 {
