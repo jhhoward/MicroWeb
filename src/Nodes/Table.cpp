@@ -137,7 +137,7 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 					{
 						for (int i = 0; i < cell->columnSpan; i++)
 						{
-							data->cells[j * data->numColumns + i] = cell;
+							data->cells[(rowIndex + j) * data->numColumns + columnIndex + i] = cell;
 						}
 					}
 

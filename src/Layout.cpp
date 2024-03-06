@@ -33,6 +33,7 @@ void Layout::PushCursor()
 	else
 	{
 		// TODO error
+		exit(1);
 	}
 }
 
@@ -45,6 +46,7 @@ void Layout::PopCursor()
 	else
 	{
 		// TODO: error
+		exit(1);
 	}
 }
 
@@ -58,6 +60,7 @@ void Layout::PushLayout()
 	else
 	{
 		// TODO error
+		exit(1);
 	}
 }
 
@@ -70,6 +73,7 @@ void Layout::PopLayout()
 	else
 	{
 		// TODO error
+		exit(1);
 	}
 }
 
@@ -242,6 +246,17 @@ void Layout::PadVertical(int down)
 
 void Layout::RecalculateLayoutForNode(Node* targetNode)
 {
+	targetNode->Handler().BeginLayoutContext(*this, targetNode);
+	targetNode->Handler().GenerateLayout(*this, targetNode);
+
+	for (Node* node = targetNode->firstChild; node; node = node->next)
+	{
+		RecalculateLayoutForNode(node);
+	}
+
+	targetNode->Handler().EndLayoutContext(*this, targetNode);
+
+#if 0
 	Node* node = targetNode;
 	bool checkChildren = true;
 
@@ -256,6 +271,12 @@ void Layout::RecalculateLayoutForNode(Node* targetNode)
 		}
 		else if (node->next)
 		{
+			if (checkChildren)
+			{
+				// ???
+				node->Handler().EndLayoutContext(*this, node);
+			}
+
 			node = node->next;
 			checkChildren = true;
 		}
@@ -281,13 +302,17 @@ void Layout::RecalculateLayoutForNode(Node* targetNode)
 			node->Handler().GenerateLayout(*this, node);
 		}
 	}
-
+#endif
 }
 
 void Layout::RecalculateLayout()
 {
 	Reset();
-	
+
+	Node* node = page.GetRootNode();
+	RecalculateLayoutForNode(node);
+
+#if 0
 	//for (Node* node = page.GetRootNode(); node; node = node->GetNextInTree())
 	//{
 	//	node->Handler().GenerateLayout(*this, node);
@@ -304,6 +329,11 @@ void Layout::RecalculateLayout()
 		}
 		else if (node->next)
 		{
+			if (checkChildren)
+			{
+				node->Handler().EndLayoutContext(*this, node);
+			}
+
 			node = node->next;
 			checkChildren = true;
 		}
@@ -329,6 +359,7 @@ void Layout::RecalculateLayout()
 			}*/
 		}
 	}
+#endif
 
 	// FIXME
 	page.GetApp().ui.ScrollRelative(0);
