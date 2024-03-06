@@ -32,7 +32,7 @@
 
 HTMLParser::HTMLParser(Page& inPage)
 : page(inPage)
-, currentParseSection(SectionElement::Document)
+, contextStack(MemoryManager::pageAllocator)
 , contextStackSize(0)
 , parseState(ParseText)
 , textBufferSize(0)
@@ -45,10 +45,10 @@ void HTMLParser::Reset()
 {
 	parseState = ParseText;
 	textBufferSize = 0;
-	currentParseSection = SectionElement::Document;
 	preformatted = 0;
 	SetTextEncoding(TextEncoding::UTF8);
 
+	contextStack.Reset();
 	contextStackSize = -1;
 	PushContext(page.GetRootNode(), nullptr);
 }
@@ -59,46 +59,42 @@ void HTMLParser::PushContext(Node* node, const HTMLTagHandler* tag)
 	{
 		return;
 	}
-	if (contextStackSize < MAX_PARSE_CONTEXT_STACK_SIZE - 1)
+
+	if (contextStackSize >= 0)
 	{
-		if (contextStackSize >= 0)
-		{
-			Node* parentNode = CurrentContext().node;
-			parentNode->AddChild(node);
-			node->Handler().ApplyStyle(node);
-		}
-
-		contextStackSize++;
-		contextStack[contextStackSize].node = node;
-		contextStack[contextStackSize].tag = tag;
-
-		if (node->type == Node::Section)
-		{
-			SectionElement::Data* data = static_cast<SectionElement::Data*>(node->data);
-			currentParseSection = data->type;
-		}
-
-		node->Handler().BeginLayoutContext(page.layout, node);
+		Node* parentNode = CurrentContext().node;
+		parentNode->AddChild(node);
+		node->Handler().ApplyStyle(node);
 	}
-	else
+
+	contextStack.Push();
+	contextStackSize++;
+
+	contextStack.Top().node = node;
+	contextStack.Top().tag = tag;
+
+	if (node->type == Node::Section)
 	{
-		// TODO: ERROR
+		SectionElement::Data* data = static_cast<SectionElement::Data*>(node->data);
+		contextStack.Top().parseSection = data->type;
 	}
+
+	node->Handler().BeginLayoutContext(page.layout, node);
 }
 
 void HTMLParser::PopContext(const HTMLTagHandler* tag)
 {
-	for (int n = contextStackSize; n >= 0; n--)
+	while(contextStackSize >= 0)
 	{
-		HTMLParseContext& parseContext = contextStack[n];
+		HTMLParseContext& parseContext = contextStack.Top();
+		contextStack.Pop();
+		contextStackSize--;
 
 		parseContext.node->Handler().EndLayoutContext(page.layout, parseContext.node);
 
 		// Search for matching tag
 		if (parseContext.tag == tag)
 		{
-			contextStackSize = n - 1;
-
 			if (contextStackSize == 0)
 			{
 				page.GetRootNode()->EncapsulateChildren();
@@ -114,22 +110,12 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 				page.GetApp().StopLoad();
 			}
 
-			// We may have exited a section so update
-			for (int i = contextStackSize; i >= 0; i--)
-			{
-				if (contextStack[i].node->type == Node::Section)
-				{
-					SectionElement::Data* data = static_cast<SectionElement::Data*>(contextStack[i].node->data);
-					currentParseSection = data->type;
-					break;
-				}
-			}
-
 			return;
 		}
 	}
 
 	// TODO: ERROR
+	exit(1);
 }
 
 #define NUM_AMPERSAND_ESCAPE_SEQUENCES 14

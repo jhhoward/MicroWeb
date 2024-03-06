@@ -5,14 +5,14 @@
 #include "Render.h"
 
 Layout::Layout(Page& inPage)
-	: page(inPage)
+	: page(inPage), cursorStack(MemoryManager::pageAllocator), paramStack(MemoryManager::pageAllocator)
 {
 }
 
 void Layout::Reset()
 {
-	paramStackSize = 0;
-	cursorStackSize = 0;
+	paramStack.Reset();
+	cursorStack.Reset();
 	currentLineHeight = 0;
 	lineStartNode = nullptr;
 	lastNodeContext = nullptr;
@@ -21,60 +21,6 @@ void Layout::Reset()
 	LayoutParams& params = GetParams();
 	params.marginLeft = 0;
 	params.marginRight = page.GetPageWidth();
-}
-
-void Layout::PushCursor()
-{
-	if (cursorStackSize < MAX_CURSOR_STACK_SIZE - 1)
-	{
-		cursorStack[cursorStackSize + 1] = cursorStack[cursorStackSize];
-		cursorStackSize++;
-	}
-	else
-	{
-		// TODO error
-		exit(1);
-	}
-}
-
-void Layout::PopCursor()
-{
-	if (cursorStackSize > 0)
-	{
-		cursorStackSize--;
-	}
-	else
-	{
-		// TODO: error
-		exit(1);
-	}
-}
-
-void Layout::PushLayout()
-{
-	if (paramStackSize < MAX_LAYOUT_PARAMS_STACK_SIZE - 1)
-	{
-		paramStack[paramStackSize + 1] = paramStack[paramStackSize];
-		paramStackSize++;
-	}
-	else
-	{
-		// TODO error
-		exit(1);
-	}
-}
-
-void Layout::PopLayout()
-{
-	if (paramStackSize > 0)
-	{
-		paramStackSize--;
-	}
-	else
-	{
-		// TODO error
-		exit(1);
-	}
 }
 
 void Layout::BreakNewLine()
@@ -365,6 +311,6 @@ void Layout::RecalculateLayout()
 	page.GetApp().ui.ScrollRelative(0);
 
 #ifdef _WIN32
-	page.DebugDumpNodeGraph(page.GetRootNode());
+	//page.DebugDumpNodeGraph(page.GetRootNode());
 #endif
 }

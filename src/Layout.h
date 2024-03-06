@@ -1,9 +1,7 @@
 #pragma once
 
 #include "Node.h"
-
-#define MAX_LAYOUT_PARAMS_STACK_SIZE 32
-#define MAX_CURSOR_STACK_SIZE 16
+#include "Stack.h"
 
 class Page;
 class Node;
@@ -25,8 +23,8 @@ public:
 
 	void BreakNewLine();
 
-	void PushLayout();
-	void PopLayout();
+	void PushLayout() { paramStack.Push(); }
+	void PopLayout() { paramStack.Pop(); }
 	
 	void PadHorizontal(int left, int right);
 	void PadVertical(int down);
@@ -44,7 +42,7 @@ public:
 		result.y += currentLineHeight - lineHeight;
 		return result; 
 	}
-	LayoutParams& GetParams() { return paramStack[paramStackSize]; }
+	LayoutParams& GetParams() { return paramStack.Top(); }
 	int AvailableWidth() { return GetParams().marginRight - Cursor().x; }
 	int MaxAvailableWidth() { return GetParams().marginRight - GetParams().marginLeft; }
 
@@ -53,18 +51,16 @@ public:
 
 	Coord& Cursor()
 	{
-		return cursorStack[cursorStackSize];
+		return cursorStack.Top();
 	}
-	void PushCursor();
-	void PopCursor();
+	void PushCursor() { cursorStack.Push(); }
+	void PopCursor() { cursorStack.Pop(); }
 
-	Coord cursorStack[MAX_CURSOR_STACK_SIZE];
-	int cursorStackSize;
+	Stack<Coord> cursorStack;
 
 	int currentLineHeight;
 
-	LayoutParams paramStack[MAX_LAYOUT_PARAMS_STACK_SIZE];
-	int paramStackSize;
+	Stack<LayoutParams> paramStack;
 
 	void TranslateNodes(Node* start, Node* end, int deltaX, int deltaY);
 };

@@ -213,6 +213,7 @@
     <ClInclude Include="..\..\src\Parser.h" />
     <ClInclude Include="..\..\src\Platform.h" />
     <ClInclude Include="..\..\src\Render.h" />
+    <ClInclude Include="..\..\src\Stack.h" />
     <ClInclude Include="..\..\src\Style.h" />
     <ClInclude Include="..\..\src\Tags.h" />
     <ClInclude Include="..\..\src\URL.h" />

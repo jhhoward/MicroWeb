@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 #include "Nodes/Section.h"
+#include "Stack.h"
 
 class Page;
 class Node;
@@ -37,6 +38,7 @@ struct HTMLParseContext
 {
 	Node* node;
 	const HTMLTagHandler* tag;
+	SectionElement::Type parseSection;
 };
 
 class AttributeParser
@@ -56,8 +58,6 @@ private:
 	char* value;
 };
 
-#define MAX_PARSE_CONTEXT_STACK_SIZE 32
-
 class HTMLParser
 {
 public:
@@ -68,11 +68,11 @@ public:
 
 	Page& page;
 
-	SectionElement::Type CurrentSection() { return currentParseSection; }
 
 	void PushContext(Node* node, const HTMLTagHandler* tag);
 	void PopContext(const HTMLTagHandler* tag);
-	HTMLParseContext& CurrentContext() { return contextStack[contextStackSize]; }
+	HTMLParseContext& CurrentContext() { return contextStack.Top(); }
+	SectionElement::Type CurrentSection() { return CurrentContext().parseSection; }
 
 	void EmitNode(Node* node);
 	void EmitText(const char* text);
@@ -108,9 +108,7 @@ private:
 	char textBuffer[2560];
 	size_t textBufferSize;
 	
-	SectionElement::Type currentParseSection;
-
-	HTMLParseContext contextStack[MAX_PARSE_CONTEXT_STACK_SIZE];
+	Stack<HTMLParseContext> contextStack;
 	int contextStackSize;
 
 	bool parsingUnicode;
