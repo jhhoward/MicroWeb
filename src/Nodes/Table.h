@@ -43,6 +43,7 @@ public:
 	static Node* Construct(Allocator& allocator);
 	virtual void BeginLayoutContext(Layout& layout, Node* node) override;
 	virtual void EndLayoutContext(Layout& layout, Node* node) override;
+	virtual void ApplyStyle(Node* node);
 };
 
 class TableNode : public NodeHandler

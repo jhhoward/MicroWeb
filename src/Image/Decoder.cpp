@@ -10,12 +10,18 @@ union
 	char buffer[1];
 } ImageDecoderUnion;
 
+#define COLDITH(x) ((x * 4) - 32)
+
 const int8_t ImageDecoder::colourDitherMatrix[16] = 
 { 
-    0,  8,  2, 10,
-    12,  4, 14,  6,
-    3, 11,  1,  9,
-    15,  7, 13,  5 
+//    0,  8,  2, 10,
+//    12,  4, 14,  6,
+//    3, 11,  1,  9,
+//    15,  7, 13,  5 
+    COLDITH(0),     COLDITH(8),      COLDITH(2),      COLDITH(10),
+    COLDITH(12),    COLDITH(4),      COLDITH(14),     COLDITH(6),
+    COLDITH(3),     COLDITH(11),     COLDITH(1),      COLDITH(9),
+    COLDITH(15),    COLDITH(7),      COLDITH(13),     COLDITH(5)
 };
 
 const uint8_t ImageDecoder::greyDitherMatrix[256] = 

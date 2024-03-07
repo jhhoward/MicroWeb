@@ -101,6 +101,7 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 						{
 							// Allocation error
 							DEBUG_MESSAGE("Could not allocate!\n");
+							outputImage->lines = nullptr;
 							state = ImageDecoder::Error;
 							return;
 						}
@@ -108,6 +109,7 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 						if (pixels)
 						{
 							memset(pixels, TRANSPARENT_COLOUR_VALUE, outputImage->pitch);
+							outputImage->lines[j].Commit();
 						}
 					}
 					
@@ -654,7 +656,7 @@ void GifDecoder::EmitLine(int y)
 	
 	if (outputImage->bpp == 8)
 	{
-		bool useColourDithering = false;
+		bool useColourDithering = true;
 
 		if (useColourDithering)
 		{
@@ -665,7 +667,7 @@ void GifDecoder::EmitLine(int y)
 			{
 				for (int i = 0; i < lineBufferSize; i++)
 				{
-					int offset = ditherPattern[ditherIndex];
+					int8_t offset = ditherPattern[ditherIndex];
 					ditherIndex = (ditherIndex + 1) & 3;
 
 					if (lineBuffer[i] == transparentColourIndex)
@@ -678,12 +680,18 @@ void GifDecoder::EmitLine(int y)
 					int red = palette[index] + offset;
 					if (red > 255)
 						red = 255;
+					else if (red < 0)
+						red = 0;
 					int green = palette[index + 1] + offset;
 					if (green > 255)
 						green = 255;
+					else if (green < 0)
+						green = 0;
 					int blue = palette[index + 2] + offset;
 					if (blue > 255)
 						blue = 255;
+					else if (blue < 0)
+						blue = 0;
 
 					output[i] = Platform::video->paletteLUT[RGB332(red, green, blue)];
 				}
@@ -710,12 +718,18 @@ void GifDecoder::EmitLine(int y)
 						int red = palette[index] + offset;
 						if (red > 255)
 							red = 255;
+						else if (red < 0)
+							red = 0;
 						int green = palette[index + 1] + offset;
 						if (green > 255)
 							green = 255;
+						else if (green < 0)
+							green = 0;
 						int blue = palette[index + 2] + offset;
 						if (blue > 255)
 							blue = 255;
+						else if (blue < 0)
+							blue = 0;
 
 						output[i] = Platform::video->paletteLUT[RGB332(red, green, blue)];
 					}

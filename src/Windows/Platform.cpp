@@ -19,6 +19,7 @@
 #include "WinNet.h"
 #include "../Draw/Surface.h"
 #include "../VidModes.h"
+#include "../Memory/Memory.h"
 
 WindowsVideoDriver winVid;
 WindowsNetworkDriver winNetworkDriver;
@@ -44,12 +45,14 @@ bool Platform::Init(int argc, char* argv[])
 	video->drawSurface->Clear();
 	input->Init();
 	input->ShowMouse();
+	MemoryManager::pageBlockAllocator.Init();
 
 	return true;
 }
 
 void Platform::Shutdown()
 {
+	MemoryManager::pageBlockAllocator.Shutdown();
 	input->Shutdown();
 	video->Shutdown();
 	network->Shutdown();

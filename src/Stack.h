@@ -56,7 +56,6 @@ public:
 		}
 	}
 
-private:
 	struct Entry
 	{
 		T obj;
@@ -64,9 +63,11 @@ private:
 		Entry* prev;
 	};
 
-	LinearAllocator& allocator;
-	Entry base;
 	Entry* top;
+
+private:
+	Entry base;
+	LinearAllocator& allocator;
 };
 
 #endif

@@ -308,7 +308,7 @@ void AppInterface::GenerateInterfaceNodes()
 
 	{
 		titleBuffer[0] = '\0';
-		TextElement::Data* titleNodeData = allocator.Alloc<TextElement::Data>(titleBuffer);
+		TextElement::Data* titleNodeData = allocator.Alloc<TextElement::Data>(MemBlockHandle (titleBuffer));
 		titleNode = allocator.Alloc<Node>(Node::Text, titleNodeData);
 		titleNode->anchor.Clear();
 		titleNode->size.x = Platform::video->screenWidth;

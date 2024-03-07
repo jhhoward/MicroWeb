@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 #define MAX_SWAP_ALLOCATION (1024)
-#define MAX_SWAP_SIZE (1024 * 1024)
+#define MAX_SWAP_SIZE (1024l * 1024l)
 
 // Abstract way of allocating a chunk of memory from conventional memory, EMS, disk swap
 
@@ -22,6 +22,7 @@ struct MemBlockHandle
 	Type type;
 
 	MemBlockHandle() : type(Unallocated), allocatedSize(0) {}
+	MemBlockHandle(void* buffer) : type(Conventional), conventionalPointer(buffer) {}
 	void* GetPtr();
 	
 	template <typename T>
@@ -34,7 +35,12 @@ struct MemBlockHandle
 	{
 		void* conventionalPointer;
 		long swapFilePosition;
-		// TODO: EMS, disk swap
+
+		struct
+		{
+			uint16_t emsPage;
+			uint16_t emsPageOffset;
+		};
 	};
 	size_t allocatedSize;
 };
@@ -46,7 +52,13 @@ class MemBlockAllocator
 public:
 	MemBlockAllocator();
 
+	void Init();
+	void Shutdown();
+
 	MemBlockHandle Allocate(size_t size);
+	MemBlockHandle AllocString(const char* inString);
+
+	void Reset();
 
 private:
 	friend struct MemBlockHandle;
@@ -57,6 +69,7 @@ private:
 	long swapFileLength;
 	void* swapBuffer;
 	long lastSwapRead;
+	long maxSwapSize;
 };
 
 

@@ -44,6 +44,7 @@ void Page::Reset()
 	cursorY = TOP_MARGIN_PADDING;
 
 	MemoryManager::pageAllocator.Reset();
+	MemoryManager::pageBlockAllocator.Reset();
 
 	rootNode = SectionElement::Construct(MemoryManager::pageAllocator, SectionElement::Document);
 	rootNode->style.alignment = ElementAlignment::Left;
@@ -122,7 +123,7 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 		{
 			TextElement::Data* data = static_cast<TextElement::Data*>(node->parent->data);
 			SubTextElement::Data* subData = static_cast<SubTextElement::Data*>(node->data);
-			char* text = data->text + subData->startIndex;
+			char* text = data->text.Get<char>() + subData->startIndex;
 			char temp = text[subData->length];
 			text[subData->length] = 0;
 			printf("<%s> [%d,%d:%d,%d] %s\n", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y, text);

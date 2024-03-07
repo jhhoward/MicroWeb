@@ -84,6 +84,27 @@ void HTMLParser::PushContext(Node* node, const HTMLTagHandler* tag)
 
 void HTMLParser::PopContext(const HTMLTagHandler* tag)
 {
+	if (contextStackSize >= 0)
+	{
+		bool hasEntry = false;
+
+		// Check that the context stack has this tag (in case of malformed HTML)
+		for (Stack<HTMLParseContext>::Entry* entry = contextStack.top; entry; entry = entry->prev)
+		{
+			if (entry->obj.tag == tag)
+			{
+				hasEntry = true;
+				break;
+			}
+		}
+
+		if (!hasEntry)
+		{
+			return;
+		}
+	}
+
+	// Keep popping contexts until we get to the matching tag
 	while(contextStackSize >= 0)
 	{
 		HTMLParseContext& parseContext = contextStack.Top();
@@ -92,9 +113,9 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 
 		parseContext.node->Handler().EndLayoutContext(page.layout, parseContext.node);
 
-		// Search for matching tag
 		if (parseContext.tag == tag)
 		{
+			// If the stack is emptied then we have finished parsing the document
 			if (contextStackSize == 0)
 			{
 				page.GetRootNode()->EncapsulateChildren();

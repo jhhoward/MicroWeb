@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Node.h"
+#include "../Memory/MemBlock.h"
 
 class TextElement : public NodeHandler
 {
@@ -8,8 +9,8 @@ public:
 	class Data
 	{
 	public:
-		Data(const char* inText) : text(const_cast<char*>(inText)), lastAvailableWidth(-1) {}
-		char* text;
+		Data(MemBlockHandle& inText) : text(inText), lastAvailableWidth(-1) {}
+		MemBlockHandle text;
 		int lastAvailableWidth;
 	};
 	

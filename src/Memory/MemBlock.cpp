@@ -1,6 +1,13 @@
+#include <string.h>
 #include "MemBlock.h"
 #include "LinAlloc.h"
 #include "Memory.h"
+
+#ifdef __DOS__
+#include "../DOS/EMS.h"
+
+static EMSManager ems;
+#endif
 
 void* MemBlockHandle::GetPtr()
 {
@@ -12,7 +19,14 @@ void* MemBlockHandle::GetPtr()
 	{
 		return MemoryManager::pageBlockAllocator.AccessSwap(*this);
 	}
+#ifdef __DOS__
+	case MemBlockHandle::EMS:
+	{
+		return ems.MapBlock(*this);
+	}
+#endif
 	default:
+		exit(1);
 		return nullptr;
 	}
 }
@@ -29,23 +43,72 @@ void MemBlockHandle::Commit()
 }
 
 MemBlockAllocator::MemBlockAllocator()
+	: swapFile(nullptr)
+	, swapFileLength(0)
+	, swapBuffer(nullptr)
+	, lastSwapRead(-1)
+	, maxSwapSize(0)
 {
+}
+
+void MemBlockAllocator::Init()
+{
+	// Disable swap for now
 	//swapFile = fopen("Microweb.swp", "w+");
-	swapFile = NULL;
+	
 	if (swapFile)
 	{
 		swapBuffer = malloc(MAX_SWAP_ALLOCATION);
 		lastSwapRead = -1;
 		swapFileLength = 0;
+		maxSwapSize = MAX_SWAP_SIZE;
+	}
+
+#ifdef __DOS__
+	ems.Init();
+#endif
+}
+
+void MemBlockAllocator::Shutdown()
+{
+#ifdef __DOS__
+	ems.Shutdown();
+#endif
+
+	if (swapFile)
+	{
+		fclose(swapFile);
+		swapFile = NULL;
 	}
 }
 
+MemBlockHandle MemBlockAllocator::AllocString(const char* inString)
+{
+	MemBlockHandle result = Allocate(strlen(inString) + 1);
+	if (result.IsAllocated())
+	{
+		strcpy(result.Get<char>(), inString);
+		result.Commit();
+	}
+	return result;
+}
 
 MemBlockHandle MemBlockAllocator::Allocate(size_t size)
 {
 	MemBlockHandle result;
 
-	if (swapFile && size <= MAX_SWAP_ALLOCATION)
+#ifdef __DOS__
+	if (ems.IsAvailable())
+	{
+		result = ems.Allocate(size);
+		if (result.IsAllocated())
+		{
+			return result;
+		}
+	}
+#endif
+
+	if (swapFile && size <= MAX_SWAP_ALLOCATION && swapFileLength + size < maxSwapSize)
 	{
 		result.swapFilePosition = swapFileLength;
 		result.allocatedSize = size;
@@ -97,4 +160,14 @@ void MemBlockAllocator::CommitSwap(MemBlockHandle& handle)
 {
 	fseek(swapFile, handle.swapFilePosition, SEEK_SET);
 	fwrite(swapBuffer, 1, handle.allocatedSize, swapFile);
+}
+
+void MemBlockAllocator::Reset()
+{
+	swapFileLength = 0;
+	lastSwapRead = -1;
+
+#ifdef __DOS__
+	ems.Reset();
+#endif
 }

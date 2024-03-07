@@ -350,6 +350,8 @@ void HTTPRequest::Update()
 
 bool HTTPRequest::ReadLine()
 {
+	bool allowBufferTruncation = true;
+
 	while (1)
 	{
 		int rc = sock->Receive((unsigned char*)lineBuffer + lineBufferSize, 1);
@@ -395,7 +397,10 @@ bool HTTPRequest::ReadLine()
 			return true;
 		}
 
-		lineBufferSize++;
+		if (!allowBufferTruncation || lineBufferSize < LINE_BUFFER_SIZE - 1)
+		{
+			lineBufferSize++;
+		}
 	}
 }
 

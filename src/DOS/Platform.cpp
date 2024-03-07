@@ -24,6 +24,7 @@
 #include "../Cursor.h"
 #include "../Font.h"
 #include "../Draw/Surface.h"
+#include "../Memory/Memory.h"
 
 static DOSInputDriver DOSinput;
 static DOSNetworkDriver DOSNet;
@@ -175,6 +176,7 @@ bool Platform::Init(int argc, char* argv[])
 	video->Init(videoMode);
 	video->drawSurface->Clear();
 	input->Init();
+	MemoryManager::pageBlockAllocator.Init();
 
 	if (inverse)
 	{
@@ -187,6 +189,7 @@ bool Platform::Init(int argc, char* argv[])
 
 void Platform::Shutdown()
 {
+	MemoryManager::pageBlockAllocator.Shutdown();
 	input->Shutdown();
 	video->Shutdown();
 	network->Shutdown();

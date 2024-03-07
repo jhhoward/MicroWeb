@@ -103,6 +103,7 @@
     <ClCompile Include="..\..\src\DOS\DOSInput.cpp" />
     <ClCompile Include="..\..\src\DOS\DOSNet.cpp" />
     <ClCompile Include="..\..\src\DOS\EGA.cpp" />
+    <ClCompile Include="..\..\src\DOS\EMS.cpp" />
     <ClCompile Include="..\..\src\DOS\Hercules.cpp" />
     <ClCompile Include="..\..\src\DOS\HP95LX.cpp" />
     <ClCompile Include="..\..\src\DOS\Olivetti.cpp" />
@@ -129,6 +130,7 @@
     <ClInclude Include="..\..\src\DOS\BIOSVid.h" />
     <ClInclude Include="..\..\src\DOS\DOSNet.h" />
     <ClInclude Include="..\..\src\DOS\EGA.h" />
+    <ClInclude Include="..\..\src\DOS\EMS.h" />
     <ClInclude Include="..\..\src\DOS\Hercules.h" />
     <ClInclude Include="..\..\src\DOS\HP95LX.h" />
     <ClInclude Include="..\..\src\DOS\Olivetti.h" />

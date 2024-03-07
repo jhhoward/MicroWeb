@@ -287,6 +287,11 @@ void TableRowNode::EndLayoutContext(Layout& layout, Node* node)
 	}
 }
 
+void TableRowNode::ApplyStyle(Node* node)
+{
+	node->style.alignment = ElementAlignment::Left;
+}
+
 // Table cell node
 
 Node* TableCellNode::Construct(Allocator& allocator, bool isHeader)

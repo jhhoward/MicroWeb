@@ -8,10 +8,10 @@
 
 Node* TextElement::Construct(Allocator& allocator, const char* text)
 {
-	const char* textString = allocator.AllocString(text);
-	if (textString)
+	MemBlockHandle textHandle = MemoryManager::pageBlockAllocator.AllocString(text);
+	if (textHandle.IsAllocated())
 	{
-		TextElement::Data* data = allocator.Alloc<TextElement::Data>(textString);
+		TextElement::Data* data = allocator.Alloc<TextElement::Data>(textHandle);
 		if (data)
 		{
 			return allocator.Alloc<Node>(Node::Text, data);
@@ -71,18 +71,19 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 		child->size.Clear();
 	}
 
-	char* text = data->text;
+	char* text = data->text.Get<char>();
 	int charIndex = 0;
 	int startIndex = 0;
 	int lastBreakPoint = 0;
 	int lastBreakPointWidth = 0;
 	int width = 0;
 	Node* subTextNode = node->firstChild;
+	bool hasModified = false;
 
 	for(charIndex = 0; ; charIndex++)
 	{
-		char c = data->text[charIndex];
-		bool isEnd = data->text[charIndex + 1] == 0;
+		char c = text[charIndex];
+		bool isEnd = text[charIndex + 1] == 0;
 
 		if (c == ' ' || c == '\t')
 		{
@@ -93,7 +94,8 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 		if (c == '\x1f')
 		{
 			// Non breaking space
-			data->text[charIndex] = ' ';
+			text[charIndex] = ' ';
+			hasModified = true;
 		}
 
 		int glyphWidth = font->GetGlyphWidth(c, node->style.fontStyle);
@@ -173,6 +175,11 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 		}
 	}
 
+	if (hasModified)
+	{
+		data->text.Commit();
+	}
+
 	node->EncapsulateChildren();
 }
 
@@ -197,11 +204,11 @@ void SubTextElement::Draw(DrawContext& context, Node* node)
 	TextElement::Data* textData = static_cast<TextElement::Data*>(node->parent->data);
 	SubTextElement::Data* subTextData = static_cast<SubTextElement::Data*>(node->data);
 
-	if (textData && subTextData && textData->text)
+	if (textData && subTextData && textData->text.IsAllocated())
 	{
 		Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
 		uint8_t textColour = node->style.fontColour;
-		char* text = textData->text + subTextData->startIndex;
+		char* text = textData->text.Get<char>() + subTextData->startIndex;
 		char temp = text[subTextData->length];
 		text[subTextData->length] = 0;
 
