@@ -1,17 +1,22 @@
 #include <memory.h>
-#include "Surf1bpp.h"
+#include "Surf2BPP.h"
 #include "../Font.h"
 #include "../Image/Image.h"
 #include "../Memory/MemBlock.h"
 
-DrawSurface_1BPP::DrawSurface_1BPP(int inWidth, int inHeight)
+static uint8_t bitmaskTable[] =
+{
+	0xc0, 0x30, 0x0c, 0x03
+};
+
+DrawSurface_2BPP::DrawSurface_2BPP(int inWidth, int inHeight)
 	: DrawSurface(inWidth, inHeight)
 {
 	lines = new uint8_t * [height];
-	bpp = 1;
+	bpp = 2;
 }
 
-void DrawSurface_1BPP::HLine(DrawContext& context, int x, int y, int count, uint8_t colour)
+void DrawSurface_2BPP::HLine(DrawContext& context, int x, int y, int count, uint8_t colour)
 {
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
@@ -35,61 +40,33 @@ void DrawSurface_1BPP::HLine(DrawContext& context, int x, int y, int count, uint
 	}
 
 	uint8_t* VRAMptr = lines[y];
-	VRAMptr += (x >> 3);
+	VRAMptr += (x >> 2);
 
 	uint8_t data = *VRAMptr;
+	uint8_t mask = bitmaskTable[x & 3];
 
-	if (colour)
+	while (count--)
 	{
-		uint8_t mask = (0x80 >> (x & 7));
-
-		while (count--)
+		data = (data & (~mask)) | (colour & mask);
+		x++;
+		mask >>= 2;
+		if (!mask)
 		{
-			data |= mask;
-			x++;
-			mask >>= 1;
-			if (!mask)
+			*VRAMptr++ = data;
+			while (count > 4)
 			{
-				*VRAMptr++ = data;
-				while (count > 8)
-				{
-					*VRAMptr++ = 0xff;
-					count -= 8;
-				}
-				mask = 0x80;
-				data = *VRAMptr;
+				*VRAMptr++ = colour;
+				count -= 4;
 			}
+			mask = 0xc0;
+			data = *VRAMptr;
 		}
-
-		*VRAMptr = data;
 	}
-	else
-	{
-		uint8_t mask = ~(0x80 >> (x & 7));
 
-		while (count--)
-		{
-			data &= mask;
-			x++;
-			mask = (mask >> 1) | 0x80;
-			if ((x & 7) == 0)
-			{
-				*VRAMptr++ = data;
-				while (count > 8)
-				{
-					*VRAMptr++ = 0;
-					count -= 8;
-				}
-				mask = ~0x80;
-				data = *VRAMptr;
-			}
-		}
-
-		*VRAMptr = data;
-	}
+	*VRAMptr = data;
 }
 
-void DrawSurface_1BPP::VLine(DrawContext& context, int x, int y, int count, uint8_t colour)
+void DrawSurface_2BPP::VLine(DrawContext& context, int x, int y, int count, uint8_t colour)
 {
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
@@ -116,29 +93,19 @@ void DrawSurface_1BPP::VLine(DrawContext& context, int x, int y, int count, uint
 		return;
 	}
 
-	uint8_t mask = (0x80 >> (x & 7));
-	int index = x >> 3;
+	uint8_t mask = bitmaskTable[x & 3];
+	uint8_t andMask = ~mask;
+	uint8_t orMask = mask & colour;
+	int index = x >> 2;
 
-	if (colour)
+	while (count--)
 	{
-		while (count--)
-		{
-			(lines[y])[index] |= mask;
-			y++;
-		}
-	}
-	else
-	{
-		mask ^= 0xff;
-		while (count--)
-		{
-			(lines[y])[index] &= mask;
-			y++;
-		}
+		(lines[y])[index] = ((lines[y])[index] & andMask) | orMask;
+		y++;
 	}
 }
 
-void DrawSurface_1BPP::FillRect(DrawContext& context, int x, int y, int width, int height, uint8_t colour)
+void DrawSurface_2BPP::FillRect(DrawContext& context, int x, int y, int width, int height, uint8_t colour)
 {
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
@@ -169,65 +136,37 @@ void DrawSurface_1BPP::FillRect(DrawContext& context, int x, int y, int width, i
 	while (height)
 	{
 		uint8_t* VRAMptr = lines[y];
-		VRAMptr += (x >> 3);
-		int count = width;
-		int workX = x;
+		VRAMptr += (x >> 2);
+
 		uint8_t data = *VRAMptr;
+		uint8_t mask = bitmaskTable[x & 3];
+		int count = width;
 
-		if (colour)
+		while (count--)
 		{
-			uint8_t mask = (0x80 >> (x & 7));
-
-			while (count--)
+			data = (data & (~mask)) | (colour & mask);
+			mask >>= 2;
+			if (!mask)
 			{
-				data |= mask;
-				mask >>= 1;
-				if (!mask)
+				*VRAMptr++ = data;
+				while (count > 4)
 				{
-					*VRAMptr++ = data;
-					while (count > 8)
-					{
-						*VRAMptr++ = 0xff;
-						count -= 8;
-					}
-					mask = 0x80;
-					data = *VRAMptr;
+					*VRAMptr++ = colour;
+					count -= 4;
 				}
+				mask = 0xc0;
+				data = *VRAMptr;
 			}
-
-			*VRAMptr = data;
 		}
-		else
-		{
-			uint8_t mask = ~(0x80 >> (x & 7));
 
-			while (count--)
-			{
-				data &= mask;
-				workX++;
-				mask = (mask >> 1) | 0x80;
-				if ((workX & 7) == 0)
-				{
-					*VRAMptr++ = data;
-					while (count > 8)
-					{
-						*VRAMptr++ = 0;
-						count -= 8;
-					}
-					mask = ~0x80;
-					data = *VRAMptr;
-				}
-			}
-
-			*VRAMptr = data;
-		}
+		*VRAMptr = data;
 
 		height--;
 		y++;
 	}
 }
 
-void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* text, int x, int y, uint8_t colour, FontStyle::Type style)
+void DrawSurface_2BPP::DrawString(DrawContext& context, Font* font, const char* text, int x, int y, uint8_t colour, FontStyle::Type style)
 {
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
@@ -286,53 +225,43 @@ void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* 
 		glyphData += (firstLine * font->glyphWidthBytes);
 
 		int outY = y;
-		uint8_t* VRAMptr = lines[y] + (x >> 3);
 
-		if (!colour)
+		for (uint8_t j = firstLine; j < glyphHeight; j++)
 		{
-			for (uint8_t j = firstLine; j < glyphHeight; j++)
+			uint8_t* VRAMptr = lines[outY] + (x >> 2);
+			uint8_t writeData = *VRAMptr;
+			uint8_t writeMask = bitmaskTable[x & 3];
+			uint8_t writeOffset = (uint8_t)(x) & 0x7;
+
+			if ((style & FontStyle::Italic) && j < (font->glyphHeight >> 1))
 			{
-				uint8_t writeOffset = (uint8_t)(x) & 0x7;
-
-				if ((style & FontStyle::Italic) && j < (font->glyphHeight >> 1))
-				{
-					writeOffset++;
-				}
-
-				for (uint8_t i = 0; i < font->glyphWidthBytes; i++)
-				{
-					uint8_t glyphPixels = *glyphData++;
-
-					VRAMptr[i] &= ~(glyphPixels >> writeOffset);
-					VRAMptr[i + 1] &= ~(glyphPixels << (8 - writeOffset));
-				}
-
-				outY++;
-				VRAMptr = lines[outY] + (x >> 3);
+				writeOffset++;
 			}
-		}
-		else
-		{
-			for (uint8_t j = firstLine; j < glyphHeight; j++)
+
+			for (uint8_t i = 0; i < font->glyphWidthBytes; i++)
 			{
-				uint8_t writeOffset = (uint8_t)(x) & 0x7;
+				uint8_t glyphPixels = *glyphData++;
 
-				if ((style & FontStyle::Italic) && j < (font->glyphHeight >> 1))
+				for (uint8_t k = 0; k < 8; k++)
 				{
-					writeOffset++;
+					if (glyphPixels & (0x80 >> k))
+					{
+						writeData = (writeData & (~writeMask)) | (writeMask & colour);
+					}
+
+					writeMask >>= 2;
+					if (!writeMask)
+					{
+						*VRAMptr++ = writeData;
+						writeData = *VRAMptr;
+						writeMask = 0xc0;
+					}
 				}
-
-				for (uint8_t i = 0; i < font->glyphWidthBytes; i++)
-				{
-					uint8_t glyphPixels = *glyphData++;
-
-					VRAMptr[i] |= (glyphPixels >> writeOffset);
-					VRAMptr[i + 1] |= (glyphPixels << (8 - writeOffset));
-				}
-
-				outY++;
-				VRAMptr = lines[outY] + (x >> 3);
 			}
+
+			*VRAMptr = writeData;
+
+			outY++;
 		}
 
 		x += glyphWidth;
@@ -347,12 +276,11 @@ void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* 
 	{
 		HLine(context, startX, y - firstLine + font->glyphHeight - 1 - context.drawOffsetY, x - startX - context.drawOffsetX, colour);
 	}
-
 }
 
-void DrawSurface_1BPP::BlitImage(DrawContext& context, Image* image, int x, int y)
+void DrawSurface_2BPP::BlitImage(DrawContext& context, Image* image, int x, int y)
 {
-	if (!image->lines || image->bpp != 1)
+	if (!image->lines)
 		return;
 
 	x += context.drawOffsetX;
@@ -397,50 +325,36 @@ void DrawSurface_1BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 		return; // Nothing to draw if fully outside the clipping region.
 	}
 
-	int srcByteWidth = (srcWidth + 7) >> 3; // Calculate the width of the source image in bytes
-//	int destByteWidth = (destWidth + 7) >> 3; // Calculate the width of the destination image in bytes
-	int destByteWidth = (destWidth) >> 3; // Calculate the width of the destination image in bytes
-
-	// Blit the image data line by line
-	for (int j = 0; j < destHeight; j++)
+	if (image->bpp == 8)
 	{
-		uint8_t* src = image->lines[j + srcY].Get<uint8_t>() + (srcX >> 3);
-		uint8_t* dest = lines[y + j] + (x >> 3);
-		uint8_t srcMask = 0x80 >> (srcX & 7);
-		uint8_t destMask = 0x80 >> (x & 7);
-		uint8_t srcBuffer = *src++;
-		uint8_t destBuffer = *dest;
-
-		for (int i = 0; i < destWidth; i++)
+		for (int j = 0; j < destHeight; j++)
 		{
-			if (srcBuffer & srcMask)
+			uint8_t* src = image->lines[j + srcY].Get<uint8_t>() + srcX;
+			uint8_t* dest = lines[y + j] + (x >> 2);
+			uint8_t destMask = bitmaskTable[x & 3];
+			uint8_t destBuffer = *dest;
+
+			for (int i = 0; i < destWidth; i++)
 			{
-				destBuffer |= destMask;
+				uint8_t srcBuffer = *src;
+//				srcBuffer |= (srcBuffer << 4);
+				destBuffer = (destBuffer & (~destMask)) | ((srcBuffer) & destMask);
+				src++;
+				destMask >>= 2;
+				if (!destMask)
+				{
+					*dest++ = destBuffer;
+					destBuffer = *dest;
+					destMask = 0xc0;
+				}
 			}
-			else
-			{
-				destBuffer &= ~destMask;
-			}
-			srcMask >>= 1;
-			if (!srcMask)
-			{
-				srcMask = 0x80;
-				srcBuffer = *src++;
-			}
-			destMask >>= 1;
-			if (!destMask)
-			{
-				*dest++ = destBuffer;
-				destBuffer = *dest;
-				destMask = 0x80;
-			}
+			*dest = destBuffer;
 		}
-		*dest = destBuffer;
 	}
 }
 
 
-void DrawSurface_1BPP::InvertRect(DrawContext& context, int x, int y, int width, int height)
+void DrawSurface_2BPP::InvertRect(DrawContext& context, int x, int y, int width, int height)
 {
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
@@ -471,25 +385,24 @@ void DrawSurface_1BPP::InvertRect(DrawContext& context, int x, int y, int width,
 	while (height)
 	{
 		uint8_t* VRAMptr = lines[y];
-		VRAMptr += (x >> 3);
+		VRAMptr += (x >> 2);
 		int count = width;
 		uint8_t data = *VRAMptr;
-		uint8_t mask = (0x80 >> (x & 7));
+		uint8_t mask = (0xc0 >> (x & 3));
 
 		while (count--)
 		{
 			data ^= mask;
-			//mask = (mask >> 1) | 0x80;
-			mask >>= 1;
+			mask >>= 2;
 			if (!mask)
 			{
 				*VRAMptr++ = data;
-				while (count > 8)
+				while (count > 4)
 				{
 					*VRAMptr++ ^= 0xff;
-					count -= 8;
+					count -= 4;
 				}
-				mask = 0x80;
+				mask = 0xc0;
 				data = *VRAMptr;
 			}
 		}
@@ -501,8 +414,9 @@ void DrawSurface_1BPP::InvertRect(DrawContext& context, int x, int y, int width,
 	}
 }
 
-void DrawSurface_1BPP::VerticalScrollBar(DrawContext& context, int x, int y, int height, int position, int size)
+void DrawSurface_2BPP::VerticalScrollBar(DrawContext& context, int x, int y, int height, int position, int size)
 {
+#if 0
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
 	int startY = y;
@@ -554,11 +468,12 @@ void DrawSurface_1BPP::VerticalScrollBar(DrawContext& context, int x, int y, int
 	{
 		*(uint16_t*)(&lines[y++][x]) = inner;
 	}
+#endif
 }
 
-void DrawSurface_1BPP::Clear()
+void DrawSurface_2BPP::Clear()
 {
-	int widthBytes = width >> 3;
+	int widthBytes = width >> 2;
 	for (int y = 0; y < height; y++)
 	{
 		memset(lines[y], 0xff, widthBytes);

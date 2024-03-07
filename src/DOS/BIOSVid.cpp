@@ -23,6 +23,7 @@
 #include "../Interface.h"
 #include "../DataPack.h"
 #include "../Draw/Surf1bpp.h"
+#include "../Draw/Surf2bpp.h"
 #include "../Draw/Surf4bpp.h"
 #include "../Draw/Surf8bpp.h"
 #include "../VidModes.h"
@@ -41,7 +42,16 @@ void BIOSVideoDriver::Init(VideoModeInfo* inVideoModeInfo)
 
 	SetScreenMode(videoModeInfo->biosVideoMode);
 
-	Assets.LoadPreset(videoModeInfo->dataPackIndex);
+	if (videoModeInfo->biosVideoMode == CGA_COMPOSITE_MODE)
+	{
+		SetScreenMode(6);
+		outp(0x3D8, 0x1a);
+		Assets.LoadPreset(videoModeInfo->dataPackIndex);
+	}
+	else
+	{
+		Assets.LoadPreset(videoModeInfo->dataPackIndex);
+	}
 
 	int screenPitch = 0;
 
@@ -52,12 +62,28 @@ void BIOSVideoDriver::Init(VideoModeInfo* inVideoModeInfo)
 		colourScheme = monochromeColourScheme;
 		paletteLUT = nullptr;
 	}
+	else if (videoModeInfo->bpp == 2)
+	{
+		drawSurface = new DrawSurface_2BPP(screenWidth, screenHeight);
+		screenPitch = screenWidth / 4;
+
+		if (videoModeInfo->biosVideoMode == CGA_COMPOSITE_MODE)
+		{
+			paletteLUT = compositeCgaPaletteLUT;
+			colourScheme = compositeCgaColourScheme;
+		}
+		else
+		{
+			paletteLUT = cgaPaletteLUT;
+			colourScheme = cgaColourScheme;
+		}
+	}
 	else if (videoModeInfo->bpp == 4)
 	{
 		drawSurface = new DrawSurface_4BPP(screenWidth, screenHeight);
 		screenPitch = screenWidth / 8;
 		colourScheme = egaColourScheme;
-		paletteLUT = cgaPaletteLUT;
+		paletteLUT = egaPaletteLUT;
 	}
 	else if (videoModeInfo->bpp == 8)
 	{
@@ -173,14 +199,28 @@ void BIOSVideoDriver::SetScreenMode(int screenMode)
 
 void BIOSVideoDriver::ScaleImageDimensions(int& width, int& height)
 {
+	if (screenWidth <= 320)
+	{
+		width = (3l * width) / 4;
+		height = (3l * height) / 4;
+	}
+
 	height /= videoModeInfo->aspectRatio;
-	// Scale to 4:3
-	//height = (height * 5) / 12;
+
 	int maxWidth = screenWidth - 16;
 
 	if (width > maxWidth)
 	{
 		height = ((long)height * maxWidth) / width;
 		width = maxWidth;
+	}
+
+	if (width == 0)
+	{
+		width = 1;
+	}
+	if (height == 0)
+	{
+		height = 1;
 	}
 }

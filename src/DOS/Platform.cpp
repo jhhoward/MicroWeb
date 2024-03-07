@@ -92,11 +92,11 @@ bool DetectHercules();
 static int AutoDetectVideoMode()
 {
 	union REGS inreg, outreg;
-	const int HP95LX = 11;
-	const int Hercules = 8;
+	const int HP95LX = 13;
+	const int Hercules = 10;
 	const int CGA = 0;
-	const int EGA = 4;
-	const int VGA = 6;
+	const int EGA = 6;
+	const int VGA = 8;
 
 	// Look for HP 95LX
 	inreg.x.ax = 0x4dd4;

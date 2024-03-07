@@ -25,8 +25,12 @@ struct NamedColour
 
 extern ColourScheme monochromeColourScheme;
 extern ColourScheme egaColourScheme;
+extern ColourScheme cgaColourScheme;
+extern ColourScheme compositeCgaColourScheme;
 extern ColourScheme colourScheme666;
 
 extern uint8_t cgaPaletteLUT[];
+extern uint8_t egaPaletteLUT[];
+extern uint8_t compositeCgaPaletteLUT[];
 
 #endif

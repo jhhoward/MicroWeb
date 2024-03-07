@@ -125,7 +125,7 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 #ifdef _WIN32
 				page.DebugDumpNodeGraph(page.GetRootNode());
 #endif
-				context.surface->FillRect(context, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight, 0xf);
+				context.surface->FillRect(context, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight, Platform::video->colourScheme.pageColour);
 				page.DebugDraw(context, page.GetRootNode());
 
 				page.GetApp().StopLoad();

@@ -70,8 +70,8 @@ struct DataPack
 	Font* monoFonts[NUM_FONT_SIZES];
 	Font* boldMonoFonts[NUM_FONT_SIZES];
 
-	bool LoadPreset(Preset preset);
-	bool Load(const char* path);
+	bool LoadPreset(Preset preset, bool forceBold = false);
+	bool Load(const char* path, bool forceBold = false);
 	Font* GetFont(int fontSize, FontStyle::Type fontStyle);
 	MouseCursorData* GetMouseCursorData(MouseCursor::Type type);
 

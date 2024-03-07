@@ -16,13 +16,13 @@ const char* DataPack::datapackFilenames[] =
 	"LOWRES.DAT"
 };
 
-bool DataPack::LoadPreset(DataPack::Preset preset)
+bool DataPack::LoadPreset(DataPack::Preset preset, bool forceBold)
 {
-	return Load(datapackFilenames[preset]);
+	return Load(datapackFilenames[preset], forceBold);
 }
 
 
-bool DataPack::Load(const char* path)
+bool DataPack::Load(const char* path, bool forceBold)
 {
 	FILE* fs = fopen(path, "rb");
 
@@ -43,18 +43,32 @@ bool DataPack::Load(const char* path)
 
 	imageIcon = LoadImageAsset(fs, header, "IIMG");
 
-	fonts[0] = (Font*)LoadAsset(fs, header, "FHELV1");
-	fonts[1] = (Font*)LoadAsset(fs, header, "FHELV2");
-	fonts[2] = (Font*)LoadAsset(fs, header, "FHELV3");
 	boldFonts[0] = (Font*)LoadAsset(fs, header, "FHELV1B");
 	boldFonts[1] = (Font*)LoadAsset(fs, header, "FHELV2B");
 	boldFonts[2] = (Font*)LoadAsset(fs, header, "FHELV3B");
-	monoFonts[0] = (Font*)LoadAsset(fs, header, "FCOUR1");
-	monoFonts[1] = (Font*)LoadAsset(fs, header, "FCOUR2");
-	monoFonts[2] = (Font*)LoadAsset(fs, header, "FCOUR3");
 	boldMonoFonts[0] = (Font*)LoadAsset(fs, header, "FCOUR1B");
 	boldMonoFonts[1] = (Font*)LoadAsset(fs, header, "FCOUR2B");
 	boldMonoFonts[2] = (Font*)LoadAsset(fs, header, "FCOUR3B");
+
+	if (forceBold)
+	{
+		fonts[0] = boldFonts[0];
+		fonts[1] = boldFonts[1];
+		fonts[2] = boldFonts[2];
+		monoFonts[0] = boldMonoFonts[0];
+		monoFonts[1] = boldMonoFonts[1];
+		monoFonts[2] = boldMonoFonts[2];
+	}
+	else
+	{
+		fonts[0] = (Font*)LoadAsset(fs, header, "FHELV1");
+		fonts[1] = (Font*)LoadAsset(fs, header, "FHELV2");
+		fonts[2] = (Font*)LoadAsset(fs, header, "FHELV3");
+		monoFonts[0] = (Font*)LoadAsset(fs, header, "FCOUR1");
+		monoFonts[1] = (Font*)LoadAsset(fs, header, "FCOUR2");
+		monoFonts[2] = (Font*)LoadAsset(fs, header, "FCOUR3");
+	}
+
 
 	delete[] header.entries;
 	fclose(fs);

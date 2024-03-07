@@ -13,6 +13,30 @@ ColourScheme monochromeColourScheme =
 	1
 };
 
+ColourScheme cgaColourScheme =
+{
+	// Page
+	0xff,
+	// Text
+	0,
+	// Link
+	0x55,
+	// Button
+	0xff
+};
+
+ColourScheme compositeCgaColourScheme =
+{
+	// Page
+	0xff,
+	// Text
+	0,
+	// Link
+	0x22,
+	// Button
+	0x55
+};
+
 ColourScheme egaColourScheme = 
 {
 	// Page

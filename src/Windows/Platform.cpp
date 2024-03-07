@@ -34,7 +34,7 @@ HWND hWnd;
 
 bool Platform::Init(int argc, char* argv[])
 {
-	VideoModeInfo* videoMode = ShowVideoModePicker(6);
+	VideoModeInfo* videoMode = ShowVideoModePicker(8);
 	if (!videoMode)
 	{
 		return false;

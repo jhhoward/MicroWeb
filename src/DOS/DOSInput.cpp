@@ -135,6 +135,11 @@ void DOSInputDriver::GetMouseStatus(int& buttons, int& x, int& y)
 	x = outreg.x.cx;
 	y = outreg.x.dx;
 	buttons = outreg.x.bx;
+
+	if (Platform::video->screenWidth == 320)
+	{
+		x /= 2;
+	}
 }
 
 InputButtonCode DOSInputDriver::GetKeyPress() 

@@ -44,6 +44,35 @@ const RGBQUAD monoPalette[] =
 const RGBQUAD cgaPalette[] =
 {
 	{ 0x00, 0x00, 0x00 }, // Entry 0 - Black
+	{ 0xFF, 0xFF, 0x55 }, // Entry 11 - Light Cyan
+	{ 0x55, 0x55, 0xFF }, // Entry 12 - Light Red
+	{ 0xFF, 0xFF, 0xFF }, // Entry 15 - White
+};
+
+const RGBQUAD cgaCompositePalette[] =
+{
+	{ 0x00, 0x00, 0x00 },
+	{ 0x31, 0x6e, 0x00 },
+	{ 0xff, 0x09, 0x31 },
+	{ 0xff, 0x8a, 0x00 },
+	{ 0x31, 0x00, 0xa7 },
+	{ 0x76, 0x76, 0x76 },
+	{ 0xff, 0x11, 0xec },
+	{ 0xff, 0x92, 0xbb },
+	{ 0x00, 0x5a, 0x31 },
+	{ 0x00, 0xdb, 0x00 },
+	{ 0x76, 0x76, 0x76 },
+	{ 0xbb, 0xf7, 0x45 },
+	{ 0x00, 0x63, 0xec },
+	{ 0x00, 0xe4, 0xbb },
+	{ 0xbb, 0x7f, 0xff },
+	{ 0xff, 0xff, 0xff },
+};
+
+
+const RGBQUAD egaPalette[] =
+{
+	{ 0x00, 0x00, 0x00 }, // Entry 0 - Black
 	{ 0xAA, 0x00, 0x00 }, // Entry 1 - Blue
 	{ 0x00, 0xAA, 0x00 }, // Entry 2 - Green
 	{ 0xAA, 0xAA, 0x00 }, // Entry 3 - Cyan
@@ -108,7 +137,7 @@ void WindowsVideoDriver::Init(VideoModeInfo* videoMode)
 
 	if (useColour)
 	{
-		memcpy(bitmapInfo->bmiColors, cgaPalette, sizeof(RGBQUAD) * 16);
+		memcpy(bitmapInfo->bmiColors, egaPalette, sizeof(RGBQUAD) * 16);
 
 		if (videoMode->bpp == 8)
 		{
@@ -124,6 +153,23 @@ void WindowsVideoDriver::Init(VideoModeInfo* videoMode)
 						bitmapInfo->bmiColors[index].rgbBlue = (b * 255) / 5;
 						index++;
 					}
+				}
+			}
+		}
+		else if (videoMode->bpp == 2)
+		{
+			if (videoMode->biosVideoMode == CGA_COMPOSITE_MODE)
+			{
+				for (int n = 0; n < 256; n += 16)
+				{
+					memcpy(bitmapInfo->bmiColors + n, cgaCompositePalette, sizeof(RGBQUAD) * 16);
+				}
+			}
+			else
+			{
+				for (int n = 0; n < 256; n += 4)
+				{
+					memcpy(bitmapInfo->bmiColors + n, cgaPalette, sizeof(RGBQUAD) * 4);
 				}
 			}
 		}
@@ -174,10 +220,23 @@ void WindowsVideoDriver::Init(VideoModeInfo* videoMode)
 				paletteLUT[n] = RGB666(rgbRed, rgbGreen, rgbBlue);
 			}
 		}
+		else if (videoMode->bpp == 2)
+		{
+			if (videoMode->biosVideoMode == CGA_COMPOSITE_MODE)
+			{
+				colourScheme = compositeCgaColourScheme;
+				paletteLUT = compositeCgaPaletteLUT;
+			}
+			else
+			{
+				colourScheme = cgaColourScheme;
+				paletteLUT = cgaPaletteLUT;
+			}
+		}
 		else
 		{
 			colourScheme = egaColourScheme;
-			paletteLUT = cgaPaletteLUT;
+			paletteLUT = egaPaletteLUT;
 		}
 	}
 	else

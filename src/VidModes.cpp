@@ -7,6 +7,8 @@ VideoModeInfo VideoModeList[] =
 	// name												mode			width		height		bpp		aspect		data pack			vram1		vram2		vram3		vram4
 	{ "640x200 monochrome (CGA)",						6,				640,		200,		1,		2.4f,		DataPack::CGA,		0xb800,		0xba00							 },
 	{ "640x200 inverse monochrome (Palmtop CGA)",		6,				640,		200,		1,		1.0f,		DataPack::Default,	0xb800,		0xba00							 },
+	{ "320x200 4 colours (CGA)",						5,				320,		200,		2,		1.2f,		DataPack::Lowres,	0xb800,		0xba00							 },
+	{ "320x200 16 colours (Composite CGA)",				4,				320,		200,		2,		1.2f,		DataPack::CGA,	0xb800,		0xba00							 },
 	{ "640x200 16 colours (EGA)",						0xe,			640,		200,		4,		2.4f,		DataPack::CGA,		0xa000,										 },
 	{ "640x350 monochrome (EGA)",						0xf,			640,		350,		1,		1.37f,		DataPack::EGA,		0xa000,										 },
 	{ "640x350 16 colours (EGA)",						0x10,			640,		350,		4,		1.37f,		DataPack::EGA,		0xa000,										 },
