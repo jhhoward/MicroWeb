@@ -207,6 +207,13 @@ void AppInterface::Update()
 		}
 			break;
 
+		case 'n':
+		{
+#ifdef _WIN32
+			app.page.DebugDumpNodeGraph(app.page.GetRootNode());
+#endif
+		}
+
 		default:
 //			printf("%x\n", keyPress);
 			break;

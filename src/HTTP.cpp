@@ -81,6 +81,7 @@ void HTTPRequest::Open(char* inURL)
 		// level directory.
 
 		char* proxy = getenv("HTTP_PROXY");
+		//const char* proxy = "192.168.56.1:8888";
 		if (proxy == NULL) {
 
 			char* pathStart = strchr(hostnameStart, '/');
@@ -164,17 +165,16 @@ size_t HTTPRequest::ReadData(char* buffer, size_t count)
 				if (contentRemaining <= 0)
 				{
 					Stop();
+					return bytesRead;
 				}
-				else
+			}
+
+			if (usingChunkedTransfer)
+			{
+				chunkSizeRemaining -= bytesRead;
+				if (!chunkSizeRemaining)
 				{
-					if (usingChunkedTransfer)
-					{
-						chunkSizeRemaining -= bytesRead;
-						if (!chunkSizeRemaining)
-						{
-							internalStatus = ParseChunkHeader;
-						}
-					}
+					internalStatus = ParseChunkHeader;
 				}
 			}
 
@@ -380,6 +380,7 @@ void HTTPRequest::Update()
 		if (ReadLine())
 		{
 			chunkSizeRemaining = strtol(lineBuffer, NULL, 16);
+
 			if (chunkSizeRemaining)
 			{
 				status = Downloading;
@@ -392,6 +393,9 @@ void HTTPRequest::Update()
 bool HTTPRequest::ReadLine()
 {
 	bool allowBufferTruncation = true;
+
+	if (!sock)
+		return false;
 
 	while (1)
 	{
