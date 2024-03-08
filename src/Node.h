@@ -64,6 +64,8 @@ public:
 		Table,
 		TableRow,
 		TableCell,
+		Select,
+		Option,
 		NumNodeTypes
 	};
 

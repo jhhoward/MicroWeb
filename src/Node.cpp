@@ -15,6 +15,7 @@
 #include "Nodes/Status.h"
 #include "Nodes/Scroll.h"
 #include "Nodes/Table.h"
+#include "Nodes/Select.h"
 
 NodeHandler* Node::nodeHandlers[Node::NumNodeTypes] =
 {
@@ -33,7 +34,9 @@ NodeHandler* Node::nodeHandlers[Node::NumNodeTypes] =
 	new ScrollBarNode(),
 	new TableNode(),
 	new TableRowNode(),
-	new TableCellNode()
+	new TableCellNode(),
+	new SelectNode(),
+	new OptionNode()
 };
 
 Node::Node(Type inType, void* inData)

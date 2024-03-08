@@ -23,6 +23,7 @@
 #include "Nodes/Text.h"
 #include "Nodes/Form.h"
 #include "Nodes/StyNode.h"
+#include "Nodes/Select.h"
 #include "Draw/Surface.h"
 #include "Memory/Memory.h"
 
@@ -92,7 +93,9 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 		"ScrollBar",
 		"Table",
 		"TableRow",
-		"TableCell"
+		"TableCell",
+		"Select",
+		"Option"
 	};
 
 	static const char* sectionTypeNames[] =
@@ -128,6 +131,12 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 			text[subData->length] = 0;
 			printf("<%s> [%d,%d:%d,%d] %s\n", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y, text);
 			text[subData->length] = temp;
+		}
+		break;
+	case Node::Option:
+		{
+			OptionNode::Data* data = static_cast<OptionNode::Data*>(node->data);
+			printf("<%s> [%s]\n", nodeTypeNames[node->type], data->text);
 		}
 		break;
 	case Node::Section:

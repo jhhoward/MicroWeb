@@ -60,7 +60,8 @@ private:
 		SendHeaders,
 		ReceiveHeaderResponse,
 		ReceiveHeaderContent,
-		ReceiveContent
+		ReceiveContent,
+		ParseChunkHeader
 	};
 
 	void MarkError(InternalStatus statusError);
@@ -86,6 +87,9 @@ private:
 	int lineBufferSendPos;
 
 	long contentRemaining;
+
+	long chunkSizeRemaining;
+	bool usingChunkedTransfer;
 };
 
 

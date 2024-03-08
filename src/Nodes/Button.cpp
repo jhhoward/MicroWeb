@@ -29,7 +29,7 @@ void ButtonNode::Draw(DrawContext& context, Node* node)
 
 Node* ButtonNode::Construct(Allocator& allocator, const char* inButtonText, NodeCallbackFunction callback)
 {
-	const char* buttonText = NULL;
+	char* buttonText = NULL;
 	if (inButtonText)
 	{
 		buttonText = allocator.AllocString(inButtonText);
@@ -37,6 +37,7 @@ Node* ButtonNode::Construct(Allocator& allocator, const char* inButtonText, Node
 		{
 			return nullptr;
 		}
+		HTMLParser::ReplaceAmpersandEscapeSequences(buttonText);
 	}
 
 	ButtonNode::Data* data = allocator.Alloc<ButtonNode::Data>(buttonText, callback);

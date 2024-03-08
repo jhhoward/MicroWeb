@@ -21,6 +21,22 @@ Node* TextElement::Construct(Allocator& allocator, const char* text)
 	return nullptr;
 }
 
+void TextElement::Draw(DrawContext& context, Node* node)
+{
+	TextElement::Data* data = static_cast<TextElement::Data*>(node->data);
+
+	if (!node->firstChild && data->text.IsAllocated())
+	{
+		Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+
+		uint8_t textColour = node->style.fontColour;
+		char* text = data->text.Get<char>();
+
+		context.surface->DrawString(context, font, text, node->anchor.x, node->anchor.y, textColour, node->style.fontStyle);
+	}
+}
+
+
 void TextElement::GenerateLayout(Layout& layout, Node* node)
 {
 	TextElement::Data* data = static_cast<TextElement::Data*>(node->data);

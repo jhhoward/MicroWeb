@@ -204,6 +204,22 @@ private:
 	bool isHeader;
 };
 
+class SelectTagHandler : public HTMLTagHandler
+{
+public:
+	SelectTagHandler() : HTMLTagHandler("select") {}
+	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
+	virtual void Close(class HTMLParser& parser) const;
+};
+
+class OptionTagHandler : public HTMLTagHandler
+{
+public:
+	OptionTagHandler() : HTMLTagHandler("option") {}
+	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
+	virtual void Close(class HTMLParser& parser) const;
+};
+
 const HTMLTagHandler* DetermineTag(const char* str);
 
 #endif

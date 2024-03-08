@@ -143,8 +143,13 @@ void HTTPRequest::Open(char* inURL)
 
 size_t HTTPRequest::ReadData(char* buffer, size_t count)
 {
-	if (status == HTTPRequest::Downloading && sock)
+	if (status == HTTPRequest::Downloading && sock && internalStatus == ReceiveContent)
 	{
+		if (usingChunkedTransfer && count > chunkSizeRemaining)
+		{
+			count = chunkSizeRemaining;
+		}
+
 		int16_t rc = sock->Receive((unsigned char*)buffer, count);
 		if (rc < 0)
 		{
@@ -159,6 +164,17 @@ size_t HTTPRequest::ReadData(char* buffer, size_t count)
 				if (contentRemaining <= 0)
 				{
 					Stop();
+				}
+				else
+				{
+					if (usingChunkedTransfer)
+					{
+						chunkSizeRemaining -= bytesRead;
+						if (!chunkSizeRemaining)
+						{
+							internalStatus = ParseChunkHeader;
+						}
+					}
 				}
 			}
 
@@ -263,6 +279,7 @@ void HTTPRequest::Update()
 			WriteLine("GET %s HTTP/1.1", path);
 			WriteLine("User-Agent: MicroWeb " __DATE__);
 			WriteLine("Host: %s", hostname);
+			WriteLine("Accept-Encoding: identity");
 			WriteLine("Connection: close");
 			WriteLine("");
 			internalStatus = ReceiveHeaderResponse;
@@ -297,6 +314,7 @@ void HTTPRequest::Update()
 				internalStatus = ReceiveHeaderContent;
 
 				contentRemaining = -1;
+				usingChunkedTransfer = false;
 			}
 		}
 		break;
@@ -307,12 +325,18 @@ void HTTPRequest::Update()
 				if (lineBuffer[0] == '\0')
 				{
 					// Header has finished
-					status = Downloading;
-					internalStatus = ReceiveContent;
+					if (usingChunkedTransfer)
+					{
+						internalStatus = ParseChunkHeader;
+					}
+					else
+					{
+						status = Downloading;
+						internalStatus = ReceiveContent;
+					}
 					break;
 				}
-
-				if (!strncmp(lineBuffer, "Location: ", 10))
+				else if (!strncmp(lineBuffer, "Location: ", 10))
 				{
 					if (responseCode == RESPONSE_MOVED_PERMANENTLY || responseCode == RESPONSE_MOVED_TEMPORARILY || responseCode == RESPONSE_TEMPORARY_REDIRECTION || responseCode == RESPONSE_PERMANENT_REDIRECT)
 					{
@@ -323,9 +347,13 @@ void HTTPRequest::Update()
 						break;
 					}
 				}
-				if (!strncmp(lineBuffer, "Content-Length:", 15))
+				else if (!strncmp(lineBuffer, "Content-Length:", 15))
 				{
 					contentRemaining = atoi(lineBuffer + 15);
+				}
+				else if (!stricmp(lineBuffer, "Transfer-Encoding: chunked"))
+				{
+					usingChunkedTransfer = true;
 				}
 
 				//printf("Header: %s  -- \n", lineBuffer);
@@ -345,6 +373,19 @@ void HTTPRequest::Update()
 		//}
 	}
 	break;
+	}
+
+	if (internalStatus == ParseChunkHeader)
+	{
+		if (ReadLine())
+		{
+			chunkSizeRemaining = strtol(lineBuffer, NULL, 16);
+			if (chunkSizeRemaining)
+			{
+				status = Downloading;
+				internalStatus = ReceiveContent;
+			}
+		}
 	}
 }
 

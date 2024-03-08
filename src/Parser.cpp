@@ -23,6 +23,7 @@
 #include "Nodes/Text.h"
 #include "Nodes/ImgNode.h"
 #include "Nodes/Break.h"
+#include "Nodes/Select.h"
 #include "Memory/Memory.h"
 
 // debug
@@ -139,8 +140,8 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 	exit(1);
 }
 
-#define NUM_AMPERSAND_ESCAPE_SEQUENCES 14
-const char* ampersandEscapeSequences[14 * 2] = 
+#define NUM_AMPERSAND_ESCAPE_SEQUENCES (sizeof(ampersandEscapeSequences) / (2 * sizeof(const char*)))
+const char* ampersandEscapeSequences[] = 
 {
 	"quot",	"\"",
 	"amp",	"&",
@@ -216,11 +217,16 @@ void HTMLParser::FlushTextBuffer()
 	{
 		case ParseText:
 		{
-			if(CurrentSection() == SectionElement::Body && textBufferSize > 0)
+			if (CurrentContext().node && CurrentContext().node->type == Node::Option)
+			{
+				OptionNode::Data* option = static_cast<OptionNode::Data*>(CurrentContext().node->data);
+				option->text = MemoryManager::pageAllocator.AllocString(textBuffer);
+			}
+			else if(CurrentSection() == SectionElement::Body && textBufferSize > 0)
 			{
 				EmitText(textBuffer);
 			}
-			if (CurrentSection() == SectionElement::Title && textBufferSize > 0)
+			else if (CurrentSection() == SectionElement::Title && textBufferSize > 0)
 			{
 				page.SetTitle(textBuffer);
 			}
@@ -279,44 +285,112 @@ void HTMLParser::FlushTextBuffer()
 		break;
 		case ParseAmpersandEscape:
 		{
-			if(textBufferSize == 0)
+			// Flush everything before the escape sequence started
+			if (escapeSequenceStartIndex)
 			{
-				EmitText("&");
+				textBufferSize = escapeSequenceStartIndex;
+				parseState = ParseText;
+				FlushTextBuffer();
+				parseState = ParseAmpersandEscape;
+				textBuffer[escapeSequenceStartIndex] = '&';
+				strcpy(textBuffer, textBuffer + escapeSequenceStartIndex);
 			}
-			else
-			{
-				for(int n = 0; n < NUM_AMPERSAND_ESCAPE_SEQUENCES; n++)
-				{
-					const char* escapeSequence = ampersandEscapeSequences[n * 2];
-					bool matching = true;
-					
-					for(int i = 0; i < textBufferSize; i++)
-					{
-						if(escapeSequence[i] == '\0')
-						{
-							matching = false;
-							break;
-						}
-						if(tolower(textBuffer[i]) != escapeSequence[i])
-						{
-							matching = false;
-							break;
-						}
-					}
-					
-					if(matching && escapeSequence[textBufferSize] == '\0')
-					{
-						EmitText(ampersandEscapeSequences[n * 2 + 1]);
-						break;
-					}
-				}
-			}
+			return;
 		}
 		break;
 	}
 	
 	textBufferSize = 0;
 	textBuffer[0] = '\0';
+}
+
+void HTMLParser::ReplaceAmpersandEscapeSequences(char* buffer, bool replaceNonBreakingSpace)
+{
+	while (*buffer)
+	{
+		if (*buffer == '&')
+		{
+			buffer++;
+
+			// Find length of sequence
+			int escapeSequenceLength = 0;
+			while (buffer[escapeSequenceLength] && buffer[escapeSequenceLength] != ';' && !IsWhiteSpace(buffer[escapeSequenceLength]))
+			{
+				escapeSequenceLength++;
+			}
+			bool correctlyTerminated = buffer[escapeSequenceLength] == ';';
+			char* nextBufferPosition = correctlyTerminated ? buffer + escapeSequenceLength + 1 : buffer + escapeSequenceLength;
+
+			if(escapeSequenceLength > 0)
+			{
+				if (*buffer == '#')
+				{
+					int number = 0;
+
+					// This is a entity number
+					if (buffer[1] == 'x' || buffer[1] == 'X')
+					{
+						// Hex number
+						number = strtol(buffer + 2, NULL, 16);
+					}
+					else
+					{
+						number = atoi(buffer + 1);
+					}
+					buffer--;
+					if (number > FIRST_FONT_GLYPH && number <= LAST_FONT_GLYPH)
+					{
+						*buffer = (char)(number);
+						strcpy(buffer + 1, nextBufferPosition);
+					}
+					else
+					{
+						strcpy(buffer, nextBufferPosition);
+					}
+				}
+				else
+				{
+					for (int n = 0; n < NUM_AMPERSAND_ESCAPE_SEQUENCES; n++)
+					{
+						const char* escapeSequence = ampersandEscapeSequences[n * 2];
+						bool matching = true;
+
+						for (int i = 0; i < escapeSequenceLength; i++)
+						{
+							if (escapeSequence[i] == '\0')
+							{
+								matching = false;
+								break;
+							}
+							if (tolower(buffer[i]) != escapeSequence[i])
+							{
+								matching = false;
+								break;
+							}
+						}
+
+						if (matching && escapeSequence[escapeSequenceLength] == '\0')
+						{
+							buffer--;	// One step backwards to write over the &
+							const char* replacementText = ampersandEscapeSequences[n * 2 + 1];
+							int replacementTextLength = strlen(replacementText);
+							memcpy(buffer, replacementText, replacementTextLength);
+							strcpy(buffer + replacementTextLength, nextBufferPosition);
+
+							if (replaceNonBreakingSpace && *buffer == '\x1f')
+							{
+								*buffer = ' ';
+							}
+
+							buffer += replacementTextLength - 1;
+							break;
+						}
+					}
+				}
+			}
+		}
+		buffer++;
+	}
 }
 
 bool HTMLParser::IsWhiteSpace(char c)
@@ -464,8 +538,9 @@ void HTMLParser::ParseChar(char c)
 		}
 		else if(c == '&')
 		{
-			FlushTextBuffer();
 			parseState = ParseAmpersandEscape;
+			escapeSequenceStartIndex = textBufferSize;
+			AppendTextBuffer(c);
 		}
 		else
 		{
@@ -553,18 +628,14 @@ void HTMLParser::ParseChar(char c)
 		break;
 			
 		case ParseAmpersandEscape:
+		AppendTextBuffer(c);
 		if(c == ';' || IsWhiteSpace(c))
 		{
-			FlushTextBuffer();
+			textBuffer[textBufferSize] = '\0';
+			ReplaceAmpersandEscapeSequences(textBuffer + escapeSequenceStartIndex, false);
+			textBufferSize = strlen(textBuffer + escapeSequenceStartIndex) + escapeSequenceStartIndex;
+
 			parseState = ParseText;
-			if(IsWhiteSpace(c))
-			{
-				AppendTextBuffer(' ');
-			}
-		}
-		else
-		{
-			AppendTextBuffer(c);
 		}
 		break;
 

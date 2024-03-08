@@ -33,6 +33,7 @@
 #include "Nodes/Field.h"
 #include "Nodes/Form.h"
 #include "Nodes/Table.h"
+#include "Nodes/Select.h"
 
 static const HTMLTagHandler* tagHandlers[] =
 {
@@ -85,6 +86,8 @@ static const HTMLTagHandler* tagHandlers[] =
 	new TableRowTagHandler(),
 	new TableCellTagHandler("td", false),
 	new TableCellTagHandler("th", true),
+	new SelectTagHandler(),
+	new OptionTagHandler(),
 	NULL
 };
 
@@ -582,3 +585,24 @@ void TableCellTagHandler::Close(class HTMLParser& parser) const
 {
 	parser.PopContext(this);
 }
+
+void SelectTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
+{
+	parser.PushContext(SelectNode::Construct(MemoryManager::pageAllocator), this);
+}
+
+void SelectTagHandler::Close(class HTMLParser& parser) const
+{
+	parser.PopContext(this);
+}
+
+void OptionTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
+{
+	parser.PushContext(OptionNode::Construct(MemoryManager::pageAllocator), this);
+}
+
+void OptionTagHandler::Close(class HTMLParser& parser) const
+{
+	parser.PopContext(this);
+}
+

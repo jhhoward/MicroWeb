@@ -1,7 +1,7 @@
 bin = MicroWeb.exe
 SRC_PATH = ..\..\src
 OBJDIR=obj
-objects = MicroWeb.obj App.obj Parser.obj Tags.obj Platform.obj Colour.obj Hercules.obj BIOSVid.obj VidModes.obj Font.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj Layout.obj Node.obj Text.obj Table.obj Section.obj ImgNode.obj Block.obj StyNode.obj LinkNode.obj Break.obj Render.obj Button.obj Field.obj DataPack.obj Surf1bpp.obj Surf2bpp.obj Surf4bpp.obj Surf8bpp.obj Form.obj Status.obj Scroll.obj HTTP.obj Decoder.obj Gif.obj MemBlock.obj Memory.obj EMS.obj
+objects = MicroWeb.obj App.obj Parser.obj Tags.obj Platform.obj Colour.obj Hercules.obj BIOSVid.obj VidModes.obj Font.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj Layout.obj Node.obj Text.obj Table.obj Section.obj ImgNode.obj Block.obj StyNode.obj LinkNode.obj Break.obj Render.obj Button.obj Select.obj Field.obj DataPack.obj Surf1bpp.obj Surf2bpp.obj Surf4bpp.obj Surf8bpp.obj Form.obj Status.obj Scroll.obj HTTP.obj Decoder.obj Gif.obj MemBlock.obj Memory.obj EMS.obj
 memory_model = -ml
 CC = wpp
 CFLAGS = -zq -0 -ot -bt=DOS -w2 $(memory_model) -fi=$(SRC_PATH)\Defines.h
@@ -104,6 +104,9 @@ Table.obj: $(SRC_PATH)\Nodes\Table.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 Button.obj: $(SRC_PATH)\Nodes\Button.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+Select.obj: $(SRC_PATH)\Nodes\Select.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 DataPack.obj: $(SRC_PATH)\DataPack.cpp

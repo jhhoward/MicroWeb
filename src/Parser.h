@@ -85,13 +85,15 @@ public:
 
 	static uint8_t ParseColourCode(const char* colourCode);
 
+	static void ReplaceAmpersandEscapeSequences(char* buffer, bool replaceNonBreakingSpace = true);
+
 private:
 	void ParseChar(char c);
 
 	//HTMLNode* CreateNode(HTMLNode::NodeType nodeType, HTMLNode* parentNode);
 	void AppendTextBuffer(char c);
 	void FlushTextBuffer();
-	bool IsWhiteSpace(char c);
+	static bool IsWhiteSpace(char c);
 
 	void DebugDumpNodeGraph(Node* node, int depth = 0);
 
@@ -107,6 +109,7 @@ private:
 	ParseState parseState;
 	char textBuffer[2560];
 	size_t textBufferSize;
+	int escapeSequenceStartIndex;
 	
 	Stack<HTMLParseContext> contextStack;
 	int contextStackSize;
