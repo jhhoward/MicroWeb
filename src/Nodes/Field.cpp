@@ -230,7 +230,7 @@ void TextFieldNode::DrawCursor(DrawContext& context, Node* node, bool clear)
 	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
 	
 
-	int x = node->anchor.x + 2;
+	int x = node->anchor.x + 3;
 	int height = font->glyphHeight;
 
 	for (int n = 0; n < cursorPosition; n++)
@@ -247,7 +247,7 @@ void TextFieldNode::DrawCursor(DrawContext& context, Node* node, bool clear)
 
 	int y = node->anchor.y + 2;
 
-	context.surface->VLine(context, x, y, height, clear ? 1 : 0);
+	context.surface->VLine(context, x, y, height, clear ? Platform::video->colourScheme.pageColour : Platform::video->colourScheme.textColour);
 }
 
 void TextFieldNode::MoveCursorPosition(Node* node, int newPosition)

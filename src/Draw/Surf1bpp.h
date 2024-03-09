@@ -17,6 +17,7 @@ public:
 	virtual void BlitImage(DrawContext& context, Image* image, int x, int y);
 	virtual void InvertRect(DrawContext& context, int x, int y, int width, int height);
 	virtual void VerticalScrollBar(DrawContext& context, int x, int y, int height, int position, int size);
+	virtual void ScrollScreen(int top, int bottom, int width, int amount);
 };
 
 #endif

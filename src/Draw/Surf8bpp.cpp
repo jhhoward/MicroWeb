@@ -63,9 +63,9 @@ void DrawSurface_8BPP::VLine(DrawContext& context, int x, int y, int count, uint
 	{
 		return;
 	}
-	if (y + count >= context.clipBottom)
+	if (y + count > context.clipBottom)
 	{
-		count = context.clipBottom - 1 - y;
+		count = context.clipBottom - y;
 	}
 	if (count <= 0)
 	{
@@ -515,5 +515,23 @@ void DrawSurface_8BPP::Clear()
 	for (int y = 0; y < height; y++)
 	{
 		memset(lines[y], Platform::video->colourScheme.pageColour, widthBytes);
+	}
+}
+
+void DrawSurface_8BPP::ScrollScreen(int top, int bottom, int width, int amount)
+{
+	if (amount > 0)
+	{
+		for (int y = top; y < bottom; y++)
+		{
+			memcpy(lines[y], lines[y + amount], width);
+		}
+	}
+	else if (amount < 0)
+	{
+		for (int y = bottom - 1; y >= top; y--)
+		{
+			memcpy(lines[y], lines[y + amount], width);
+		}
 	}
 }

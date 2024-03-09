@@ -61,18 +61,6 @@ void Page::SetTitle(const char* inTitle)
 	app.ui.SetTitle(inTitle);
 }
 
-void Page::DebugDraw(DrawContext& context, Node* node)
-{
-	while (node)
-	{
-		node->Handler().Draw(context, node);
-
-		DebugDraw(context, node->firstChild);
-
-		node = node->next;
-	}
-}
-
 
 void Page::DebugDumpNodeGraph(Node* node, int depth)
 {

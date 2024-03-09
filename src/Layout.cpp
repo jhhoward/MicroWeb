@@ -17,6 +17,7 @@ void Layout::Reset()
 	lineStartNode = nullptr;
 	lastNodeContext = nullptr;
 	Cursor().Clear();
+	tableDepth = 0;
 
 	LayoutParams& params = GetParams();
 	params.marginLeft = 0;
@@ -36,6 +37,11 @@ void Layout::BreakNewLine()
 	{
 		int shift = AvailableWidth() / 2;
 		TranslateNodes(lineStartNode, lastNodeContext, shift, 0);
+	}
+
+	if (lastNodeContext && !tableDepth)
+	{
+		page.GetApp().pageRenderer.MarkNodeLayoutComplete(lastNodeContext);
 	}
 
 	//if (lineStartNode && lineStartNode->parent)
@@ -307,8 +313,8 @@ void Layout::RecalculateLayout()
 	}
 #endif
 
-	// FIXME
-	page.GetApp().ui.ScrollRelative(0);
+	page.GetApp().pageRenderer.MarkPageLayoutComplete();
+	page.GetApp().pageRenderer.RefreshAll();
 
 #ifdef _WIN32
 	//page.DebugDumpNodeGraph(page.GetRootNode());

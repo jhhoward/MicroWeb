@@ -35,6 +35,7 @@ private:
 	int lastMouseButtons;
 	bool mouseVisible;
 	bool hasMouse;
+	int mouseHideCount;
 };
 
 #endif

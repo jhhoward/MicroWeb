@@ -31,6 +31,7 @@ public:
 	virtual void DrawString(DrawContext& context, Font* font, const char* text, int x, int y, uint8_t colour, FontStyle::Type style = FontStyle::Regular) = 0;
 	virtual void BlitImage(DrawContext& context, Image* image, int x, int y) = 0;
 	virtual void VerticalScrollBar(DrawContext& context, int x, int y, int height, int position, int size) = 0;
+	virtual void ScrollScreen(int top, int bottom, int width, int amount) {}
 
 	uint8_t** lines;
 	int width, height;

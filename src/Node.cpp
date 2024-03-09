@@ -44,6 +44,7 @@ Node::Node(Type inType, void* inData)
 	, parent(nullptr)
 	, next(nullptr)
 	, firstChild(nullptr)
+	, nextNodeToRender(nullptr)
 	, data(inData)
 {
 	anchor.Clear();

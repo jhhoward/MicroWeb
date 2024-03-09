@@ -39,6 +39,8 @@ void App::ResetPage()
 	page.Reset();
 	parser.Reset();
 	ui.Reset();
+	pageRenderer.Reset();
+	pageRenderer.RefreshAll();
 }
 
 void App::Run(int argc, char* argv[])
@@ -46,6 +48,7 @@ void App::Run(int argc, char* argv[])
 	running = true;
 
 	ui.Init();
+	pageRenderer.Init();
 
 	if (argc > 1)
 	{
@@ -132,6 +135,7 @@ void App::Run(int argc, char* argv[])
 		if (loadTask.type == LoadTask::RemoteFile && loadTask.request && loadTask.request->GetStatus() == HTTPRequest::Connecting)
 			ui.SetStatusMessage(loadTask.request->GetStatusString());
 
+		pageRenderer.Update();
 		ui.Update();
 	}
 }

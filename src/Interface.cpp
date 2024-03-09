@@ -373,9 +373,9 @@ void AppInterface::GenerateInterfaceNodes()
 
 void AppInterface::DrawInterfaceNodes(DrawContext& context)
 {
-	Platform::input->HideMouse();
 	app.pageRenderer.DrawAll(context, rootInterfaceNode);
 
+	Platform::input->HideMouse();
 	uint8_t dividerColour = 0;
 	context.surface->HLine(context, 0, windowRect.y - 1, Platform::video->screenWidth, dividerColour);
 	Platform::input->ShowMouse();
@@ -442,6 +442,8 @@ void AppInterface::SetStatusMessage(const char* message)
 
 void AppInterface::ScrollRelative(int delta)
 {
+	int oldScrollPositionY = scrollPositionY;
+
 	scrollPositionY += delta;
 	if (scrollPositionY < 0)
 		scrollPositionY = 0;
@@ -452,14 +454,22 @@ void AppInterface::ScrollRelative(int delta)
 		scrollPositionY = maxScrollY;
 	}
 
+	delta = scrollPositionY - oldScrollPositionY;
+
 	UpdatePageScrollBar();
 
-	DrawContext context;
-	app.pageRenderer.GenerateDrawContext(context, NULL);
-	context.drawOffsetY = 0;
-	context.surface->FillRect(context, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight, Platform::video->colourScheme.pageColour);
-	app.pageRenderer.GenerateDrawContext(context, NULL);
-	app.pageRenderer.DrawAll(context, app.page.GetRootNode());
+	//Platform::input->HideMouse();
+	
+	app.pageRenderer.OnPageScroll(delta);
+	
+	//DrawContext context;
+	//app.pageRenderer.GenerateDrawContext(context, NULL);
+	//context.drawOffsetY = 0;
+	//context.surface->FillRect(context, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight, Platform::video->colourScheme.pageColour);
+	//app.pageRenderer.GenerateDrawContext(context, NULL);
+	////app.pageRenderer.DrawAll(context, app.page.GetRootNode());
+
+	Platform::input->ShowMouse();
 }
 
 void AppInterface::ScrollAbsolute(int position)

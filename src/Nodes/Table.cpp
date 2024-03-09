@@ -48,6 +48,7 @@ void TableNode::BeginLayoutContext(Layout& layout, Node* node)
 	}
 
 	layout.BreakNewLine();
+	layout.tableDepth++;
 	layout.PushCursor();
 	layout.PushLayout();
 
@@ -214,6 +215,7 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 		data->state = Data::FinishedLayout;
 	}
 
+	layout.tableDepth--;
 	layout.BreakNewLine();
 }
 

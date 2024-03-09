@@ -25,6 +25,7 @@
 #include "Nodes/Break.h"
 #include "Nodes/Select.h"
 #include "Memory/Memory.h"
+#include "App.h"
 
 // debug
 #include "Platform.h"
@@ -120,14 +121,12 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 			if (contextStackSize == 0)
 			{
 				page.GetRootNode()->EncapsulateChildren();
-				DrawContext context;
-				page.GetApp().pageRenderer.GenerateDrawContext(context, page.GetRootNode());
 				
 #ifdef _WIN32
 				page.DebugDumpNodeGraph(page.GetRootNode());
 #endif
-				context.surface->FillRect(context, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight, Platform::video->colourScheme.pageColour);
-				page.DebugDraw(context, page.GetRootNode());
+				//page.GetApp().pageRenderer.RefreshAll();
+				page.GetApp().pageRenderer.MarkPageLayoutComplete();
 
 				page.GetApp().StopLoad();
 			}

@@ -13,7 +13,7 @@ void ImageNode::Draw(DrawContext& context, Node* node)
 	//printf("--IMG [%d, %d]\n", node->anchor.x, node->anchor.y);
 	uint8_t outlineColour = 7;
 
-	if (data->image.lines)
+	if (data->image.isLoaded && data->image.lines)
 	{
 		context.surface->BlitImage(context, &data->image, node->anchor.x, node->anchor.y);
 	}
@@ -70,6 +70,9 @@ bool ImageNode::ParseContent(Node* node, char* buffer, size_t count)
 	if (decoder->GetState() == ImageDecoder::Success)
 	{
 		ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
+		data->image.isLoaded = true;
+
+		App::Get().pageRenderer.MarkNodeDirty(node);
 
 		// Loop through image nodes in case this image is used multiple times
 		bool needsLayoutRefresh = false;
@@ -84,6 +87,7 @@ bool ImageNode::ParseContent(Node* node, char* buffer, size_t count)
 					if (n != node)
 					{
 						otherData->image = data->image;
+						App::Get().pageRenderer.MarkNodeDirty(n);
 					}
 
 					if (n->size.x != data->image.width || n->size.y != data->image.height)

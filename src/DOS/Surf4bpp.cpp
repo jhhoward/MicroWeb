@@ -15,6 +15,9 @@
 #define GC_ROTATE 3
 #define GC_BITMASK 8
 
+#define SC_INDEX 0x3C4
+#define SC_MAPMASK 2
+
 #define GC_XOR 0x18
 
 static uint8_t pixelBitmasks[8] =
@@ -148,9 +151,9 @@ void DrawSurface_4BPP::VLine(DrawContext& context, int x, int y, int count, uint
 	{
 		return;
 	}
-	if (y + count >= context.clipBottom)
+	if (y + count > context.clipBottom)
 	{
-		count = context.clipBottom - 1 - y;
+		count = context.clipBottom - y;
 	}
 	if (count <= 0)
 	{
@@ -691,5 +694,51 @@ void DrawSurface_4BPP::Clear()
 	for (int y = 0; y < height; y++)
 	{
 		memset(lines[y], 0xff, widthBytes);
+	}
+}
+
+// Implementation of memcpy that copies one byte at a time
+// Needed when copying video memory since plane values get 
+// stored in VGA latches. Using standard memcpy() will
+// copy with words for speed but ends up corrupting the
+// plane information
+static void memcpy_bytes(void far* dest, void far* src, unsigned int count);
+#pragma aux memcpy_bytes = \
+	"push ds" \
+	"mov ds, dx" \
+	"rep movsb" \
+	"pop dx" \
+	modify [si di cx] \	
+	parm[es di][dx si][cx];
+
+
+void DrawSurface_4BPP::ScrollScreen(int top, int bottom, int width, int amount)
+{
+	width >>= 3;
+
+	// Set write mode 1
+	outp(GC_INDEX, GC_MODE);
+	outp(GC_DATA, 0x1);
+
+	outp(GC_INDEX, GC_ROTATE);
+	outp(GC_DATA, 0);
+
+	// Set bit mask
+	outp(GC_INDEX, GC_BITMASK);
+	outp(GC_DATA, 0xff);
+
+	if (amount > 0)
+	{
+		for (int y = top; y < bottom; y++)
+		{
+			memcpy_bytes(lines[y], lines[y + amount], width);
+		}
+	}
+	else if (amount < 0)
+	{
+		for (int y = bottom - 1; y >= top; y--)
+		{
+			memcpy_bytes(lines[y], lines[y + amount], width);
+		}
 	}
 }

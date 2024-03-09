@@ -59,6 +59,7 @@ public:
 	Stack<Coord> cursorStack;
 
 	int currentLineHeight;
+	int tableDepth;
 
 	Stack<LayoutParams> paramStack;
 

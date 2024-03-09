@@ -479,3 +479,24 @@ void DrawSurface_2BPP::Clear()
 		memset(lines[y], 0xff, widthBytes);
 	}
 }
+
+
+void DrawSurface_2BPP::ScrollScreen(int top, int bottom, int width, int amount)
+{
+	width >>= 2;
+
+	if (amount > 0)
+	{
+		for (int y = top; y < bottom; y++)
+		{
+			memcpy(lines[y], lines[y + amount], width);
+		}
+	}
+	else if (amount < 0)
+	{
+		for (int y = bottom - 1; y >= top; y--)
+		{
+			memcpy(lines[y], lines[y + amount], width);
+		}
+	}
+}
