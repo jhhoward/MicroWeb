@@ -98,12 +98,12 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 
 			if (!data->cells)
 			{
-				data->cells = (TableCellNode::Data**)MemoryManager::pageAllocator.Alloc(sizeof(TableCellNode::Data*) * data->numRows * data->numColumns);
+				data->cells = (TableCellNode::Data**)MemoryManager::pageAllocator.Allocate(sizeof(TableCellNode::Data*) * data->numRows * data->numColumns);
 			}
 
 			if (!data->columns)
 			{
-				data->columns = (TableNode::Data::ColumnInfo*)MemoryManager::pageAllocator.Alloc(sizeof(TableNode::Data::ColumnInfo) * data->numColumns);
+				data->columns = (TableNode::Data::ColumnInfo*)MemoryManager::pageAllocator.Allocate(sizeof(TableNode::Data::ColumnInfo) * data->numColumns);
 			}
 
 			if (!data->cells || !data->columns)

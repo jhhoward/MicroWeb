@@ -19,12 +19,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <new>
+#include "Alloc.h"
 #pragma warning(disable:4996)
 
 // 16K chunk size including next chunk pointer
 #define CHUNK_DATA_SIZE (16 * 1024 - sizeof(struct Chunk*))
 
-class LinearAllocator
+class LinearAllocator : public Allocator
 {
 	struct Chunk
 	{
@@ -64,28 +65,7 @@ public:
 		errorFlag = Error_None;
 	}
 
-	char* AllocString(const char* inString)
-	{
-		char* result = (char*) Alloc(strlen(inString) + 1);
-		if (result)
-		{
-			strcpy(result, inString);
-		}
-		return result;
-	}
-
-	char* AllocString(const char* inString, size_t length)
-	{
-		char* result = (char*)Alloc(length + 1);
-		if (result)
-		{
-			memcpy(result, inString, length);
-			result[length] = '\0';
-		}
-		return result;
-	}
-
-	void* Alloc(size_t numBytes)
+	virtual void* Allocate(size_t numBytes)
 	{
 		if (numBytes >= CHUNK_DATA_SIZE)
 		{
@@ -102,6 +82,7 @@ public:
 			if (!currentChunk->next)
 			{
 				currentChunk->next = new Chunk();
+
 				if (!currentChunk->next)
 				{
 					errorFlag = Error_OutOfMemory;
@@ -115,37 +96,13 @@ public:
 			result = &currentChunk->data[allocOffset];
 		}
 
-		totalBytesUsed += numBytes;
+		totalBytesUsed += (long) numBytes;
 		allocOffset += numBytes;
 		return result;
 	}
 
-	template <typename T>
-	T* Alloc()
-	{
-		return new (Alloc(sizeof(T))) T();
-	}
-
-	template <typename T, typename A>
-	T* Alloc(A a)
-	{
-		return new (Alloc(sizeof(T))) T(a);
-	}
-
-	template <typename T, typename A, typename B>
-	T* Alloc(A a, B b)
-	{
-		return new (Alloc(sizeof(T))) T(a, b);
-	}
-
-	template <typename T, typename A, typename B, typename C>
-	T* Alloc(A a, B b, C c)
-	{
-		return new (Alloc(sizeof(T))) T(a, b, c);
-	}
-
-	size_t TotalAllocated() { return numAllocatedChunks * sizeof(Chunk); }
-	size_t TotalUsed() { return totalBytesUsed; }
+	long TotalAllocated() { return numAllocatedChunks * sizeof(Chunk); }
+	long TotalUsed() { return totalBytesUsed; }
 	AllocationError GetError() { return errorFlag; }
 
 private:
@@ -154,8 +111,8 @@ private:
 	Chunk* currentChunk;
 	size_t allocOffset;
 
-	size_t numAllocatedChunks;
-	size_t totalBytesUsed;		// Bytes actually used for data
+	long numAllocatedChunks;
+	long totalBytesUsed;		// Bytes actually used for data
 	AllocationError errorFlag;
 };
 

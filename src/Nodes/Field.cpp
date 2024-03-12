@@ -30,7 +30,7 @@ void TextFieldNode::Draw(DrawContext& context, Node* node)
 
 Node* TextFieldNode::Construct(Allocator& allocator, const char* inValue, NodeCallbackFunction onSubmit)
 {
-	char* buffer = (char*) allocator.Alloc(DEFAULT_TEXT_FIELD_BUFFER_SIZE);
+	char* buffer = (char*) allocator.Allocate(DEFAULT_TEXT_FIELD_BUFFER_SIZE);
 	if (!buffer)
 	{
 		return nullptr;

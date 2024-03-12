@@ -21,6 +21,9 @@ public:
 
 	void Shutdown();
 
+	long TotalAllocated() { return numAllocatedPages * EMS_PAGE_SIZE; }
+	long TotalUsed() { return allocationPageIndex * EMS_PAGE_SIZE + allocationPageUsed; }
+
 private:
 	bool isAvailable;
 	int numAllocatedPages;

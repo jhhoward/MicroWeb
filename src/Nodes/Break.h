@@ -9,10 +9,10 @@ public:
 	class Data
 	{
 	public:
-		Data(int inBreakPadding, bool inDisplayBreakLine, bool inOnlyPadEmptyLines) : breakPadding(inBreakPadding), displayBreakLine(inDisplayBreakLine), onlyPadEmptyLines(inOnlyPadEmptyLines) {}
-		int breakPadding;
-		bool displayBreakLine;
-		bool onlyPadEmptyLines;
+		Data(int inBreakPadding, bool inDisplayBreakLine, bool inOnlyPadEmptyLines) : breakPadding((uint8_t)inBreakPadding), displayBreakLine(inDisplayBreakLine), onlyPadEmptyLines(inOnlyPadEmptyLines) {}
+		uint8_t breakPadding : 6;
+		bool displayBreakLine : 1;
+		bool onlyPadEmptyLines : 1;
 	};
 
 	static Node* Construct(Allocator& allocator, int breakPadding = 0, bool displayBreakLine = false, bool onlyPadEmptyLines = false);

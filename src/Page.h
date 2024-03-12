@@ -40,7 +40,7 @@ public:
 	int GetPageWidth();
 	int GetPageHeight() { return pageHeight; }
 
-	void DebugDumpNodeGraph(Node* node, int depth = 0);
+	void DebugDumpNodeGraph();
 
 	URL pageURL;
 
@@ -50,6 +50,8 @@ public:
 
 private:
 	friend class AppInterface;
+
+	void DebugDumpNodeGraph(Node* node, int depth = 0);
 
 	App& app;
 

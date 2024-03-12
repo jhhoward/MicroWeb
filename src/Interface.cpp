@@ -54,6 +54,7 @@ void AppInterface::Reset()
 	{
 		focusedNode = nullptr;
 	}
+	focusedNode = nullptr;
 	if (hoverNode && !IsInterfaceNode(hoverNode))
 	{
 		hoverNode = nullptr;
@@ -201,8 +202,8 @@ void AppInterface::Update()
 
 		case 'm':
 		{
-			char tempMessage[50];
-			snprintf(tempMessage, 50, "Allocated: %dK Used: %dK\n", (int)(MemoryManager::pageAllocator.TotalAllocated() / 1024), (int)(MemoryManager::pageAllocator.TotalUsed() / 1024));
+			char tempMessage[100];
+			MemoryManager::GenerateMemoryReport(tempMessage);
 			app.ui.SetStatusMessage(tempMessage);
 		}
 			break;
@@ -210,7 +211,7 @@ void AppInterface::Update()
 		case 'n':
 		{
 #ifdef _WIN32
-			app.page.DebugDumpNodeGraph(app.page.GetRootNode());
+			app.page.DebugDumpNodeGraph();
 #endif
 		}
 
@@ -303,7 +304,7 @@ void AppInterface::UpdatePageScrollBar()
 
 void AppInterface::GenerateInterfaceNodes()
 {
-	LinearAllocator& allocator = MemoryManager::interfaceAllocator;
+	Allocator& allocator = MemoryManager::interfaceAllocator;
 	rootInterfaceNode = SectionElement::Construct(allocator, SectionElement::Interface);
 	rootInterfaceNode->style.alignment = ElementAlignment::Left;
 	rootInterfaceNode->style.fontSize = 1;

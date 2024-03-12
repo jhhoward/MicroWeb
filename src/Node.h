@@ -5,13 +5,14 @@
 #include <stdint.h>
 #include "Style.h"
 #include "Event.h"
+#include "Defines.h"
+#include "Memory/Alloc.h"
 
 class App;
 class Page;
 class Node;
 class Layout;
 struct DrawContext;
-typedef class LinearAllocator Allocator;
 
 class NodeHandler
 {
@@ -43,6 +44,7 @@ struct Rect
 	void Clear() { x = y = width = height = 0; }
 };
 
+#pragma pack(push, 1)
 class Node
 {
 public:
@@ -96,10 +98,9 @@ public:
 
 	Node* GetNextInTree();
 
-	Type type;
-
 	ElementStyle style;
-	
+	Type type : 8;
+
 	Coord anchor;				// Top left page position
 	Coord size;					// Rectangle size that encapsulates node and its children
 
@@ -114,6 +115,7 @@ public:
 protected:
 	static NodeHandler* nodeHandlers[Node::NumNodeTypes];
 };
+#pragma pack(pop)
 
 typedef void(*NodeCallbackFunction)(Node* node);
 

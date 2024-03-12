@@ -6,7 +6,7 @@
 #ifdef __DOS__
 #include "../DOS/EMS.h"
 
-static EMSManager ems;
+EMSManager ems;
 #endif
 
 void* MemBlockHandle::GetPtr()
@@ -54,7 +54,7 @@ MemBlockAllocator::MemBlockAllocator()
 void MemBlockAllocator::Init()
 {
 	// Disable swap for now
-	//swapFile = fopen("Microweb.swp", "w+");
+	swapFile = fopen("Microweb.swp", "wb+");
 	
 	if (swapFile)
 	{
@@ -93,7 +93,7 @@ MemBlockHandle MemBlockAllocator::AllocString(const char* inString)
 	return result;
 }
 
-MemBlockHandle MemBlockAllocator::Allocate(size_t size)
+MemBlockHandle MemBlockAllocator::Allocate(uint16_t size)
 {
 	MemBlockHandle result;
 
@@ -103,41 +103,53 @@ MemBlockHandle MemBlockAllocator::Allocate(size_t size)
 		result = ems.Allocate(size);
 		if (result.IsAllocated())
 		{
+			totalAllocated += size;
 			return result;
 		}
 	}
 #endif
 
-	if (swapFile && size <= MAX_SWAP_ALLOCATION && swapFileLength + size < maxSwapSize)
+	if (swapFile)
 	{
-		result.swapFilePosition = swapFileLength;
-		result.allocatedSize = size;
-		fseek(swapFile, swapFileLength, SEEK_SET);
+		uint16_t sizeNeededForSwap = size + sizeof(uint16_t);
 
-		char empty[32];
-		size_t toWrite = size;
-		while (toWrite > 0)
+		if (sizeNeededForSwap <= MAX_SWAP_ALLOCATION && swapFileLength + sizeNeededForSwap + sizeof(uint16_t) < maxSwapSize)
 		{
-			if (toWrite >= 32)
+			result.swapFilePosition = swapFileLength;
+			fseek(swapFile, swapFileLength, SEEK_SET);
+
+			fwrite(&size, sizeof(uint16_t), 1, swapFile);
+
+			char empty[32];
+			size_t toWrite = size;
+			while (toWrite > 0)
 			{
-				fwrite(empty, 1, 32, swapFile);
-				toWrite -= 32;
+				if (toWrite >= 32)
+				{
+					fwrite(empty, 1, 32, swapFile);
+					toWrite -= 32;
+				}
+				else
+				{
+					fwrite(empty, 1, toWrite, swapFile);
+					break;
+				}
 			}
-			else
-			{
-				fwrite(empty, 1, toWrite, swapFile);
-				break;
-			}
+
+			swapFileLength += sizeNeededForSwap;
+			result.type = MemBlockHandle::DiskSwap;
+			totalAllocated += sizeNeededForSwap;
+			return result;
 		}
-		swapFileLength += size;
-		result.type = MemBlockHandle::DiskSwap;
 	}
-	else
+
+	//if(0)
 	{
-		result.conventionalPointer = MemoryManager::pageAllocator.Alloc(size);
+		result.conventionalPointer = MemoryManager::pageAllocator.Allocate(size);
 		if (result.conventionalPointer)
 		{
 			result.type = MemBlockHandle::Conventional;
+			totalAllocated += size;
 		}
 	}
 
@@ -149,7 +161,9 @@ void* MemBlockAllocator::AccessSwap(MemBlockHandle& handle)
 	if (lastSwapRead != handle.swapFilePosition)
 	{
 		fseek(swapFile, handle.swapFilePosition, SEEK_SET);
-		fread(swapBuffer, 1, handle.allocatedSize, swapFile);
+		uint16_t allocatedSize = 0;
+		fread(&allocatedSize, sizeof(uint16_t), 1, swapFile);
+		fread(swapBuffer, 1, allocatedSize, swapFile);
 		lastSwapRead = handle.swapFilePosition;
 	}
 
@@ -159,13 +173,17 @@ void* MemBlockAllocator::AccessSwap(MemBlockHandle& handle)
 void MemBlockAllocator::CommitSwap(MemBlockHandle& handle)
 {
 	fseek(swapFile, handle.swapFilePosition, SEEK_SET);
-	fwrite(swapBuffer, 1, handle.allocatedSize, swapFile);
+	uint16_t allocatedSize = 0;
+	fread(&allocatedSize, sizeof(uint16_t), 1, swapFile);
+	fseek(swapFile, handle.swapFilePosition + sizeof(uint16_t), SEEK_SET);
+	fwrite(swapBuffer, 1, allocatedSize, swapFile);
 }
 
 void MemBlockAllocator::Reset()
 {
 	swapFileLength = 0;
 	lastSwapRead = -1;
+	totalAllocated = 0;
 
 #ifdef __DOS__
 	ems.Reset();

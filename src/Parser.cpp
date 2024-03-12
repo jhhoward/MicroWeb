@@ -123,7 +123,7 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 				page.GetRootNode()->EncapsulateChildren();
 				
 #ifdef _WIN32
-				page.DebugDumpNodeGraph(page.GetRootNode());
+				page.DebugDumpNodeGraph();
 #endif
 				//page.GetApp().pageRenderer.RefreshAll();
 				page.GetApp().pageRenderer.MarkPageLayoutComplete();

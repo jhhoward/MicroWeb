@@ -9,7 +9,8 @@
 
 // Abstract way of allocating a chunk of memory from conventional memory, EMS, disk swap
 
-struct MemBlockHandle
+#pragma pack(push, 1)
+struct  MemBlockHandle
 {
 	enum Type
 	{
@@ -19,9 +20,9 @@ struct MemBlockHandle
 		DiskSwap
 	};
 
-	Type type;
+	Type type : 8;
 
-	MemBlockHandle() : type(Unallocated), allocatedSize(0) {}
+	MemBlockHandle() : type(Unallocated) {}
 	MemBlockHandle(void* buffer) : type(Conventional), conventionalPointer(buffer) {}
 	void* GetPtr();
 	
@@ -42,8 +43,8 @@ struct MemBlockHandle
 			uint16_t emsPageOffset;
 		};
 	};
-	size_t allocatedSize;
 };
+#pragma pack(pop)
 
 class LinearAllocator;
 
@@ -55,8 +56,10 @@ public:
 	void Init();
 	void Shutdown();
 
-	MemBlockHandle Allocate(size_t size);
+	MemBlockHandle Allocate(uint16_t size);
 	MemBlockHandle AllocString(const char* inString);
+
+	long TotalAllocated() { return totalAllocated; }
 
 	void Reset();
 
@@ -70,6 +73,7 @@ private:
 	void* swapBuffer;
 	long lastSwapRead;
 	long maxSwapSize;
+	long totalAllocated;
 };
 
 

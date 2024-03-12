@@ -3,7 +3,7 @@
 
 #include "../Node.h"
 
-#define MAX_STATUS_BAR_MESSAGE_LENGTH 80
+#define MAX_STATUS_BAR_MESSAGE_LENGTH 100
 
 class StatusBarNode : public NodeHandler
 {

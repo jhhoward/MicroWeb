@@ -61,31 +61,53 @@ void Page::SetTitle(const char* inTitle)
 	app.ui.SetTitle(inTitle);
 }
 
+static const char* nodeTypeNames[] =
+{
+	"Section",
+	"Text",
+	"SubText",
+	"Image",
+	"Break",
+	"Style",
+	"Link",
+	"Block",
+	"Button",
+	"TextField",
+	"Form",
+	"StatusBar",
+	"ScrollBar",
+	"Table",
+	"TableRow",
+	"TableCell",
+	"Select",
+	"Option"
+};
+
+void Page::DebugDumpNodeGraph()
+{
+	DebugDumpNodeGraph(GetRootNode());
+
+	int nodeTypeCounts[Node::NumNodeTypes];
+
+	memset(nodeTypeCounts, 0, sizeof(nodeTypeCounts));
+	int totalCount = 0;
+
+	for (Node* node = GetRootNode(); node; node = node->GetNextInTree())
+	{
+		nodeTypeCounts[node->type]++;
+		totalCount++;
+	}
+
+	for (int n = 0; n < Node::NumNodeTypes; n++)
+	{
+		printf("%s :\t%d\n", nodeTypeNames[n], nodeTypeCounts[n]);
+	}
+	printf("Total: %d nodes\n", totalCount);
+
+}
 
 void Page::DebugDumpNodeGraph(Node* node, int depth)
 {
-	static const char* nodeTypeNames[] =
-	{
-		"Section",
-		"Text",
-		"SubText",
-		"Image",
-		"Break",
-		"Style",
-		"Link",
-		"Block",
-		"Button",
-		"TextField",
-		"Form",
-		"StatusBar",
-		"ScrollBar",
-		"Table",
-		"TableRow",
-		"TableCell",
-		"Select",
-		"Option"
-	};
-
 	static const char* sectionTypeNames[] =
 	{
 		"Document",

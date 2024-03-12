@@ -7,7 +7,7 @@ template <typename T>
 class Stack
 {
 public:
-	Stack(LinearAllocator& inAllocator) : allocator(inAllocator)
+	Stack(Allocator& inAllocator) : allocator(inAllocator)
 	{
 		Reset();
 	}
@@ -67,7 +67,7 @@ public:
 
 private:
 	Entry base;
-	LinearAllocator& allocator;
+	Allocator& allocator;
 };
 
 #endif

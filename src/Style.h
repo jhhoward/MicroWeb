@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include "Font.h"
 
+#pragma pack(push, 1)
+
 struct ElementAlignment
 {
 	enum Type
@@ -107,5 +109,7 @@ struct ElementStyleOverride
 		}
 	}
 };
+
+#pragma pack(pop)
 
 #endif

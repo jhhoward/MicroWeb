@@ -85,7 +85,7 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 						outputImage->pitch = outputImage->width;
 					}
 
-					outputImage->lines = (MemBlockHandle*)MemoryManager::pageAllocator.Alloc(sizeof(MemBlockHandle) * outputImage->height);
+					outputImage->lines = (MemBlockHandle*)MemoryManager::pageAllocator.Allocate(sizeof(MemBlockHandle) * outputImage->height);
 					if(!outputImage->lines)
 					{
 						// Allocation error

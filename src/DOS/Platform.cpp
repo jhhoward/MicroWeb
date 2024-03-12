@@ -95,6 +95,7 @@ static int AutoDetectVideoMode()
 	const int HP95LX = 13;
 	const int Hercules = 10;
 	const int CGA = 0;
+	const int CGAPalmtop = 1;
 	const int EGA = 6;
 	const int VGA = 8;
 
@@ -103,7 +104,14 @@ static int AutoDetectVideoMode()
 	int86(0x15, &inreg, &outreg);
 	if (outreg.x.bx == 0x4850)
 	{
-		return HP95LX;
+		if (outreg.x.cx == 0x0101)
+		{
+			return HP95LX;
+		}
+		else if (outreg.x.cx == 0x0102)
+		{
+			return CGAPalmtop;
+		}
 	}
 
 	// First try detect presence of VGA card
@@ -143,6 +151,10 @@ static int AutoDetectVideoMode()
 	return CGA;
 }
 
+#include "../Node.h"
+#include <stdio.h>
+#include <ctype.h>
+
 bool Platform::Init(int argc, char* argv[])
 {
 	bool inverse = false;
@@ -155,6 +167,14 @@ bool Platform::Init(int argc, char* argv[])
 			inverse = true;
 		}
 	}
+
+	//
+	printf("Node: %d\n", sizeof(Node));
+	printf("BlockHandle: %d\n", sizeof(MemBlockHandle));
+	printf("void*: %d\n", sizeof(void*));
+	printf("Style: %d\n", sizeof(ElementStyle));
+	getchar();
+	//
 
 	int suggestedMode = AutoDetectVideoMode();
 	VideoModeInfo* videoMode = ShowVideoModePicker(suggestedMode);
