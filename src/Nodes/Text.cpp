@@ -141,6 +141,17 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 				emitLength = charIndex + 1 - emitStartPosition;
 				emitWidth = width;
 				nextIndex = -1;
+
+				if (!node->firstChild)
+				{
+					// No line breaks so don't create sub text nodes
+					node->anchor = layout.GetCursor(lineHeight);
+					node->size.x = emitWidth;
+					node->size.y = lineHeight;
+
+					layout.ProgressCursor(node, emitWidth, lineHeight);
+					break;
+				}
 			}
 			else if (lastBreakPoint)
 			{
@@ -196,7 +207,10 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 		data->text.Commit();
 	}
 
-	node->EncapsulateChildren();
+	if (node->firstChild)
+	{
+		node->EncapsulateChildren();
+	}
 }
 
 Node* SubTextElement::Construct(Allocator& allocator, int startIndex, int length)
