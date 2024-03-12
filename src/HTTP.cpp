@@ -349,7 +349,7 @@ void HTTPRequest::Update()
 				}
 				else if (!strncmp(lineBuffer, "Content-Length:", 15))
 				{
-					contentRemaining = atoi(lineBuffer + 15);
+					contentRemaining = strtol(lineBuffer + 15, NULL, 10);
 				}
 				else if (!stricmp(lineBuffer, "Transfer-Encoding: chunked"))
 				{
