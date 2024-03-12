@@ -28,7 +28,7 @@ class HTTPRequest;
 
 struct LoadTask
 {
-	LoadTask() : type(LocalFile), fs(NULL) {}
+	LoadTask() : type(LocalFile), fs(NULL), debugDumpFile(NULL) {}
 
 	void Load(const char* url);
 	void Stop();
@@ -50,6 +50,8 @@ struct LoadTask
 		FILE* fs;
 		HTTPRequest* request;
 	};
+
+	FILE* debugDumpFile;
 };
 
 struct Widget;

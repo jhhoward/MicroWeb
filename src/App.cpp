@@ -82,6 +82,11 @@ void App::Run(int argc, char* argv[])
 			size_t bytesRead = loadTask.GetContent(buffer, 256);
 			if (bytesRead)
 			{
+				if (loadTask.debugDumpFile)
+				{
+					fwrite(buffer, 1, bytesRead, loadTask.debugDumpFile);
+				}
+
 				if (loadTaskTargetNode == page.GetRootNode())
 				{
 					parser.Parse(buffer, bytesRead);
@@ -189,11 +194,19 @@ void LoadTask::Load(const char* targetURL)
 	if (type == LoadTask::RemoteFile)
 	{
 		request = Platform::network->CreateRequest(url.url);
+
+		//debugDumpFile = fopen("dump.htm", "wb");
 	}
 }
 
 void LoadTask::Stop()
 {
+	if (debugDumpFile)
+	{
+		fclose(debugDumpFile);
+		debugDumpFile = NULL;
+	}
+
 	switch (type)
 	{
 	case LoadTask::LocalFile:
