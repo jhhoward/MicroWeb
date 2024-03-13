@@ -93,9 +93,11 @@ public:
 		}
 		return nullptr;
 	}
+	bool IsChildOf(Node* node);
 
 	void Redraw();
 
+	Node* GetPreviousInTree();
 	Node* GetNextInTree();
 
 	ElementStyle style;

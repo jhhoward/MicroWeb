@@ -14,6 +14,8 @@ public:
 		NodeCallbackFunction onClick;
 	};
 
+	ButtonNode() : focusingFromMouseClick(false) {}
+
 	static Node* Construct(Allocator& allocator, const char* buttonText, NodeCallbackFunction onClick);
 	virtual void GenerateLayout(Layout& layout, Node* node) override;
 	virtual void Draw(DrawContext& context, Node* node) override;
@@ -22,6 +24,9 @@ public:
 
 	static Coord CalculateSize(Node* node);
 	void InvertButton(Node* node);
+	void HighlightButton(Node* node, uint8_t colour);
+
+	bool focusingFromMouseClick;
 };
 
 #endif

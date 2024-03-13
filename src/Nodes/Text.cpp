@@ -5,6 +5,8 @@
 #include "../Layout.h"
 #include "../Draw/Surface.h"
 #include "../DataPack.h"
+#include "../Interface.h"
+#include "../App.h"
 
 Node* TextElement::Construct(Allocator& allocator, const char* text)
 {
@@ -33,6 +35,12 @@ void TextElement::Draw(DrawContext& context, Node* node)
 		char* text = data->text.Get<char>();
 
 		context.surface->DrawString(context, font, text, node->anchor.x, node->anchor.y, textColour, node->style.fontStyle);
+
+		Node* focusedNode = App::Get().ui.GetFocusedNode();
+		if (focusedNode && node->IsChildOf(focusedNode))
+		{
+			context.surface->InvertRect(context, node->anchor.x, node->anchor.y, node->size.x, node->size.y);
+		}
 	}
 }
 
@@ -244,8 +252,13 @@ void SubTextElement::Draw(DrawContext& context, Node* node)
 
 		context.surface->DrawString(context, font, text, node->anchor.x, node->anchor.y, textColour, node->style.fontStyle);
 
+		Node* focusedNode = App::Get().ui.GetFocusedNode();
+		if (focusedNode && node->IsChildOf(focusedNode))
+		{
+			context.surface->InvertRect(context, node->anchor.x, node->anchor.y, node->size.x, node->size.y);
+		}
+
 		text[subTextData->length] = temp;
-		//Platform::video->InvertRect(node->anchor.x, node->anchor.y + 50, node->size.x, node->size.y);
 		//printf("%s [%d, %d](%d %d)", data->text, node->anchor.x, node->anchor.y, node->style.fontStyle, node->style.fontSize);
 	}
 }

@@ -204,11 +204,6 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 	}
 }
 
-int Page::GetPageWidth()
-{
-	return app.ui.windowRect.width;
-}
-
 Node* Page::ProcessNextLoadTask(Node* lastNode, LoadTask& loadTask)
 {
 	Node* node;

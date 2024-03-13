@@ -388,7 +388,7 @@ void DrawSurface_2BPP::InvertRect(DrawContext& context, int x, int y, int width,
 		VRAMptr += (x >> 2);
 		int count = width;
 		uint8_t data = *VRAMptr;
-		uint8_t mask = (0xc0 >> (x & 3));
+		uint8_t mask = bitmaskTable[x & 3];
 
 		while (count--)
 		{

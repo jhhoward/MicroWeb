@@ -63,12 +63,6 @@ void AppInterface::Reset()
 
 void AppInterface::Update()
 {
-	if (app.page.GetPageHeight() != oldPageHeight)
-	{
-		oldPageHeight = app.page.GetPageHeight();
-		UpdatePageScrollBar();
-	}
-
 	int buttons, mouseX, mouseY;
 	Platform::input->GetMouseStatus(buttons, mouseX, mouseY);
 
@@ -179,7 +173,13 @@ void AppInterface::Update()
 			ScrollAbsolute(0);
 			break;
 		case KEYCODE_END:
-			//ScrollAbsolute(0);
+			{
+				int end = app.pageRenderer.GetVisiblePageHeight() - windowRect.height;
+				if (end > 0)
+				{
+					ScrollAbsolute(end);
+				}
+			}
 			break;
 		case KEYCODE_BACKSPACE:
 			app.PreviousPage();
@@ -194,14 +194,14 @@ void AppInterface::Update()
 			break;
 		case KEYCODE_CTRL_L:
 		case KEYCODE_F6:
-			//ActivateWidget(&addressBar);
+			FocusNode(addressBarNode);
 			break;
 
 		case KEYCODE_TAB:
-			//CycleWidgets(1);
+			CycleNodes(1);
 			break;
 		case KEYCODE_SHIFT_TAB:
-			//CycleWidgets(-1);
+			CycleNodes(-1);
 			break;
 
 		case 'm':
@@ -309,7 +309,7 @@ void AppInterface::UpdateAddressBar(const URL& url)
 void AppInterface::UpdatePageScrollBar()
 {
 	ScrollBarNode::Data* data = static_cast<ScrollBarNode::Data*>(scrollBarNode->data);
-	int maxScrollHeight = app.page.GetRootNode()->size.y - app.ui.windowRect.height;
+	int maxScrollHeight = app.pageRenderer.GetVisiblePageHeight() - app.ui.windowRect.height;
 	if (maxScrollHeight < 0)
 		maxScrollHeight = 0;
 	data->scrollPosition = scrollPositionY;
@@ -474,7 +474,7 @@ void AppInterface::ScrollRelative(int delta)
 	if (scrollPositionY < 0)
 		scrollPositionY = 0;
 
-	int maxScrollY = app.page.GetRootNode()->size.y - app.ui.windowRect.height;
+	int maxScrollY = app.pageRenderer.GetVisiblePageHeight() - app.ui.windowRect.height;
 	if (maxScrollY > 0 && scrollPositionY > maxScrollY)
 	{
 		scrollPositionY = maxScrollY;
@@ -484,21 +484,48 @@ void AppInterface::ScrollRelative(int delta)
 
 	UpdatePageScrollBar();
 
-	//Platform::input->HideMouse();
-	
 	app.pageRenderer.OnPageScroll(delta);
-	
-	//DrawContext context;
-	//app.pageRenderer.GenerateDrawContext(context, NULL);
-	//context.drawOffsetY = 0;
-	//context.surface->FillRect(context, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight, Platform::video->colourScheme.pageColour);
-	//app.pageRenderer.GenerateDrawContext(context, NULL);
-	////app.pageRenderer.DrawAll(context, app.page.GetRootNode());
-
-	Platform::input->ShowMouse();
 }
 
 void AppInterface::ScrollAbsolute(int position)
 {
+	int delta = position - scrollPositionY;
+	if (delta)
+	{
+		ScrollRelative(delta);
+	}
+}
 
+void AppInterface::CycleNodes(int direction)
+{
+	Node* node = focusedNode;
+
+	if (!node)
+	{
+		node = app.page.GetRootNode();
+	}
+
+	if (node)
+	{
+		if (!IsInterfaceNode(node))
+		{
+			while (node)
+			{
+				if (direction > 0)
+				{
+					node = node->GetNextInTree();
+				}
+				else
+				{
+					node = node->GetPreviousInTree();
+				}
+
+				if (node && node->Handler().CanPick(node))
+				{
+					FocusNode(node);
+					return;
+				}
+			}
+		}
+	}
 }

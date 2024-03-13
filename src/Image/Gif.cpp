@@ -657,6 +657,10 @@ void GifDecoder::EmitLine(int y)
 	if (outputImage->bpp == 8)
 	{
 		bool useColourDithering = true;
+		//if (Platform::video->paletteLUT == compositeCgaPaletteLUT)
+		//{
+		//	useColourDithering = false;
+		//}
 
 		if (useColourDithering)
 		{

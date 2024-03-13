@@ -17,4 +17,7 @@ public:
 	virtual bool HandleEvent(Node* node, const Event& event) override;
 
 	static Node* Construct(Allocator& allocator, char* url);
+
+	void HighlightChildren(Node* node);
+
 };

@@ -31,6 +31,8 @@ public:
 	void MarkPageLayoutComplete();
 	void MarkNodeDirty(Node* node);
 
+	int GetVisiblePageHeight() { return visiblePageHeight; }
+
 private:
 	bool IsInRenderQueue(Node* node);
 
@@ -55,6 +57,8 @@ private:
 	// Draw contexts for upper and lower parts of the screen to facilitate scrolling
 	DrawContext upperContext;
 	DrawContext lowerContext;
+
+	int visiblePageHeight;
 };
 
 #endif

@@ -53,6 +53,7 @@ public:
 	void ScrollAbsolute(int position);
 
 
+	Node* addressBarNode;
 	URL addressBarURL;
 
 	Rect windowRect;
@@ -65,6 +66,8 @@ private:
 	void HandleClick(int mouseX, int mouseY);
 	void HandleRelease(int mouseX, int mouseY);
 	void HandleDrag(int mouseX, int mouseY);
+
+	void CycleNodes(int direction);
 
 	static void OnBackButtonPressed(Node* node);
 	static void OnForwardButtonPressed(Node* node);
@@ -83,7 +86,6 @@ private:
 	Node* titleNode;
 	Node* backButtonNode;
 	Node* forwardButtonNode;
-	Node* addressBarNode;
 	Node* statusBarNode;
 	Node* scrollBarNode;
 

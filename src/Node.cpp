@@ -237,6 +237,45 @@ void Node::Redraw()
 	Platform::input->ShowMouse();
 }
 
+Node* Node::GetPreviousInTree()
+{
+	if (parent)
+	{
+		if (parent->firstChild == this)
+		{
+			return parent;
+		}
+
+		for (Node* child = parent->firstChild; child; child = child->next)
+		{
+			if (child->next == this)
+			{
+				Node* node = child;
+
+				while (node->firstChild)
+				{
+					node = node->firstChild;
+
+					while (node->next)
+					{
+						node = node->next;
+					}
+				}
+
+				return node;
+			}
+		}
+
+		// Shouldn't ever get here
+		return nullptr;
+	}
+	else
+	{
+		// Top of the tree
+		return nullptr;
+	}
+}
+
 Node* Node::GetNextInTree()
 {
 	Node* node = this;
@@ -260,4 +299,17 @@ Node* Node::GetNextInTree()
 	}
 
 	return nullptr;
+}
+
+bool Node::IsChildOf(Node* potentialParent)
+{
+	for(Node* node = parent; node; node = node->parent)
+	{
+		if (node == potentialParent)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }

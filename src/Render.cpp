@@ -134,6 +134,10 @@ void PageRenderer::OnPageScroll(int scrollDelta)
 	{
 		Platform::video->drawSurface->ScrollScreen(minWinY, maxWinY - scrollDelta, windowRect.width, scrollDelta);
 		clearContext.clipTop = maxWinY - scrollDelta;
+		if (clearContext.clipTop < minWinY)
+		{
+			clearContext.clipTop = minWinY;
+		}
 		clearContext.clipBottom = maxWinY;
 		clearContext.surface->FillRect(clearContext, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight, Platform::video->colourScheme.pageColour);
 	}
@@ -142,6 +146,10 @@ void PageRenderer::OnPageScroll(int scrollDelta)
 		Platform::video->drawSurface->ScrollScreen(minWinY - scrollDelta, maxWinY, windowRect.width, scrollDelta);
 		clearContext.clipTop = minWinY;
 		clearContext.clipBottom = minWinY - scrollDelta;
+		if (clearContext.clipBottom > maxWinY)
+		{
+			clearContext.clipBottom = maxWinY;
+		}
 		clearContext.surface->FillRect(clearContext, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight, Platform::video->colourScheme.pageColour);
 	}
 
@@ -198,6 +206,8 @@ void PageRenderer::Reset()
 
 	Rect& windowRect = app.ui.windowRect;
 	lowerContext.clipBottom = lowerContext.clipTop = windowRect.y + windowRect.height;
+
+	visiblePageHeight = 0;
 }
 
 bool PageRenderer::DoesOverlapWithContext(Node* node, DrawContext& context)
@@ -331,6 +341,8 @@ void PageRenderer::MarkNodeLayoutComplete(Node* node)
 	int minWinY = windowRect.y;
 	int maxWinY = windowRect.y + windowRect.height;
 
+	bool expandedPage = false;
+
 	for (Node* node = startNode; node; node = node->GetNextInTree())
 	{
 		if (IsRenderableNode(node->type))
@@ -338,6 +350,12 @@ void PageRenderer::MarkNodeLayoutComplete(Node* node)
 			int nodeTop = node->anchor.y + drawOffsetY;
 			int nodeBottom = nodeTop + node->size.y;
 			bool outsideOfWindow = (nodeTop > maxWinY) || (nodeBottom < minWinY);
+
+			if (nodeBottom > visiblePageHeight)
+			{
+				visiblePageHeight = nodeBottom;
+				expandedPage = true;
+			}
 
 			if (!outsideOfWindow)
 			{
@@ -361,6 +379,10 @@ void PageRenderer::MarkNodeLayoutComplete(Node* node)
 			break;
 	}
 
+	if (expandedPage)
+	{
+		App::Get().ui.UpdatePageScrollBar();
+	}
 }
 
 void PageRenderer::MarkNodeDirty(Node* dirtyNode)

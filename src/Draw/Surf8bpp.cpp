@@ -452,61 +452,78 @@ void DrawSurface_8BPP::InvertRect(DrawContext& context, int x, int y, int width,
 	}
 }
 
+static uint8_t edge[16] =
+{
+	0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0
+};
+
+static uint8_t widgetEdge[16] =
+{
+	0x0,0xf,0xf,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0xf,0xf,0x0
+};
+
+static uint8_t inner[16] =
+{
+	0x0,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0x0
+};
+
+static uint8_t widgetInner[16] =
+{
+	0x0,0xf,0x0,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0x0,0xf,0x0
+};
+
+static uint8_t grab[16] =
+{
+	0x0,0xf,0x0,0xf,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0xf,0x0,0xf,0x0
+};
+
 void DrawSurface_8BPP::VerticalScrollBar(DrawContext& context, int x, int y, int height, int position, int size)
 {
-#if 0
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
 	int startY = y;
 
-	x >>= 3;
 	const int grabSize = 7;
 	const int minWidgetSize = grabSize + 4;
 	const int widgetPaddingSize = size - minWidgetSize;
 	int topPaddingSize = widgetPaddingSize >> 1;
 	int bottomPaddingSize = widgetPaddingSize - topPaddingSize;
 	const uint16_t edge = 0;
-	const uint16_t inner = 0xfe7f;
 	int bottomSpacing = height - position - size;
 
 	while (position--)
 	{
-		*(uint16_t*)(&lines[y++][x]) = inner;
+		memcpy(&lines[y++][x], inner, 16);
 	}
 
-	const uint16_t widgetEdge = 0x0660;
-	*(uint16_t*)(&lines[y++][x]) = inner;
-	*(uint16_t*)(&lines[y++][x]) = widgetEdge;
-
-	const uint16_t widgetInner = 0xfa5f;
-	const uint16_t grab = 0x0a50;
+	memcpy(&lines[y++][x], inner, 16);
+	memcpy(&lines[y++][x], widgetEdge, 16);
 
 	while (topPaddingSize--)
 	{
-		*(uint16_t*)(&lines[y++][x]) = widgetInner;
+		memcpy(&lines[y++][x], widgetInner, 16);
 	}
 
-	*(uint16_t*)(&lines[y++][x]) = widgetInner;
-	*(uint16_t*)(&lines[y++][x]) = grab;
-	*(uint16_t*)(&lines[y++][x]) = widgetInner;
-	*(uint16_t*)(&lines[y++][x]) = grab;
-	*(uint16_t*)(&lines[y++][x]) = widgetInner;
-	*(uint16_t*)(&lines[y++][x]) = grab;
-	*(uint16_t*)(&lines[y++][x]) = widgetInner;
+	memcpy(&lines[y++][x], widgetInner, 16);
+	memcpy(&lines[y++][x], grab, 16);
+	memcpy(&lines[y++][x], widgetInner, 16);
+	memcpy(&lines[y++][x], grab, 16);
+	memcpy(&lines[y++][x], widgetInner, 16);
+	memcpy(&lines[y++][x], grab, 16);
+	memcpy(&lines[y++][x], widgetInner, 16);
 
 	while (bottomPaddingSize--)
 	{
-		*(uint16_t*)(&lines[y++][x]) = widgetInner;
+		memcpy(&lines[y++][x], widgetInner, 16);
 	}
 
-	*(uint16_t*)(&lines[y++][x]) = widgetEdge;
-	*(uint16_t*)(&lines[y++][x]) = inner;
+	memcpy(&lines[y++][x], widgetEdge, 16);
+	memcpy(&lines[y++][x], inner, 16);
 
 	while (bottomSpacing--)
 	{
-		*(uint16_t*)(&lines[y++][x]) = inner;
+		memcpy(&lines[y++][x], inner, 16);
 	}
-#endif
 }
 
 void DrawSurface_8BPP::Clear()

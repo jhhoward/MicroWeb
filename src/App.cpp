@@ -50,16 +50,26 @@ void App::Run(int argc, char* argv[])
 	ui.Init();
 	pageRenderer.Init();
 
+	char* targetURL = nullptr;
 	if (argc > 1)
 	{
 		for (int n = 1; n < argc; n++)
 		{
 			if (*argv[n] != '-')
 			{
-				OpenURL(argv[n]);
+				targetURL = argv[n];
 				break;
 			}
 		}
+	}
+
+	if (targetURL)
+	{
+		OpenURL(targetURL);
+	}
+	else
+	{
+		ui.FocusNode(ui.addressBarNode);
 	}
 
 	while (running)

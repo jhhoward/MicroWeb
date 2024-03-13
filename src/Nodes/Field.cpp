@@ -108,7 +108,7 @@ bool TextFieldNode::HandleEvent(Node* node, const Event& event)
 		shiftPosition = 0;
 		ShiftIntoView(node);
 
-		if (App::Get().ui.IsInterfaceNode(node))
+		if (App::Get().ui.IsInterfaceNode(node) && strlen(data->buffer) > 0)
 		{
 			// This is the address bar
 			cursorPosition = strlen(data->buffer);

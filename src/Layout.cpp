@@ -21,7 +21,7 @@ void Layout::Reset()
 
 	LayoutParams& params = GetParams();
 	params.marginLeft = 0;
-	params.marginRight = page.GetPageWidth();
+	params.marginRight = page.GetApp().ui.windowRect.width;
 }
 
 void Layout::BreakNewLine()

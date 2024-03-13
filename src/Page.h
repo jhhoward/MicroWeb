@@ -37,9 +37,6 @@ public:
 
 	Layout layout;
 
-	int GetPageWidth();
-	int GetPageHeight() { return pageHeight; }
-
 	void DebugDumpNodeGraph();
 
 	URL pageURL;
