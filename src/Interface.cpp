@@ -89,7 +89,11 @@ void AppInterface::Update()
 	}
 	else if (!(buttons & 1) && (oldButtons & 1))
 	{
-		HandleRelease();
+		HandleRelease(mouseX, mouseY);
+	}
+	else if ((buttons & 1) && (oldButtons & 1) && (mouseX != oldMouseX || mouseY != oldMouseY))
+	{
+		HandleDrag(mouseX, mouseY);
 	}
 
 	oldMouseX = mouseX;
@@ -271,16 +275,27 @@ void AppInterface::HandleClick(int mouseX, int mouseY)
 {
 	if (hoverNode)
 	{
-		FocusNode(hoverNode);
-		focusedNode->Handler().HandleEvent(focusedNode, Event(app, Event::MouseClick));
+		hoverNode->Handler().HandleEvent(hoverNode, Event(app, Event::MouseClick, mouseX, mouseY));
+	}
+	else if (focusedNode)
+	{
+		FocusNode(nullptr);
 	}
 }
 
-void AppInterface::HandleRelease()
+void AppInterface::HandleDrag(int mouseX, int mouseY)
 {
 	if (focusedNode)
 	{
-		focusedNode->Handler().HandleEvent(focusedNode, Event(app, Event::MouseRelease));
+		focusedNode->Handler().HandleEvent(focusedNode, Event(app, Event::MouseDrag, mouseX, mouseY));
+	}
+}
+
+void AppInterface::HandleRelease(int mouseX, int mouseY)
+{
+	if (focusedNode)
+	{
+		focusedNode->Handler().HandleEvent(focusedNode, Event(app, Event::MouseRelease, mouseX, mouseY));
 	}
 
 }
@@ -410,7 +425,17 @@ void AppInterface::FocusNode(Node* node)
 {
 	if (node != focusedNode)
 	{
+		if (focusedNode)
+		{
+			focusedNode->Handler().HandleEvent(focusedNode, Event(app, Event::Unfocus));
+		}
+
 		focusedNode = node;
+
+		if (focusedNode)
+		{
+			focusedNode->Handler().HandleEvent(focusedNode, Event(app, Event::Focus));
+		}
 	}
 }
 

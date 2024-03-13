@@ -12,15 +12,20 @@ struct Event
 	{
 		MouseClick,
 		MouseRelease,
-		KeyPress
+		MouseDrag,
+		KeyPress,
+		Focus,
+		Unfocus
 	};
 
-	Event(App& inApp, Type inType) : app(inApp), type(inType), key(0) {}
-	Event(App& inApp, Type inType, InputButtonCode inKey) : app(inApp), type(inType), key(inKey) {}
+	Event(App& inApp, Type inType) : app(inApp), type(inType), key(0), x(0), y(0) {}
+	Event(App& inApp, Type inType, InputButtonCode inKey) : app(inApp), type(inType), key(inKey), x(0), y(0) {}
+	Event(App& inApp, Type inType, int inX, int inY) : app(inApp), type(inType), key(0), x(inX), y(inY) {}
 
 	App& app;
 	Type type;
 	InputButtonCode key;
+	int x, y;
 };
 
 #endif

@@ -26,13 +26,21 @@ public:
 	virtual bool HandleEvent(Node* node, const Event& event) override;
 
 private:
+	int shiftPosition;
 	int cursorPosition;
+	int selectionStartPosition;
+	int selectionLength;
+	int pickedPosition;
 
-	void DrawCursor(DrawContext& context, Node* node, bool clear);
+	void ShiftIntoView(Node* node);
+	void DrawCursor(DrawContext& context, Node* node);
+	void DrawSelection(DrawContext& context, Node* node);
 	void MoveCursorPosition(Node* node, int newPosition);
 	void RedrawModified(Node* node, int position);
-
-
+	int GetBufferPixelWidth(Node* node, int start, int end);
+	void DeleteSelectionContents(Node* node);
+	void ClearSelection(Node* node);
+	int PickPosition(Node* node, int x, int y);
 };
 
 #endif

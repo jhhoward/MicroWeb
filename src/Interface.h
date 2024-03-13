@@ -46,6 +46,7 @@ public:
 	Node* GetHoverNode() { return hoverNode; }
 	Node* GetRootInterfaceNode() { return rootInterfaceNode; }
 	bool IsInterfaceNode(Node* node);
+	bool IsOverNode(Node* node, int x, int y);
 
 	int GetScrollPositionY() { return scrollPositionY; }
 	void ScrollRelative(int delta);
@@ -62,9 +63,8 @@ private:
 	Node* PickNode(int x, int y);
 
 	void HandleClick(int mouseX, int mouseY);
-	void HandleRelease();
-
-	bool IsOverNode(Node* node, int x, int y);
+	void HandleRelease(int mouseX, int mouseY);
+	void HandleDrag(int mouseX, int mouseY);
 
 	static void OnBackButtonPressed(Node* node);
 	static void OnForwardButtonPressed(Node* node);

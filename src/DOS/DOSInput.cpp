@@ -31,7 +31,6 @@ void DOSInputDriver::Init()
 
 	currentCursor = MouseCursor::Hand;
 	SetMouseCursor(MouseCursor::Pointer);
-	lastMouseButtons = 0;
 	mouseHideCount = 1;
 
 	ShowMouse();
@@ -157,24 +156,6 @@ InputButtonCode DOSInputDriver::GetKeyPress()
 			keyPress = getch() << 8;
 		}
 		return keyPress;
-	}
-
-	int buttons, mouseX, mouseY;
-	GetMouseStatus(buttons, mouseX, mouseY);
-
-	int oldButtons = lastMouseButtons;
-	lastMouseButtons = buttons;
-
-	if (buttons != oldButtons)
-	{
-		if ((buttons & 1) && !(oldButtons & 1))
-		{
-			return KEYCODE_MOUSE_LEFT;
-		}
-		if ((buttons & 2) && !(oldButtons & 2))
-		{
-			return KEYCODE_MOUSE_RIGHT;
-		}
 	}
 
 	return 0;

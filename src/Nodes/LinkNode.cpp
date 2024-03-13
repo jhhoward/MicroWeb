@@ -23,7 +23,7 @@ bool LinkNode::HandleEvent(Node* node, const Event& event)
 {
 	switch (event.type)
 	{
-		case Event::MouseRelease:
+		case Event::MouseClick:
 		{
 			LinkNode::Data* data = static_cast<LinkNode::Data*>(node->data);
 			if (data->url)

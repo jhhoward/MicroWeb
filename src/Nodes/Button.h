@@ -21,6 +21,7 @@ public:
 	virtual bool HandleEvent(Node* node, const Event& event);
 
 	static Coord CalculateSize(Node* node);
+	void InvertButton(Node* node);
 };
 
 #endif

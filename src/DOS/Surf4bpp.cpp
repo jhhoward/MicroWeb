@@ -25,11 +25,6 @@ static uint8_t pixelBitmasks[8] =
 	0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01
 };
 
-static uint8_t pixelStartBitmasks[8] =
-{
-	0xff, 0x7f, 0x3f, 0x1f, 0x0f, 0x07, 0x03, 0x01
-};
-
 static uint8_t pixelEndBitmasks[8] =
 {
 	0x00, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe
@@ -83,54 +78,42 @@ void DrawSurface_4BPP::HLine(DrawContext& context, int x, int y, int count, uint
 	SetPenColour(colour);
 
 	uint8_t* VRAMptr = lines[y];
-	uint8_t* VRAMend = VRAMptr;
 	VRAMptr += (x >> 3);
-	VRAMend += ((x + count) >> 3);
 
-	if (VRAMptr == VRAMend)
+	// Start pixels
+	uint8_t mask = 0;
+	while (count--)
 	{
-		// Starts and ends within the same byte
-		uint8_t mask = 0;
-		while (count--)
-		{
-			mask |= pixelBitmasks[x & 7];
-			x++;
-		}
-
-		// Set bitmask
-		outp(GC_INDEX, GC_BITMASK);
-		outp(GC_DATA, mask);
-
-		*VRAMptr |= 0xff;
+		mask |= pixelBitmasks[x & 7];
+		x++;
+		if (!(x & 7))
+			break;
 	}
-	else
-	{
-		uint8_t mask;
 
-		// Start byte
-		mask = pixelStartBitmasks[x & 7];
-		outp(GC_INDEX, GC_BITMASK);
+	// Set bitmask
+	outp(GC_INDEX, GC_BITMASK);
+	outp(GC_DATA, mask);
+
+	*VRAMptr++ |= 0xff;
+
+	if (!count)
+		return;
+
+	// Middle bytes
+	outp(GC_DATA, 0xff);
+	while (count >= 8)
+	{
+		count -= 8;
+		*VRAMptr++ |= 0xff;
+	}
+
+	// End byte
+	if (count > 0)
+	{
+		mask = pixelEndBitmasks[count];
 		outp(GC_DATA, mask);
 		*VRAMptr++ |= 0xff;
-
-		// Middle bytes
-		count -= 8 - (x & 7);
-		outp(GC_DATA, 0xff);
-		while (count >= 8)
-		{
-			count -= 8;
-			*VRAMptr++ |= 0xff;
-		}
-
-		// End byte
-		if (count > 0)
-		{
-			mask = pixelEndBitmasks[count];
-			outp(GC_DATA, mask);
-			*VRAMptr++ |= 0xff;
-		}
 	}
-
 }
 
 void DrawSurface_4BPP::VLine(DrawContext& context, int x, int y, int count, uint8_t colour)
@@ -218,38 +201,28 @@ void DrawSurface_4BPP::FillRect(DrawContext& context, int x, int y, int width, i
 	{
 		int count = width;
 		uint8_t* VRAMptr = lines[y];
-		uint8_t* VRAMend = VRAMptr;
 		VRAMptr += (x >> 3);
-		VRAMend += ((x + count) >> 3);
 
-		if (VRAMptr == VRAMend)
+		// Start pixels
+		uint8_t mask = 0;
+		int workX = x;
+		while (count--)
 		{
-			// Starts and ends within the same byte
-			uint8_t mask = 0;
-			while (count--)
-			{
-				mask |= pixelBitmasks[x & 7];
-				x++;
-			}
-
-			// Set bitmask
-			outp(GC_INDEX, GC_BITMASK);
-			outp(GC_DATA, mask);
-
-			*VRAMptr |= 0xff;
+			mask |= pixelBitmasks[workX & 7];
+			workX++;
+			if (!(workX & 7))
+				break;
 		}
-		else
+
+		// Set bitmask
+		outp(GC_INDEX, GC_BITMASK);
+		outp(GC_DATA, mask);
+
+		*VRAMptr++ |= 0xff;
+
+		if (count)
 		{
-			uint8_t mask;
-
-			// Start byte
-			mask = pixelStartBitmasks[x & 7];
-			outp(GC_INDEX, GC_BITMASK);
-			outp(GC_DATA, mask);
-			*VRAMptr++ |= 0xff;
-
 			// Middle bytes
-			count -= 8 - (x & 7);
 			outp(GC_DATA, 0xff);
 			while (count >= 8)
 			{
@@ -556,38 +529,28 @@ void DrawSurface_4BPP::InvertRect(DrawContext& context, int x, int y, int width,
 	{
 		int count = width;
 		uint8_t* VRAMptr = lines[y];
-		uint8_t* VRAMend = VRAMptr;
 		VRAMptr += (x >> 3);
-		VRAMend += ((x + count) >> 3);
 
-		if (VRAMptr == VRAMend)
+		// Start pixels
+		uint8_t mask = 0;
+		int workX = x;
+		while (count--)
 		{
-			// Starts and ends within the same byte
-			uint8_t mask = 0;
-			while (count--)
-			{
-				mask |= pixelBitmasks[x & 7];
-				x++;
-			}
-
-			// Set bitmask
-			outp(GC_INDEX, GC_BITMASK);
-			outp(GC_DATA, mask);
-
-			*VRAMptr |= 0xff;
+			mask |= pixelBitmasks[workX & 7];
+			workX++;
+			if (!(workX & 7))
+				break;
 		}
-		else
+
+		// Set bitmask
+		outp(GC_INDEX, GC_BITMASK);
+		outp(GC_DATA, mask);
+
+		*VRAMptr++ |= 0xff;
+
+		if (count)
 		{
-			uint8_t mask;
-
-			// Start byte
-			mask = pixelStartBitmasks[x & 7];
-			outp(GC_INDEX, GC_BITMASK);
-			outp(GC_DATA, mask);
-			*VRAMptr++ |= 0xff;
-
 			// Middle bytes
-			count -= 8 - (x & 7);
 			outp(GC_DATA, 0xff);
 			while (count >= 8)
 			{

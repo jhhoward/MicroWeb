@@ -142,10 +142,10 @@ InputButtonCode WindowsInputDriver::TranslateCode(WPARAM code)
 {
 	switch (code)
 	{
-	case VK_LBUTTON:
-		return KEYCODE_MOUSE_LEFT;
-	case VK_RBUTTON:
-		return KEYCODE_MOUSE_RIGHT;
+	//case VK_LBUTTON:
+	//	return KEYCODE_MOUSE_LEFT;
+	//case VK_RBUTTON:
+	//	return KEYCODE_MOUSE_RIGHT;
 	case VK_ESCAPE:
 		return KEYCODE_ESCAPE;
 	case VK_UP:

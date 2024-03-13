@@ -505,6 +505,16 @@ void HTMLParser::Parse(char* buffer, size_t count)
 			ParseChar(c);
 		}
 	}
+
+	if (MemoryManager::pageAllocator.GetError() && contextStackSize >= 0)
+	{
+		// There was a memory error, possibly out of memory. Unwind the context stack
+		while (contextStackSize >= 0)
+		{
+			HTMLParseContext& parseContext = contextStack.Top();
+			PopContext(parseContext.tag);
+		}
+	}
 }
 
 void HTMLParser::SetTextEncoding(TextEncoding::Type newType)

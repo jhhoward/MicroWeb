@@ -84,32 +84,42 @@ void ButtonNode::GenerateLayout(Layout& layout, Node* node)
 
 bool ButtonNode::HandleEvent(Node* node, const Event& event)
 {
+	AppInterface& ui = App::Get().ui;
+
 	switch (event.type)
 	{
 	case Event::MouseClick:
 		{
-			DrawContext context;
-			event.app.pageRenderer.GenerateDrawContext(context, node);
-			context.surface->InvertRect(context, node->anchor.x + 1, node->anchor.y + 1, node->size.x - 2, node->size.y - 3);
-			return true;
+			InvertButton(node);
+			ui.FocusNode(node);
 		}
+		return true;
 	case Event::MouseRelease:
 		{
-			DrawContext context;
-			event.app.pageRenderer.GenerateDrawContext(context, node);
-			context.surface->InvertRect(context, node->anchor.x + 1, node->anchor.y + 1, node->size.x - 2, node->size.y - 3);
-			
-			ButtonNode::Data* data = static_cast<ButtonNode::Data*>(node->data);
-			if (data->onClick)
+			InvertButton(node);
+			if (ui.IsOverNode(node, event.x, event.y))
 			{
-				data->onClick(node);
+				ButtonNode::Data* data = static_cast<ButtonNode::Data*>(node->data);
+				if (data->onClick)
+				{
+					data->onClick(node);
+				}
 			}
-
-			return true;
 		}
+		return true;
 	default:
 		break;
 	}
 
 	return false;
+}
+
+void ButtonNode::InvertButton(Node* node)
+{
+	DrawContext context;
+	App::Get().pageRenderer.GenerateDrawContext(context, node);
+
+	Platform::input->HideMouse();
+	context.surface->InvertRect(context, node->anchor.x + 1, node->anchor.y + 1, node->size.x - 2, node->size.y - 3);
+	Platform::input->ShowMouse();
 }

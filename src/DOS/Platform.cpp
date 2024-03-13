@@ -168,14 +168,6 @@ bool Platform::Init(int argc, char* argv[])
 		}
 	}
 
-	//
-	printf("Node: %d\n", sizeof(Node));
-	printf("BlockHandle: %d\n", sizeof(MemBlockHandle));
-	printf("void*: %d\n", sizeof(void*));
-	printf("Style: %d\n", sizeof(ElementStyle));
-	getchar();
-	//
-
 	int suggestedMode = AutoDetectVideoMode();
 	VideoModeInfo* videoMode = ShowVideoModePicker(suggestedMode);
 	if (!videoMode)
