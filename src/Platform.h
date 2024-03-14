@@ -32,6 +32,8 @@ public:
 
 	virtual void ScaleImageDimensions(int& width, int& height) {}
 
+	void InvertVideoOutput();
+
 	int screenWidth;
 	int screenHeight;
 

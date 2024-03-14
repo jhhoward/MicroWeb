@@ -783,6 +783,7 @@ void GifDecoder::EmitLine(int y)
 		uint8_t buffer = 0;
 		uint8_t mask = 0x80;
 		int ditherIndex = 0;
+		uint8_t inverseMask = (Platform::video->colourScheme.pageColour == 0) ? 0xff : 0;
 
 		if (outputImage->width == lineBufferSize)
 		{
@@ -801,7 +802,7 @@ void GifDecoder::EmitLine(int y)
 				mask >>= 1;
 				if (!mask)
 				{
-					*output++ = buffer;
+					*output++ = buffer ^ inverseMask;
 					buffer = 0;
 					mask = 0x80;
 				}
@@ -809,7 +810,7 @@ void GifDecoder::EmitLine(int y)
 
 			if (mask != 0x80)
 			{
-				*output = buffer;
+				*output = buffer ^ inverseMask;
 			}
 		}
 		else
@@ -835,7 +836,7 @@ void GifDecoder::EmitLine(int y)
 				mask >>= 1;
 				if (!mask)
 				{
-					*output++ = buffer;
+					*output++ = buffer ^ inverseMask;
 					buffer = 0;
 					mask = 0x80;
 				}
@@ -850,7 +851,7 @@ void GifDecoder::EmitLine(int y)
 			
 			if (mask != 0x80)
 			{
-				*output = buffer;
+				*output = buffer ^ inverseMask;
 			}
 		}
 	}

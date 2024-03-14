@@ -89,15 +89,16 @@ bool DetectHercules();
 	modify [ax cx dx] \
 	value [al]
 
+static const int HP95LX = 13;
+static const int Hercules = 10;
+static const int CGA = 0;
+static const int CGAPalmtop = 1;
+static const int EGA = 6;
+static const int VGA = 8;
+
 static int AutoDetectVideoMode()
 {
 	union REGS inreg, outreg;
-	const int HP95LX = 13;
-	const int Hercules = 10;
-	const int CGA = 0;
-	const int CGAPalmtop = 1;
-	const int EGA = 6;
-	const int VGA = 8;
 
 	// Look for HP 95LX
 	inreg.x.ax = 0x4dd4;
@@ -184,6 +185,11 @@ bool Platform::Init(int argc, char* argv[])
 		video = new BIOSVideoDriver();
 	}
 
+	if (videoMode->biosVideoMode == HP95LX || videoMode->biosVideoMode == CGAPalmtop)
+	{
+		inverse = true;
+	}
+
 	network->Init();
 	video->Init(videoMode);
 	video->drawSurface->Clear();
@@ -192,8 +198,7 @@ bool Platform::Init(int argc, char* argv[])
 
 	if (inverse)
 	{
-		// TODO-refactor
-		//video->InvertScreen();
+		video->InvertVideoOutput();
 	}
 
 	return true;

@@ -13,6 +13,18 @@ ColourScheme monochromeColourScheme =
 	1
 };
 
+ColourScheme monochromeInverseColourScheme =
+{
+	// Page
+	0,
+	// Text
+	1,
+	// Link
+	1,
+	// Button
+	0
+};
+
 ColourScheme cgaColourScheme =
 {
 	// Page

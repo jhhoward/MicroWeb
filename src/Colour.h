@@ -24,6 +24,7 @@ struct NamedColour
 };
 
 extern ColourScheme monochromeColourScheme;
+extern ColourScheme monochromeInverseColourScheme;
 extern ColourScheme egaColourScheme;
 extern ColourScheme cgaColourScheme;
 extern ColourScheme compositeCgaColourScheme;

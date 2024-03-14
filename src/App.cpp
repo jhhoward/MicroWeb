@@ -393,3 +393,23 @@ void App::NextPage()
 		RequestNewPage(pageHistory[pageHistoryPos].url);
 	}
 }
+
+void VideoDriver::InvertVideoOutput()
+{
+	if (drawSurface->bpp == 1)
+	{
+		if (colourScheme.pageColour == 0)
+		{
+			colourScheme = monochromeColourScheme;
+		}
+		else
+		{
+			colourScheme = monochromeInverseColourScheme;
+		}
+
+		DrawContext context(drawSurface, 0, 0, screenWidth, screenHeight);
+		Platform::input->HideMouse();
+		context.surface->InvertRect(context, 0, 0, screenWidth, screenHeight);
+		Platform::input->ShowMouse();
+	}
+}

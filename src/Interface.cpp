@@ -41,6 +41,8 @@ void AppInterface::Init()
 {
 	GenerateInterfaceNodes();
 
+	SetTitle("MicroWeb");
+
 	DrawContext context(Platform::video->drawSurface, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight);
 	DrawInterfaceNodes(context);
 }
@@ -186,15 +188,16 @@ void AppInterface::Update()
 			break;
 		case KEYCODE_F2:
 		{
-			// TODO-refactor
-			//Platform::input->HideMouse();
-			//Platform::video->InvertScreen();
-			//Platform::input->ShowMouse();
+			Platform::video->InvertVideoOutput();
+			titleNode->style.fontColour = Platform::video->colourScheme.textColour;
 		}
 			break;
 		case KEYCODE_CTRL_L:
 		case KEYCODE_F6:
 			FocusNode(addressBarNode);
+			break;
+		case KEYCODE_F3:
+			ToggleStatusAndTitleBar();
 			break;
 
 		case KEYCODE_TAB:
@@ -373,7 +376,7 @@ void AppInterface::GenerateInterfaceNodes()
 
 	scrollBarNode = ScrollBarNode::Construct(allocator, scrollPositionY, app.page.pageHeight, OnScrollBarMoved);
 	scrollBarNode->style = rootInterfaceNode->style;
-	scrollBarNode->anchor.y = backButtonNode->anchor.y + backButtonNode->size.y + 3;
+	scrollBarNode->anchor.y = backButtonNode->anchor.y + backButtonNode->size.y + 2;
 	scrollBarNode->size.x = 16;
 	scrollBarNode->size.y = Platform::video->screenHeight - scrollBarNode->anchor.y - statusBarNode->size.y;
 	scrollBarNode->anchor.x = Platform::video->screenWidth - scrollBarNode->size.x;
@@ -382,7 +385,7 @@ void AppInterface::GenerateInterfaceNodes()
 	rootInterfaceNode->EncapsulateChildren();
 
 	windowRect.x = 0;
-	windowRect.y = backButtonNode->anchor.y + backButtonNode->size.y + 3;
+	windowRect.y = backButtonNode->anchor.y + backButtonNode->size.y + 2;
 	windowRect.width = Platform::video->screenWidth - scrollBarNode->size.x;
 	windowRect.height = Platform::video->screenHeight - windowRect.y - statusBarNode->size.y;
 }
@@ -392,7 +395,7 @@ void AppInterface::DrawInterfaceNodes(DrawContext& context)
 	app.pageRenderer.DrawAll(context, rootInterfaceNode);
 
 	Platform::input->HideMouse();
-	uint8_t dividerColour = 0;
+	uint8_t dividerColour = Platform::video->colourScheme.textColour;
 	context.surface->HLine(context, 0, windowRect.y - 1, Platform::video->screenWidth, dividerColour);
 	Platform::input->ShowMouse();
 }
@@ -411,7 +414,7 @@ void AppInterface::SetTitle(const char* title)
 	DrawContext context(Platform::video->drawSurface, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight);
 	Platform::input->HideMouse();
 	uint8_t fillColour = Platform::video->colourScheme.pageColour;
-	context.surface->FillRect(context, 0, 0, titleNode->size.x, titleNode->size.y, fillColour);
+	context.surface->FillRect(context, titleNode->anchor.x, titleNode->anchor.y, titleNode->size.x, titleNode->size.y, fillColour);
 	titleNode->Handler().Draw(context, titleNode);
 	Platform::input->ShowMouse();
 }
@@ -535,4 +538,36 @@ void AppInterface::OnScrollBarMoved(Node* node)
 	ScrollBarNode::Data* data = static_cast<ScrollBarNode::Data*>(node->data);
 	AppInterface& ui = App::Get().ui;
 	ui.ScrollRelative(data->scrollPosition - ui.scrollPositionY);
+}
+
+void AppInterface::ToggleStatusAndTitleBar()
+{
+	int upperShift = titleNode->size.y;
+	int lowerShift = statusBarNode->size.y;
+
+
+	if (titleNode->anchor.y < 0)
+	{
+		upperShift = -upperShift;
+		lowerShift = -lowerShift;
+	}
+
+	titleNode->anchor.y -= upperShift;
+	windowRect.y -= upperShift;
+	windowRect.height += upperShift;
+	backButtonNode->anchor.y -= upperShift;
+	forwardButtonNode->anchor.y -= upperShift;
+	addressBarNode->anchor.y -= upperShift;
+	scrollBarNode->anchor.y -= upperShift;
+	scrollBarNode->size.y += upperShift;
+	statusBarNode->anchor.y += lowerShift;
+	scrollBarNode->size.y += lowerShift;
+	windowRect.height += lowerShift;
+
+	Platform::input->HideMouse();
+	DrawContext context(Platform::video->drawSurface, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight);
+	context.surface->FillRect(context, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight, Platform::video->colourScheme.pageColour);
+	DrawInterfaceNodes(context);
+	app.pageRenderer.RefreshAll();
+	Platform::input->ShowMouse();
 }

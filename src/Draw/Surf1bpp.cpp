@@ -3,6 +3,7 @@
 #include "../Font.h"
 #include "../Image/Image.h"
 #include "../Memory/MemBlock.h"
+#include "../Platform.h"
 
 DrawSurface_1BPP::DrawSurface_1BPP(int inWidth, int inHeight)
 	: DrawSurface(inWidth, inHeight)
@@ -503,6 +504,13 @@ void DrawSurface_1BPP::InvertRect(DrawContext& context, int x, int y, int width,
 
 void DrawSurface_1BPP::VerticalScrollBar(DrawContext& context, int x, int y, int height, int position, int size)
 {
+	uint16_t inverseMask = Platform::video->colourScheme.pageColour == 0 ? 0xffff : 0;
+	const uint16_t widgetEdge = 0x0660 ^ inverseMask;
+	const uint16_t widgetInner = 0xfa5f ^ inverseMask;
+	const uint16_t grab = 0x0a50 ^ inverseMask;
+	const uint16_t edge = 0 ^ inverseMask;
+	const uint16_t inner = 0xfe7f ^ inverseMask;
+
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
 	int startY = y;
@@ -513,8 +521,6 @@ void DrawSurface_1BPP::VerticalScrollBar(DrawContext& context, int x, int y, int
 	const int widgetPaddingSize = size - minWidgetSize;
 	int topPaddingSize = widgetPaddingSize >> 1;
 	int bottomPaddingSize = widgetPaddingSize - topPaddingSize;
-	const uint16_t edge = 0;
-	const uint16_t inner = 0xfe7f;
 	int bottomSpacing = height - position - size;
 
 	while (position--)
@@ -522,12 +528,9 @@ void DrawSurface_1BPP::VerticalScrollBar(DrawContext& context, int x, int y, int
 		*(uint16_t*)(&lines[y++][x]) = inner;
 	}
 
-	const uint16_t widgetEdge = 0x0660;
 	*(uint16_t*)(&lines[y++][x]) = inner;
 	*(uint16_t*)(&lines[y++][x]) = widgetEdge;
 
-	const uint16_t widgetInner = 0xfa5f;
-	const uint16_t grab = 0x0a50;
 
 	while (topPaddingSize--)
 	{

@@ -11,7 +11,7 @@ void ImageNode::Draw(DrawContext& context, Node* node)
 {
 	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
 	//printf("--IMG [%d, %d]\n", node->anchor.x, node->anchor.y);
-	uint8_t outlineColour = 7;
+	uint8_t outlineColour = Platform::video->colourScheme.textColour;
 
 	if (data->image.isLoaded && data->image.lines)
 	{

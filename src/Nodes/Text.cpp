@@ -34,6 +34,11 @@ void TextElement::Draw(DrawContext& context, Node* node)
 		uint8_t textColour = node->style.fontColour;
 		char* text = data->text.Get<char>();
 
+		if (context.surface->bpp == 1)
+		{
+			textColour = Platform::video->colourScheme.textColour;
+		}
+
 		context.surface->DrawString(context, font, text, node->anchor.x, node->anchor.y, textColour, node->style.fontStyle);
 
 		Node* focusedNode = App::Get().ui.GetFocusedNode();
@@ -249,6 +254,11 @@ void SubTextElement::Draw(DrawContext& context, Node* node)
 		char* text = textData->text.Get<char>() + subTextData->startIndex;
 		char temp = text[subTextData->length];
 		text[subTextData->length] = 0;
+
+		if (context.surface->bpp == 1)
+		{
+			textColour = Platform::video->colourScheme.textColour;
+		}
 
 		context.surface->DrawString(context, font, text, node->anchor.x, node->anchor.y, textColour, node->style.fontStyle);
 

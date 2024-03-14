@@ -55,8 +55,12 @@ void PageRenderer::RefreshAll()
 
 	Platform::input->ShowMouse();
 
+	upperContext.clipTop = windowRect.y;
 	upperContext.clipBottom = upperContext.clipTop;
+	lowerContext.clipBottom = windowRect.y + windowRect.height;
 	lowerContext.clipTop = upperContext.clipBottom;
+	upperContext.drawOffsetY = windowRect.y - app.ui.GetScrollPositionY();
+	lowerContext.drawOffsetY = windowRect.y - app.ui.GetScrollPositionY();
 
 	// Clear the render queue
 	for (Node* node = renderQueueHead; node;)

@@ -52,7 +52,6 @@ public:
 	void ScrollRelative(int delta);
 	void ScrollAbsolute(int position);
 
-
 	Node* addressBarNode;
 	URL addressBarURL;
 
@@ -68,6 +67,8 @@ private:
 	void HandleDrag(int mouseX, int mouseY);
 
 	void CycleNodes(int direction);
+
+	void ToggleStatusAndTitleBar();
 
 	static void OnBackButtonPressed(Node* node);
 	static void OnForwardButtonPressed(Node* node);
