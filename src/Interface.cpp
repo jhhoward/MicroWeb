@@ -371,7 +371,7 @@ void AppInterface::GenerateInterfaceNodes()
 	rootInterfaceNode->AddChild(statusBarNode);
 	statusBarNode->style.fontSize = 0;
 
-	scrollBarNode = ScrollBarNode::Construct(allocator, scrollPositionY, app.page.pageHeight);
+	scrollBarNode = ScrollBarNode::Construct(allocator, scrollPositionY, app.page.pageHeight, OnScrollBarMoved);
 	scrollBarNode->style = rootInterfaceNode->style;
 	scrollBarNode->anchor.y = backButtonNode->anchor.y + backButtonNode->size.y + 3;
 	scrollBarNode->size.x = 16;
@@ -528,4 +528,11 @@ void AppInterface::CycleNodes(int direction)
 			}
 		}
 	}
+}
+
+void AppInterface::OnScrollBarMoved(Node* node)
+{
+	ScrollBarNode::Data* data = static_cast<ScrollBarNode::Data*>(node->data);
+	AppInterface& ui = App::Get().ui;
+	ui.ScrollRelative(data->scrollPosition - ui.scrollPositionY);
 }

@@ -72,7 +72,7 @@ private:
 	static void OnBackButtonPressed(Node* node);
 	static void OnForwardButtonPressed(Node* node);
 	static void OnAddressBarSubmit(Node* node);
-
+	static void OnScrollBarMoved(Node* node);
 
 	App& app;
 

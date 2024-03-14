@@ -54,7 +54,7 @@ MemBlockAllocator::MemBlockAllocator()
 void MemBlockAllocator::Init()
 {
 	// Disable swap for now
-	swapFile = fopen("Microweb.swp", "wb+");
+	//swapFile = fopen("Microweb.swp", "wb+");
 	
 	if (swapFile)
 	{

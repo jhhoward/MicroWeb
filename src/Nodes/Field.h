@@ -8,6 +8,16 @@
 class TextFieldNode : public NodeHandler
 {
 public:
+	TextFieldNode() :
+		shiftPosition(0),
+		cursorPosition(0),
+		selectionStartPosition(0),
+		selectionLength(0),
+		pickedPosition(0)
+	{
+
+	}
+
 	class Data
 	{
 	public:
@@ -22,7 +32,7 @@ public:
 	static Node* Construct(Allocator& allocator, char* buffer, int bufferLength, NodeCallbackFunction onSubmit = NULL);
 	virtual void GenerateLayout(Layout& layout, Node* node) override;
 	virtual void Draw(DrawContext& context, Node* node) override;
-	virtual bool CanPick(Node* node) { return true; }
+	virtual bool CanPick(Node* node) override { return true; }
 	virtual bool HandleEvent(Node* node, const Event& event) override;
 
 private:
