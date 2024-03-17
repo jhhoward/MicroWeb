@@ -21,7 +21,7 @@ void BreakNode::Draw(DrawContext& context, Node* node)
 
 	if (data->displayBreakLine)
 	{
-		uint8_t outlineColour = 0;
+		uint8_t outlineColour = Platform::video->colourScheme.textColour;
 		context.surface->HLine(context, node->anchor.x, node->anchor.y + node->size.y / 2, node->size.x, outlineColour);
 	}
 }
@@ -46,13 +46,16 @@ void BreakNode::GenerateLayout(Layout& layout, Node* node)
 		layout.PadVertical(breakPadding);
 	}
 
-	node->anchor = layout.GetCursor();
-	node->anchor.x += 8;
-	node->anchor.y -= breakPadding;
-	node->size.x = layout.AvailableWidth() - 16;
-	node->size.y = breakPadding;
-	if (!breakPadding && data->displayBreakLine)
+	if (data->displayBreakLine)
 	{
-		node->size.y = 1;
+		node->anchor = layout.GetCursor();
+		node->anchor.x += 8;
+		node->anchor.y -= breakPadding;
+		node->size.x = layout.AvailableWidth() - 16;
+		node->size.y = breakPadding;
+		if (!breakPadding)
+		{
+			node->size.y = 1;
+		}
 	}
 }

@@ -27,19 +27,28 @@ void TableNode::Draw(DrawContext& context, Node* node)
 {
 	TableNode::Data* data = static_cast<TableNode::Data*>(node->data);
 
-	uint8_t borderColour = Platform::video->colourScheme.textColour;
-	//int x = node->anchor.x - data->cellSpacing - data->cellPadding;
-	//int y = node->anchor.y - data->cellSpacing - data->cellPadding;
-	//int w = data->totalWidth; // node->size.x + (data->cellSpacing + data->cellPadding) * 2;
-	//int h = node->size.y + (data->cellSpacing + data->cellPadding) * 2;
 	int x = node->anchor.x;
 	int y = node->anchor.y;
 	int w = node->size.x;
 	int h = node->size.y;
-	context.surface->HLine(context, x, y, w, borderColour);
-	context.surface->HLine(context, x, y + h - 1, w, borderColour);
-	context.surface->VLine(context, x, y + 1, h - 2, borderColour);
-	context.surface->VLine(context, x + w - 1, y + 1, h - 2, borderColour);
+
+	if (data->border)
+	{
+		uint8_t borderColour = Platform::video->colourScheme.textColour;
+		context.surface->HLine(context, x, y, w, borderColour);
+		context.surface->HLine(context, x, y + h - 1, w, borderColour);
+		context.surface->VLine(context, x, y + 1, h - 2, borderColour);
+		context.surface->VLine(context, x + w - 1, y + 1, h - 2, borderColour);
+
+		if (data->bgColour != TRANSPARENT_COLOUR_VALUE && context.surface->bpp > 1)
+		{
+			context.surface->FillRect(context, x + 1, y + 1, w - 2, h - 2, data->bgColour);
+		}
+	}
+	else if (data->bgColour != TRANSPARENT_COLOUR_VALUE && context.surface->bpp > 1)
+	{
+		context.surface->FillRect(context, x, y, w, h, data->bgColour);
+	}
 }
 
 void TableNode::BeginLayoutContext(Layout& layout, Node* node)
@@ -56,7 +65,7 @@ void TableNode::BeginLayoutContext(Layout& layout, Node* node)
 
 	if (data->state == Data::FinishedLayout)
 	{
-		if (availableWidth != data->lastAvailableWidth)
+		//if (availableWidth != data->lastAvailableWidth)
 		{
 			data->state = Data::GeneratingLayout;
 		}
@@ -398,7 +407,13 @@ void TableCellNode::BeginLayoutContext(Layout& layout, Node* node)
 		else
 		{
 			node->anchor = layout.Cursor();
+
 			node->size.x = tableData->columns[data->columnIndex].preferredWidth;
+			for (int n = 1; n < data->columnSpan && n < tableData->numColumns; n++)
+			{
+				node->size.x += tableData->columns[data->columnIndex + n].preferredWidth + tableData->cellSpacing;
+			}
+
 			layout.RestrictHorizontal(node->size.x);
 			layout.PadHorizontal(tableData->cellPadding, tableData->cellPadding);
 		}
@@ -451,19 +466,26 @@ void TableCellNode::Draw(DrawContext& context, Node* node)
 
 	if (tableData && !tableData->IsGeneratingLayout() && rowNode)
 	{
-		//int x = node->anchor.x - tableData->cellPadding;
-		//int y = node->anchor.y - tableData->cellPadding;
-		//int w = tableData->columns[data->columnIndex].preferredWidth;
-		//int h = rowNode->size.y + 2 * tableData->cellPadding;
 		int x = node->anchor.x;
 		int y = node->anchor.y;
 		int w = node->size.x;
 		int h = node->size.y;
 
-		context.surface->HLine(context, x, y, w, borderColour);
-		context.surface->HLine(context, x, y + h - 1, w, borderColour);
-		context.surface->VLine(context, x, y + 1, h - 2, borderColour);
-		context.surface->VLine(context, x + w - 1, y + 1, h - 2, borderColour);
+		if (tableData->border)
+		{
+			context.surface->HLine(context, x, y, w, borderColour);
+			context.surface->HLine(context, x, y + h - 1, w, borderColour);
+			context.surface->VLine(context, x, y + 1, h - 2, borderColour);
+			context.surface->VLine(context, x + w - 1, y + 1, h - 2, borderColour);
+			if (data->bgColour != TRANSPARENT_COLOUR_VALUE && context.surface->bpp > 1)
+			{
+				context.surface->FillRect(context, x + 1, y + 1, w - 2, h - 2, data->bgColour);
+			}
+		}
+		else if (data->bgColour != TRANSPARENT_COLOUR_VALUE && context.surface->bpp > 1)
+		{
+			context.surface->FillRect(context, x, y, w, h, data->bgColour);
+		}
 	}
 
 }

@@ -49,6 +49,7 @@ public:
 	
 	const char* Key() { return key; }
 	const char* Value() { return value; }
+	int ValueAsInt() { return atoi(value); }
 	
 private:
 	bool IsWhiteSpace(char c);

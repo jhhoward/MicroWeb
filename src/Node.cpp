@@ -146,7 +146,7 @@ bool Node::IsPointInsideChildren(int x, int y)
 
 	if (firstChild == nullptr)
 	{
-		return true;
+		return IsPointInsideNode(x, y);
 	}
 
 	for (Node* it = firstChild; it; it = it->next)

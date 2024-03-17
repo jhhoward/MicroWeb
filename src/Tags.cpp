@@ -558,7 +558,35 @@ void PreformattedTagHandler::Close(class HTMLParser& parser) const
 
 void TableTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	parser.PushContext(TableNode::Construct(MemoryManager::pageAllocator), this);
+	Node* tableNode = TableNode::Construct(MemoryManager::pageAllocator);
+	if (tableNode)
+	{
+		TableNode::Data* tableNodeData = static_cast<TableNode::Data*>(tableNode->data);
+
+		AttributeParser attributes(attributeStr);
+
+		while (attributes.Parse())
+		{
+			if (!stricmp(attributes.Key(), "border"))
+			{
+				tableNodeData->border = attributes.ValueAsInt();
+			}
+			if (!stricmp(attributes.Key(), "cellpadding"))
+			{
+				tableNodeData->cellPadding = attributes.ValueAsInt();
+			}
+			if (!stricmp(attributes.Key(), "cellSpacing"))
+			{
+				tableNodeData->cellSpacing = attributes.ValueAsInt();
+			}
+			if (!stricmp(attributes.Key(), "bgcolor"))
+			{
+				tableNodeData->bgColour = HTMLParser::ParseColourCode(attributes.Value());
+			}
+		}
+
+		parser.PushContext(tableNode, this);
+	}
 }
 
 void TableTagHandler::Close(class HTMLParser& parser) const
@@ -578,7 +606,30 @@ void TableRowTagHandler::Close(class HTMLParser& parser) const
 
 void TableCellTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	parser.PushContext(TableCellNode::Construct(MemoryManager::pageAllocator, isHeader), this);
+	Node* cellNode = TableCellNode::Construct(MemoryManager::pageAllocator, isHeader);
+	if (cellNode)
+	{
+		TableCellNode::Data* cellData = static_cast<TableCellNode::Data*>(cellNode->data);
+
+		AttributeParser attributes(attributeStr);
+
+		while (attributes.Parse())
+		{
+			if (!stricmp(attributes.Key(), "bgcolor"))
+			{
+				cellData->bgColour = HTMLParser::ParseColourCode(attributes.Value());
+			}
+			if (!stricmp(attributes.Key(), "colspan"))
+			{
+				cellData->columnSpan = attributes.ValueAsInt();
+				if (cellData->columnSpan <= 0)
+				{
+					cellData->columnSpan = 1;
+				}
+			}
+		}
+		parser.PushContext(cellNode, this);
+	}
 }
 
 void TableCellTagHandler::Close(class HTMLParser& parser) const

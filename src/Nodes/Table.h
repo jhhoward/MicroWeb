@@ -2,7 +2,7 @@
 #define _TABLE_H
 
 #include "../Node.h"
-
+#include "../Colour.h"
 
 class TableCellNode : public NodeHandler
 {
@@ -10,13 +10,14 @@ public:
 	class Data
 	{
 	public:
-		Data(bool inIsHeader) : node(nullptr), isHeader(inIsHeader), columnIndex(0), rowIndex(0), columnSpan(1), rowSpan(1), nextCell(nullptr) {}
+		Data(bool inIsHeader) : node(nullptr), isHeader(inIsHeader), columnIndex(0), rowIndex(0), columnSpan(1), rowSpan(1), bgColour(TRANSPARENT_COLOUR_VALUE), nextCell(nullptr) {}
 		Node* node;
 		bool isHeader;
 		int columnIndex;
 		int rowIndex;
 		int columnSpan;
 		int rowSpan;
+		uint8_t bgColour;
 		TableCellNode::Data* nextCell;
 	};
 
@@ -65,7 +66,7 @@ public:
 			FinishedLayout
 		};
 
-		Data() : state(GeneratingLayout), numColumns(0), numRows(0), cellSpacing(2), cellPadding(2), columns(nullptr), firstRow(nullptr), cells(nullptr), lastAvailableWidth(-1) {}
+		Data() : state(GeneratingLayout), numColumns(0), numRows(0), cellSpacing(2), cellPadding(2), border(0), columns(nullptr), firstRow(nullptr), cells(nullptr), bgColour(TRANSPARENT_COLOUR_VALUE), lastAvailableWidth(-1) {}
 
 		bool IsGeneratingLayout() { return state == GeneratingLayout; }
 		bool HasGeneratedCellGrid() { return cells != nullptr;  }
@@ -75,10 +76,12 @@ public:
 		int numRows;
 		int cellSpacing;
 		int cellPadding;
+		uint8_t border;
 		int totalWidth;
 		ColumnInfo* columns;
 		TableRowNode::Data* firstRow;
 		TableCellNode::Data** cells;
+		uint8_t bgColour;
 		int lastAvailableWidth;
 	};
 
