@@ -120,8 +120,6 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 			// If the stack is emptied then we have finished parsing the document
 			if (contextStackSize == 0)
 			{
-				page.GetRootNode()->EncapsulateChildren();
-				
 #ifdef _WIN32
 				page.DebugDumpNodeGraph();
 #endif

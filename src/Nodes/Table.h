@@ -10,7 +10,7 @@ public:
 	class Data
 	{
 	public:
-		Data(bool inIsHeader) : isHeader(inIsHeader), columnIndex(0), rowIndex(0), columnSpan(1), rowSpan(1), nextCell(nullptr) {}
+		Data(bool inIsHeader) : node(nullptr), isHeader(inIsHeader), columnIndex(0), rowIndex(0), columnSpan(1), rowSpan(1), nextCell(nullptr) {}
 		Node* node;
 		bool isHeader;
 		int columnIndex;
@@ -33,7 +33,8 @@ public:
 	class Data
 	{
 	public:
-		Data() : rowIndex(0), numCells(0), nextRow(nullptr), firstCell(nullptr) {}
+		Data() : node(nullptr), rowIndex(0), numCells(0), nextRow(nullptr), firstCell(nullptr) {}
+		Node* node;
 		int rowIndex;
 		int numCells;
 		TableRowNode::Data* nextRow;
@@ -64,7 +65,7 @@ public:
 			FinishedLayout
 		};
 
-		Data() : state(GeneratingLayout), numColumns(0), numRows(0), cellSpacing(2), cellPadding(2), columns(nullptr), firstRow(nullptr), cells(nullptr) {}
+		Data() : state(GeneratingLayout), numColumns(0), numRows(0), cellSpacing(2), cellPadding(2), columns(nullptr), firstRow(nullptr), cells(nullptr), lastAvailableWidth(-1) {}
 
 		bool IsGeneratingLayout() { return state == GeneratingLayout; }
 		bool HasGeneratedCellGrid() { return cells != nullptr;  }
@@ -78,6 +79,7 @@ public:
 		ColumnInfo* columns;
 		TableRowNode::Data* firstRow;
 		TableCellNode::Data** cells;
+		int lastAvailableWidth;
 	};
 
 	static Node* Construct(Allocator& allocator);

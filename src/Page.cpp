@@ -158,7 +158,7 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 	case Node::Form:
 		{
 			FormNode::Data* data = static_cast<FormNode::Data*>(node->data);
-			printf("<%s> action: %s\n", nodeTypeNames[node->type], data->action ? data->action : "NONE");
+			printf("<%s> [%d,%d:%d,%d] action: %s\n", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y, data->action ? data->action : "NONE");
 		}
 		break;
 	case Node::Style:

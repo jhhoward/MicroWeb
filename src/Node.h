@@ -35,6 +35,7 @@ struct Coord
 	int16_t x, y;
 
 	void Clear() { x = y = 0; }
+	bool IsZero() const { return x == 0 && y == 0; }
 };
 
 struct Rect
@@ -78,10 +79,9 @@ public:
 
 	Node(Type inType, void* inData);
 	void AddChild(Node* child);
-	void EncapsulateChildren();		// Sets anchor and size based on children
+	void CalculateEncapsulatingRect(Rect& rect);
 	bool IsPointInsideNode(int x, int y);
 	bool IsPointInsideChildren(int x, int y);
-	void OnChildLayoutChanged();
 	Node* FindParentOfType(Node::Type searchType);
 	template <typename T>
 	T* FindParentDataOfType(Node::Type searchType)

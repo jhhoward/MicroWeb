@@ -68,85 +68,69 @@ void Node::AddChild(Node* child)
 	}
 }
 
-void Node::OnChildLayoutChanged()
+void Node::CalculateEncapsulatingRect(Rect& rect)
 {
-	EncapsulateChildren();
-	if (parent)
+	rect.Clear();
+	Node* node = this;
+	bool checkChildren = true;
+
+	if (!firstChild)
 	{
-		parent->OnChildLayoutChanged();
+		return;
 	}
-}
 
-void Node::EncapsulateChildren()
-{
-	Coord newAnchor, newSize;
-	newAnchor.Clear();
-	newSize.Clear();
-
-	for (Node* node = firstChild; node; node = node->next)
+	while (node)
 	{
+		if (checkChildren && node->firstChild)
+		{
+			node = node->firstChild;
+		}
+		else if (node->next)
+		{
+			node = node->next;
+			checkChildren = true;
+		}
+		else
+		{
+			node = node->parent;
+			if (node == this)
+			{
+				break;
+			}
+			checkChildren = false;
+		}
+
 		if (node->size.x == 0 || node->size.y == 0)
 			continue;
 
-		if (newSize.x == 0 || newSize.y == 0)
+		if (rect.width == 0 && rect.height == 0)
 		{
-			newAnchor = node->anchor;
-			newSize = node->size;
+			rect.x = node->anchor.x;
+			rect.y = node->anchor.y;
+			rect.width = node->size.x;
+			rect.height = node->size.y;
 			continue;
 		}
 
-		if (node->anchor.x < newAnchor.x)
+		if (node->anchor.x < rect.x)
 		{
-			newAnchor.x = node->anchor.x;
+			rect.x = node->anchor.x;
 		}
-		if (node->anchor.y < newAnchor.y)
+		if (node->anchor.y < rect.y)
 		{
-			newAnchor.y = node->anchor.y;
+			rect.y = node->anchor.y;
 		}
-		if (node->anchor.x + node->size.x > newAnchor.x + newSize.x)
+		if (node->anchor.x + node->size.x > rect.x + rect.width)
 		{
-			newSize.x = node->anchor.x + node->size.x - newAnchor.x;
+			rect.width = node->anchor.x + node->size.x - rect.x;
 		}
-		if (node->anchor.y + node->size.y > newAnchor.y + newSize.y)
+		if (node->anchor.y + node->size.y > rect.y + rect.height)
 		{
-			newSize.y = node->anchor.y + node->size.y - newAnchor.y;
-		}
-	}
-
-	if (newSize.x != 0 && newSize.y != 0)
-	{
-		anchor = newAnchor;
-		size = newSize;
-	}
-
-	/*
-	if (firstChild)
-	{
-		anchor = firstChild->anchor;
-		size = firstChild->size;
-
-		for (Node* node = firstChild->next; node; node = node->next)
-		{
-			if (node->anchor.x < anchor.x)
-			{
-				anchor.x = node->anchor.x;
-			}
-			if (node->anchor.y < anchor.y)
-			{
-				anchor.y = node->anchor.y;
-			}
-			if (node->anchor.x + node->size.x > anchor.x + size.x)
-			{
-				size.x = node->anchor.x + node->size.x - anchor.x;
-			}
-			if (node->anchor.y + node->size.y > anchor.y + size.y)
-			{
-				size.y = node->anchor.y + node->size.y - anchor.y;
-			}
+			rect.height = node->anchor.y + node->size.y - rect.y;
 		}
 	}
-	*/
 }
+
 
 bool Node::IsPointInsideNode(int x, int y)
 {
@@ -155,7 +139,7 @@ bool Node::IsPointInsideNode(int x, int y)
 
 bool Node::IsPointInsideChildren(int x, int y)
 {
-	if (!IsPointInsideNode(x, y))
+	if (!size.IsZero() && !IsPointInsideNode(x, y))
 	{
 		return false;
 	}
@@ -178,7 +162,7 @@ bool Node::IsPointInsideChildren(int x, int y)
 
 Node* NodeHandler::Pick(Node* node, int x, int y)
 {
-	if (!node || !node->IsPointInsideNode(x, y))
+	if (!node || (!node->size.IsZero() && !node->IsPointInsideNode(x, y)))
 	{
 		return nullptr;
 	}
@@ -192,14 +176,15 @@ Node* NodeHandler::Pick(Node* node, int x, int y)
 			return node;
 		}
 
-		return nullptr;;
+		return nullptr;
 	}
 
 	for (Node* it = node->firstChild; it; it = it->next)
 	{
-		if (it->IsPointInsideNode(x, y))
+		Node* result = it->Handler().Pick(it, x, y);
+		if (result)
 		{
-			return it->Handler().Pick(it, x, y);
+			return result;
 		}
 	}
 
@@ -208,10 +193,6 @@ Node* NodeHandler::Pick(Node* node, int x, int y)
 
 void NodeHandler::EndLayoutContext(Layout& layout, Node* node)
 {
-	//if (node->size.x == 0 && node->size.y == 0)
-	{
-		node->EncapsulateChildren();
-	}
 }
 
 Node* Node::FindParentOfType(Node::Type searchType)

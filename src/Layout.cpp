@@ -89,61 +89,12 @@ void Layout::TranslateNodes(Node* start, Node* end, int deltaX, int deltaY)
 		node->anchor.x += deltaX;
 		node->anchor.y += deltaY;
 
-		//if (node->parent)
-		//{
-		//	node->parent->OnChildLayoutChanged();
-		//}
-
 		if (node == end)
 		{
 			break;
 		}
 	}
 }
-
-/*
-void Layout::TranslateNodes(Node* node, int deltaX, int deltaY, bool visitSiblings)
-{
-	while (node)
-	{
-		node->anchor.x += deltaX;
-		node->anchor.y += deltaY;
-
-		TranslateNodes(node->firstChild, deltaX, deltaY);
-
-		if (visitSiblings)
-		{
-			if (node->next)
-			{
-				node = node->next;
-			}
-			else 
-			{
-				while(1)
-				{
-					if (!node->parent)
-					{
-						return;
-					}
-					if (!node->parent->next)
-					{
-						node = node->parent;
-					}
-					else
-					{
-						node = node->parent->next;
-						break;
-					}
-				}
-			}
-		}
-		else
-		{
-			node = node->next;
-		}
-	}
-}
-*/
 
 void Layout::OnNodeEmitted(Node* node)
 {
@@ -263,55 +214,6 @@ void Layout::RecalculateLayout()
 
 	Node* node = page.GetRootNode();
 	RecalculateLayoutForNode(node);
-
-#if 0
-	//for (Node* node = page.GetRootNode(); node; node = node->GetNextInTree())
-	//{
-	//	node->Handler().GenerateLayout(*this, node);
-	//}
-	
-	Node* node = page.GetRootNode();
-	bool checkChildren = true;
-
-	while (node)
-	{
-		if (checkChildren && node->firstChild)
-		{
-			node = node->firstChild;
-		}
-		else if (node->next)
-		{
-			if (checkChildren)
-			{
-				node->Handler().EndLayoutContext(*this, node);
-			}
-
-			node = node->next;
-			checkChildren = true;
-		}
-		else
-		{
-			node = node->parent;
-			if (node)
-			{
-				node->Handler().EndLayoutContext(*this, node);
-//				node->EncapsulateChildren();
-			}
-			checkChildren = false;
-			continue;
-		}
-
-		if (node)
-		{
-			node->Handler().BeginLayoutContext(*this, node);
-			node->Handler().GenerateLayout(*this, node);
-			/*if (node->parent)
-			{
-				node->parent->OnChildLayoutChanged();
-			}*/
-		}
-	}
-#endif
 
 	page.GetApp().pageRenderer.MarkPageLayoutComplete();
 	page.GetApp().pageRenderer.RefreshAll();

@@ -56,7 +56,7 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
 	int lineHeight = font->glyphHeight;
 
-#if 0
+#if 1
 	// TODO: optimisation
 	if (data->lastAvailableWidth != -1)
 	{
@@ -64,22 +64,22 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 		// completely regenerating the whole layout
 		if (data->lastAvailableWidth == layout.AvailableWidth())
 		{
-			Coord cursor = layout.GetCursor(lineHeight);
-			Coord previousAnchor = node->firstChild->anchor;
-			Coord offset;
-			offset.x = cursor.x - previousAnchor.x;
-			offset.y = cursor.y - previousAnchor.y;
-
-			if (offset.x || offset.y)
+			if (node->firstChild)
 			{
-				node->anchor.x += offset.x;
-				node->anchor.y += offset.y;
-
-				for (Node* n = node->firstChild; n; n = n->next)
+				for (Node* child = node->firstChild; child; child = child->next)
 				{
-					n->anchor.x += offset.x;
-					n->anchor.y += offset.y;
+					child->anchor = layout.GetCursor(lineHeight);
+					layout.ProgressCursor(child, child->size.x, child->size.y);
+					if (child->next)
+					{
+						layout.BreakNewLine();
+					}
 				}
+			}
+			else
+			{
+				node->anchor = layout.GetCursor(lineHeight);
+				layout.ProgressCursor(node, node->size.x, node->size.y);
 			}
 
 			return;
@@ -99,6 +99,8 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 		child->anchor = layout.GetCursor();
 		child->size.Clear();
 	}
+
+	node->size.Clear();
 
 	char* text = data->text.Get<char>();
 	int charIndex = 0;
@@ -218,11 +220,6 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 	if (hasModified)
 	{
 		data->text.Commit();
-	}
-
-	if (node->firstChild)
-	{
-		node->EncapsulateChildren();
 	}
 }
 

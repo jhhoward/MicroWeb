@@ -382,8 +382,6 @@ void AppInterface::GenerateInterfaceNodes()
 	scrollBarNode->anchor.x = Platform::video->screenWidth - scrollBarNode->size.x;
 	rootInterfaceNode->AddChild(scrollBarNode);
 
-	rootInterfaceNode->EncapsulateChildren();
-
 	windowRect.x = 0;
 	windowRect.y = backButtonNode->anchor.y + backButtonNode->size.y + 2;
 	windowRect.width = Platform::video->screenWidth - scrollBarNode->size.x;
@@ -478,7 +476,10 @@ void AppInterface::ScrollRelative(int delta)
 		scrollPositionY = 0;
 
 	int maxScrollY = app.pageRenderer.GetVisiblePageHeight() - app.ui.windowRect.height;
-	if (maxScrollY > 0 && scrollPositionY > maxScrollY)
+	if (maxScrollY < 0)
+		maxScrollY = 0;
+
+	if (scrollPositionY > maxScrollY)
 	{
 		scrollPositionY = maxScrollY;
 	}

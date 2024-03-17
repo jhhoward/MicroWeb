@@ -28,10 +28,14 @@ void TableNode::Draw(DrawContext& context, Node* node)
 	TableNode::Data* data = static_cast<TableNode::Data*>(node->data);
 
 	uint8_t borderColour = Platform::video->colourScheme.textColour;
-	int x = node->anchor.x - data->cellSpacing - data->cellPadding;
-	int y = node->anchor.y - data->cellSpacing - data->cellPadding;
-	int w = data->totalWidth; // node->size.x + (data->cellSpacing + data->cellPadding) * 2;
-	int h = node->size.y + (data->cellSpacing + data->cellPadding) * 2;
+	//int x = node->anchor.x - data->cellSpacing - data->cellPadding;
+	//int y = node->anchor.y - data->cellSpacing - data->cellPadding;
+	//int w = data->totalWidth; // node->size.x + (data->cellSpacing + data->cellPadding) * 2;
+	//int h = node->size.y + (data->cellSpacing + data->cellPadding) * 2;
+	int x = node->anchor.x;
+	int y = node->anchor.y;
+	int w = node->size.x;
+	int h = node->size.y;
 	context.surface->HLine(context, x, y, w, borderColour);
 	context.surface->HLine(context, x, y + h - 1, w, borderColour);
 	context.surface->VLine(context, x, y + 1, h - 2, borderColour);
@@ -42,32 +46,36 @@ void TableNode::BeginLayoutContext(Layout& layout, Node* node)
 {
 	TableNode::Data* data = static_cast<TableNode::Data*>(node->data);
 
-	if (data->state == Data::FinishedLayout)
-	{
-		data->state = Data::GeneratingLayout;
-	}
-
 	layout.BreakNewLine();
 	layout.tableDepth++;
 	layout.PushCursor();
 	layout.PushLayout();
 
-	layout.PadHorizontal(data->cellSpacing, data->cellSpacing);
-	
+	node->anchor = layout.Cursor();
+	int availableWidth = layout.AvailableWidth();
+
+	if (data->state == Data::FinishedLayout)
+	{
+		if (availableWidth != data->lastAvailableWidth)
+		{
+			data->state = Data::GeneratingLayout;
+		}
+	}
+
+	data->lastAvailableWidth = availableWidth;
+
 	if (!data->IsGeneratingLayout())
 	{
+		layout.PadHorizontal(data->cellSpacing, data->cellSpacing);
 		if (data->numRows > 0)
 		{
-			layout.PadVertical(data->cellSpacing + data->cellPadding);
+			layout.PadVertical(data->cellSpacing);
 		}
 	}
 }
 
 void TableNode::EndLayoutContext(Layout& layout, Node* node)
 {
-	//NodeHandler::EndLayoutContext(layout, node);
-	node->EncapsulateChildren();
-
 	TableNode::Data* data = static_cast<TableNode::Data*>(node->data);
 
 	layout.PopLayout();
@@ -171,20 +179,19 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 			}
 		}
 
-		int totalPreferredWidth = data->cellSpacing * (data->numColumns + 1);
+		int totalCellSpacing = (data->numColumns + 1) * data->cellSpacing;
+		int totalPreferredWidth = 0;
 		for (int i = 0; i < data->numColumns; i++)
 		{
 			totalPreferredWidth += data->columns[i].preferredWidth;
 		}
 
-		int totalCellSpacing = (data->numColumns + 1) * data->cellSpacing;
-		int maxAvailableWidth = layout.MaxAvailableWidth() - totalCellSpacing;
-		if (totalPreferredWidth > maxAvailableWidth)
+		int maxAvailableWidthForCells = layout.MaxAvailableWidth() - totalCellSpacing;
+		if (totalPreferredWidth > maxAvailableWidthForCells)
 		{
-			// TODO resize widths to fit
 			for (int i = 0; i < data->numColumns; i++)
 			{
-				data->columns[i].preferredWidth = ((long)maxAvailableWidth * data->columns[i].preferredWidth) / totalPreferredWidth;
+				data->columns[i].preferredWidth = ((long)maxAvailableWidthForCells * data->columns[i].preferredWidth) / totalPreferredWidth;
 			}
 		}
 
@@ -194,7 +201,9 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 			totalWidth += data->columns[i].preferredWidth;
 		}
 		data->totalWidth = totalWidth;
+		node->size.x = totalWidth;
 
+		layout.PushCursor();
 		layout.PushLayout();
 		if (node->style.alignment == ElementAlignment::Center)
 		{
@@ -202,6 +211,7 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 			if (totalWidth < available)
 			{
 				layout.PadHorizontal((available - totalWidth) / 2, 0);
+				node->anchor = layout.Cursor();
 			}
 		}
 
@@ -209,13 +219,23 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 		layout.RecalculateLayoutForNode(node);
 		
 		layout.PopLayout();
-
-		layout.PadVertical(node->size.y + (data->cellPadding + data->cellSpacing) * 2);
+		layout.PopCursor();
 
 		data->state = Data::FinishedLayout;
 	}
 
+	for (TableRowNode::Data* row = data->firstRow; row; row = row->nextRow)
+	{
+		if (!row->nextRow)
+		{
+			// Use last row's dimensions to calculate how tall the table should be
+			int bottom = row->node->anchor.y + row->node->size.y;
+			node->size.y = bottom - node->anchor.y + data->cellSpacing;
+		}
+	}
+
 	layout.tableDepth--;
+	layout.PadVertical(node->size.y);
 	layout.BreakNewLine();
 }
 
@@ -226,7 +246,8 @@ Node* TableRowNode::Construct(Allocator& allocator)
 	TableRowNode::Data* data = allocator.Alloc<TableRowNode::Data>();
 	if (data)
 	{
-		return allocator.Alloc<Node>(Node::TableRow, data);
+		data->node = allocator.Alloc<Node>(Node::TableRow, data);
+		return data->node;
 	}
 	return nullptr;
 }
@@ -263,7 +284,8 @@ void TableRowNode::BeginLayoutContext(Layout& layout, Node* node)
 		}
 		else
 		{
-			layout.PadVertical(tableData->cellPadding);
+			node->anchor = layout.Cursor();
+			node->size.x = tableData->totalWidth;
 		}
 	}
 
@@ -274,9 +296,6 @@ void TableRowNode::BeginLayoutContext(Layout& layout, Node* node)
 
 void TableRowNode::EndLayoutContext(Layout& layout, Node* node)
 {
-	//NodeHandler::EndLayoutContext(layout, node);
-	node->EncapsulateChildren();
-
 	TableRowNode::Data* data = static_cast<TableRowNode::Data*>(node->data);
 	TableNode::Data* tableData = node->FindParentDataOfType<TableNode::Data>(Node::Table);
 
@@ -285,7 +304,24 @@ void TableRowNode::EndLayoutContext(Layout& layout, Node* node)
 		layout.PopLayout();
 		layout.BreakNewLine();
 		layout.PopCursor();
-		layout.PadVertical(node->size.y + tableData->cellSpacing + tableData->cellPadding);
+
+		if (!tableData->IsGeneratingLayout())
+		{
+			node->size.y = 0;
+			for (TableCellNode::Data* cellData = data->firstCell; cellData; cellData = cellData->nextCell)
+			{
+				int cellBottom = cellData->node->anchor.y + cellData->node->size.y;
+				if (cellBottom > node->anchor.y + node->size.y)
+				{
+					node->size.y = cellBottom - node->anchor.y;
+				}
+			}
+			for (TableCellNode::Data* cellData = data->firstCell; cellData; cellData = cellData->nextCell)
+			{
+				cellData->node->size.y = node->size.y;
+			}
+			layout.PadVertical(node->size.y + tableData->cellSpacing);
+		}
 	}
 }
 
@@ -361,47 +397,48 @@ void TableCellNode::BeginLayoutContext(Layout& layout, Node* node)
 		}
 		else
 		{
-			layout.RestrictHorizontal(tableData->columns[data->columnIndex].preferredWidth);
+			node->anchor = layout.Cursor();
+			node->size.x = tableData->columns[data->columnIndex].preferredWidth;
+			layout.RestrictHorizontal(node->size.x);
 			layout.PadHorizontal(tableData->cellPadding, tableData->cellPadding);
 		}
 	}
 
 	layout.PushCursor();
+
+	if (tableData)
+	{
+		layout.PadVertical(tableData->cellPadding);
+	}
 }
 
 void TableCellNode::EndLayoutContext(Layout& layout, Node* node)
 {
-	//NodeHandler::EndLayoutContext(layout, node);
-	if (node->firstChild)
+	TableCellNode::Data* data = static_cast<TableCellNode::Data*>(node->data);
+
+	TableNode::Data* tableData = node->FindParentDataOfType<TableNode::Data>(Node::Table);
+	TableRowNode::Data* rowData = node->FindParentDataOfType<TableRowNode::Data>(Node::TableRow);
+
+	if (tableData)
 	{
-		node->EncapsulateChildren();
-	}
-	else
-	{
-		// Cell was empty
-		node->anchor = layout.GetCursor();
+		Rect rect;
+		node->CalculateEncapsulatingRect(rect);
+		node->size.y = rect.y + rect.height + tableData->cellPadding - node->anchor.y;
+
+		if (tableData->IsGeneratingLayout())
+		{
+			node->size.x = rect.width;
+		}
 	}
 
 	layout.BreakNewLine();
 	layout.PopCursor();
 	layout.PopLayout();
 
-	TableCellNode::Data* data = static_cast<TableCellNode::Data*>(node->data);
-
-	TableNode::Data* tableData = node->FindParentDataOfType<TableNode::Data>(Node::Table);
-	TableRowNode::Data* rowData = node->FindParentDataOfType<TableRowNode::Data>(Node::TableRow);
-	if (tableData && rowData)
+	if (tableData && !tableData->IsGeneratingLayout())
 	{
-		if (tableData->IsGeneratingLayout())
-		{
-		}
-		else
-		{
-			layout.PadHorizontal(tableData->columns[data->columnIndex].preferredWidth + tableData->cellSpacing, 0);
-		}
+		layout.PadHorizontal(node->size.x + tableData->cellSpacing, 0);
 	}
-
-//	layout.PadHorizontal(200, 0);
 }
 
 void TableCellNode::Draw(DrawContext& context, Node* node)
@@ -414,10 +451,14 @@ void TableCellNode::Draw(DrawContext& context, Node* node)
 
 	if (tableData && !tableData->IsGeneratingLayout() && rowNode)
 	{
-		int x = node->anchor.x - tableData->cellPadding;
-		int y = node->anchor.y - tableData->cellPadding;
-		int w = tableData->columns[data->columnIndex].preferredWidth;
-		int h = rowNode->size.y + 2 * tableData->cellPadding;
+		//int x = node->anchor.x - tableData->cellPadding;
+		//int y = node->anchor.y - tableData->cellPadding;
+		//int w = tableData->columns[data->columnIndex].preferredWidth;
+		//int h = rowNode->size.y + 2 * tableData->cellPadding;
+		int x = node->anchor.x;
+		int y = node->anchor.y;
+		int w = node->size.x;
+		int h = node->size.y;
 
 		context.surface->HLine(context, x, y, w, borderColour);
 		context.surface->HLine(context, x, y + h - 1, w, borderColour);
