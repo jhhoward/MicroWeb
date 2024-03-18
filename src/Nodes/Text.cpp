@@ -32,7 +32,7 @@ void TextElement::Draw(DrawContext& context, Node* node)
 		Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
 
 		uint8_t textColour = node->style.fontColour;
-		char* text = data->text.Get<char>();
+		char* text = data->text.Get<char*>();
 
 		if (context.surface->bpp == 1)
 		{
@@ -102,7 +102,7 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 
 	node->size.Clear();
 
-	char* text = data->text.Get<char>();
+	char* text = data->text.Get<char*>();
 	int charIndex = 0;
 	int startIndex = 0;
 	int lastBreakPoint = 0;
@@ -248,7 +248,7 @@ void SubTextElement::Draw(DrawContext& context, Node* node)
 	{
 		Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
 		uint8_t textColour = node->style.fontColour;
-		char* text = textData->text.Get<char>() + subTextData->startIndex;
+		char* text = textData->text.Get<char*>() + subTextData->startIndex;
 		char temp = text[subTextData->length];
 		text[subTextData->length] = 0;
 

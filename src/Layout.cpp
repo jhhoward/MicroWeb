@@ -33,10 +33,18 @@ void Layout::BreakNewLine()
 	//	TranslateNodes(lineStartNode, shift, 0, true);
 	//}
 	
-	if (lineStartNode && lineStartNode->style.alignment == ElementAlignment::Center)
+	if (lineStartNode)
 	{
-		int shift = AvailableWidth() / 2;
-		TranslateNodes(lineStartNode, lastNodeContext, shift, 0);
+		if (lineStartNode->style.alignment == ElementAlignment::Center)
+		{
+			int shift = AvailableWidth() / 2;
+			TranslateNodes(lineStartNode, lastNodeContext, shift, 0);
+		}
+		else if (lineStartNode->style.alignment == ElementAlignment::Right)
+		{
+			int shift = AvailableWidth();
+			TranslateNodes(lineStartNode, lastNodeContext, shift, 0);
+		}
 	}
 
 	if (lastNodeContext && !tableDepth)

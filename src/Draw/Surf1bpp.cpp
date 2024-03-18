@@ -353,7 +353,7 @@ void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* 
 
 void DrawSurface_1BPP::BlitImage(DrawContext& context, Image* image, int x, int y)
 {
-	if (!image->lines || image->bpp != 1)
+	if (!image->lines.IsAllocated() || image->bpp != 1)
 		return;
 
 	x += context.drawOffsetX;
@@ -405,7 +405,9 @@ void DrawSurface_1BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 	// Blit the image data line by line
 	for (int j = 0; j < destHeight; j++)
 	{
-		uint8_t* src = image->lines[j + srcY].Get<uint8_t>() + (srcX >> 3);
+		MemBlockHandle* imageLines = image->lines.Get<MemBlockHandle*>();
+		MemBlockHandle imageLine = imageLines[j + srcY];
+		uint8_t* src = imageLine.Get<uint8_t*>() + (srcX >> 3);
 		uint8_t* dest = lines[y + j] + (x >> 3);
 		uint8_t srcMask = 0x80 >> (srcX & 7);
 		uint8_t destMask = 0x80 >> (x & 7);

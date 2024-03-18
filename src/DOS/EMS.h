@@ -5,6 +5,8 @@
 #include "../Memory/MemBlock.h"
 
 #define EMS_PAGE_SIZE (16 * 1024l)
+#define NUM_MAPPABLE_PAGES 4
+#define EMS_PAGE_SEGMENT_SPACING (1024)
 
 class EMSManager
 {
@@ -32,7 +34,9 @@ private:
 
 	uint16_t allocationPageIndex;
 	uint16_t allocationPageUsed;
-	uint16_t mappedPage;
+
+	uint16_t mappedPages[NUM_MAPPABLE_PAGES];
+	uint8_t nextPageToMap;
 };
 
 #endif

@@ -226,7 +226,7 @@ void DrawSurface_8BPP::DrawString(DrawContext& context, Font* font, const char* 
 
 void DrawSurface_8BPP::BlitImage(DrawContext& context, Image* image, int x, int y)
 {
-	if (!image->lines)
+	if (!image->lines.IsAllocated())
 		return;
 
 	x += context.drawOffsetX;
@@ -276,7 +276,9 @@ void DrawSurface_8BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 		// Blit the image data line by line
 		for (int j = 0; j < destHeight; j++)
 		{
-			uint8_t* src = image->lines[srcY + j].Get<uint8_t>() + srcX;
+			MemBlockHandle* imageLines = image->lines.Get<MemBlockHandle*>();
+			MemBlockHandle imageLine = imageLines[srcY + j];
+			uint8_t* src = imageLine.Get<uint8_t*>() + srcX;
 			uint8_t* destRow = lines[y + j] + x;
 
 			for (int i = 0; i < destWidth; i++)
@@ -296,7 +298,9 @@ void DrawSurface_8BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 		// Blit the image data line by line
 		for (int j = 0; j < destHeight; j++)
 		{
-			uint8_t* src = image->lines[srcY + j].Get<uint8_t>() + (srcX >> 3);
+			MemBlockHandle* imageLines = image->lines.Get<MemBlockHandle*>();
+			MemBlockHandle imageLine = imageLines[srcY + j];
+			uint8_t* src = imageLine.Get<uint8_t*>() + (srcX >> 3);
 			uint8_t srcMask = 0x80 >> (srcX & 7);
 			uint8_t* destRow = lines[y + j] + x;
 			uint8_t black = 0;

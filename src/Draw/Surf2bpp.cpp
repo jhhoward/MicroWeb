@@ -3,6 +3,7 @@
 #include "../Font.h"
 #include "../Image/Image.h"
 #include "../Memory/MemBlock.h"
+#include "../Colour.h"
 
 static uint8_t bitmaskTable[] =
 {
@@ -38,6 +39,8 @@ void DrawSurface_2BPP::HLine(DrawContext& context, int x, int y, int count, uint
 	{
 		return;
 	}
+
+	colour |= (colour << 4);
 
 	uint8_t* VRAMptr = lines[y];
 	VRAMptr += (x >> 2);
@@ -93,6 +96,8 @@ void DrawSurface_2BPP::VLine(DrawContext& context, int x, int y, int count, uint
 		return;
 	}
 
+	colour |= (colour << 4);
+
 	uint8_t mask = bitmaskTable[x & 3];
 	uint8_t andMask = ~mask;
 	uint8_t orMask = mask & colour;
@@ -132,6 +137,8 @@ void DrawSurface_2BPP::FillRect(DrawContext& context, int x, int y, int width, i
 	{
 		return;
 	}
+
+	colour |= (colour << 4);
 
 	while (height)
 	{
@@ -190,6 +197,8 @@ void DrawSurface_2BPP::DrawString(DrawContext& context, Font* font, const char* 
 	{
 		return;
 	}
+
+	colour |= (colour << 4);
 
 	uint8_t firstLine = 0;
 	if (y < context.clipTop)
@@ -280,7 +289,7 @@ void DrawSurface_2BPP::DrawString(DrawContext& context, Font* font, const char* 
 
 void DrawSurface_2BPP::BlitImage(DrawContext& context, Image* image, int x, int y)
 {
-	if (!image->lines)
+	if (!image->lines.IsAllocated())
 		return;
 
 	x += context.drawOffsetX;
@@ -329,7 +338,9 @@ void DrawSurface_2BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 	{
 		for (int j = 0; j < destHeight; j++)
 		{
-			uint8_t* src = image->lines[j + srcY].Get<uint8_t>() + srcX;
+			MemBlockHandle* imageLines = image->lines.Get<MemBlockHandle*>();
+			MemBlockHandle imageLine = imageLines[j + srcY];
+			uint8_t* src = imageLine.Get<uint8_t*>() + srcX;
 			uint8_t* dest = lines[y + j] + (x >> 2);
 			uint8_t destMask = bitmaskTable[x & 3];
 			uint8_t destBuffer = *dest;
@@ -337,8 +348,11 @@ void DrawSurface_2BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 			for (int i = 0; i < destWidth; i++)
 			{
 				uint8_t srcBuffer = *src;
-//				srcBuffer |= (srcBuffer << 4);
-				destBuffer = (destBuffer & (~destMask)) | ((srcBuffer) & destMask);
+				if (srcBuffer != TRANSPARENT_COLOUR_VALUE)
+				{
+					srcBuffer |= (srcBuffer << 4);
+					destBuffer = (destBuffer & (~destMask)) | ((srcBuffer)&destMask);
+				}
 				src++;
 				destMask >>= 2;
 				if (!destMask)
@@ -416,57 +430,77 @@ void DrawSurface_2BPP::InvertRect(DrawContext& context, int x, int y, int width,
 
 void DrawSurface_2BPP::VerticalScrollBar(DrawContext& context, int x, int y, int height, int position, int size)
 {
-#if 0
+#if 1
+	const uint16_t edge = 0;
+	const uint16_t inner1 = 0xff3f;
+	const uint16_t inner2 = 0xfcff;
+	const uint16_t widgetEdge1 = 0x003f;
+	const uint16_t widgetEdge2 = 0xfc00;
+	const uint16_t widgetInner1 = 0xff3c;
+	const uint16_t widgetInner2 = 0x3cff;
+	const uint16_t grab1 = 0xc03c;
+	const uint16_t grab2 = 0x3c03;
+
 	x += context.drawOffsetX;
 	y += context.drawOffsetY;
 	int startY = y;
 
-	x >>= 3;
+	x >>= 2;
 	const int grabSize = 7;
 	const int minWidgetSize = grabSize + 4;
 	const int widgetPaddingSize = size - minWidgetSize;
 	int topPaddingSize = widgetPaddingSize >> 1;
 	int bottomPaddingSize = widgetPaddingSize - topPaddingSize;
-	const uint16_t edge = 0;
-	const uint16_t inner = 0xfe7f;
 	int bottomSpacing = height - position - size;
 
 	while (position--)
 	{
-		*(uint16_t*)(&lines[y++][x]) = inner;
+		((uint16_t*)(&lines[y][x]))[0] = inner1;
+		((uint16_t*)(&lines[y++][x]))[1] = inner2;
 	}
 
-	const uint16_t widgetEdge = 0x0660;
-	*(uint16_t*)(&lines[y++][x]) = inner;
-	*(uint16_t*)(&lines[y++][x]) = widgetEdge;
+	((uint16_t*)(&lines[y][x]))[0] = inner1;
+	((uint16_t*)(&lines[y++][x]))[1] = inner2;
+	((uint16_t*)(&lines[y][x]))[0] = widgetEdge1;
+	((uint16_t*)(&lines[y++][x]))[1] = widgetEdge2;
 
-	const uint16_t widgetInner = 0xfa5f;
-	const uint16_t grab = 0x0a50;
 
 	while (topPaddingSize--)
 	{
-		*(uint16_t*)(&lines[y++][x]) = widgetInner;
+		((uint16_t*)(&lines[y][x]))[0] = widgetInner1;
+		((uint16_t*)(&lines[y++][x]))[1] = widgetInner2;
 	}
 
-	*(uint16_t*)(&lines[y++][x]) = widgetInner;
-	*(uint16_t*)(&lines[y++][x]) = grab;
-	*(uint16_t*)(&lines[y++][x]) = widgetInner;
-	*(uint16_t*)(&lines[y++][x]) = grab;
-	*(uint16_t*)(&lines[y++][x]) = widgetInner;
-	*(uint16_t*)(&lines[y++][x]) = grab;
-	*(uint16_t*)(&lines[y++][x]) = widgetInner;
+	((uint16_t*)(&lines[y][x]))[0] = widgetInner1;
+	((uint16_t*)(&lines[y++][x]))[1] = widgetInner2;
+	((uint16_t*)(&lines[y][x]))[0] = grab1;
+	((uint16_t*)(&lines[y++][x]))[1] = grab2;
+	((uint16_t*)(&lines[y][x]))[0] = widgetInner1;
+	((uint16_t*)(&lines[y++][x]))[1] = widgetInner2;
+	((uint16_t*)(&lines[y][x]))[0] = grab1;
+	((uint16_t*)(&lines[y++][x]))[1] = grab2;
+	((uint16_t*)(&lines[y][x]))[0] = widgetInner1;
+	((uint16_t*)(&lines[y++][x]))[1] = widgetInner2;
+	((uint16_t*)(&lines[y][x]))[0] = grab1;
+	((uint16_t*)(&lines[y++][x]))[1] = grab2;
+	((uint16_t*)(&lines[y][x]))[0] = widgetInner1;
+	((uint16_t*)(&lines[y++][x]))[1] = widgetInner2;
 
 	while (bottomPaddingSize--)
 	{
-		*(uint16_t*)(&lines[y++][x]) = widgetInner;
+		((uint16_t*)(&lines[y][x]))[0] = widgetInner1;
+		((uint16_t*)(&lines[y++][x]))[1] = widgetInner2;
 	}
 
-	*(uint16_t*)(&lines[y++][x]) = widgetEdge;
-	*(uint16_t*)(&lines[y++][x]) = inner;
+	((uint16_t*)(&lines[y][x]))[0] = widgetEdge1;
+	((uint16_t*)(&lines[y++][x]))[1] = widgetEdge2;
+	((uint16_t*)(&lines[y][x]))[0] = inner1;
+	((uint16_t*)(&lines[y++][x]))[1] = inner2;
 
 	while (bottomSpacing--)
 	{
-		*(uint16_t*)(&lines[y++][x]) = inner;
+		((uint16_t*)(&lines[y][x]))[0] = inner1;
+		((uint16_t*)(&lines[y++][x]))[1] = inner2;
 	}
 #endif
 }

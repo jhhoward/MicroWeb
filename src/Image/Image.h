@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "../Memory/MemBlock.h"
+
 struct ImageMetadata
 {
 	uint16_t width;
@@ -13,12 +15,12 @@ struct ImageMetadata
 
 struct Image : ImageMetadata
 {
-	Image() : lines(nullptr) 
+	Image() 
 	{
 		width = height = pitch = bpp = 0;
 		isLoaded = false;
 	}
-	struct MemBlockHandle* lines;
+	MemBlockHandle lines;
 	bool isLoaded;
 };
 

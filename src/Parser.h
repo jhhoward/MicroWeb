@@ -41,10 +41,12 @@ struct HTMLParseContext
 	SectionElement::Type parseSection;
 };
 
+#define MAX_ATTRIBUTE_STRING_LENGTH 256
+
 class AttributeParser
 {
 public:
-	AttributeParser(char* inAttributeString) : attributeString(inAttributeString), key(NULL), value(NULL) {}
+	AttributeParser(const char* inAttributeString);
 	bool Parse();
 	
 	const char* Key() { return key; }
@@ -54,9 +56,10 @@ public:
 private:
 	bool IsWhiteSpace(char c);
 	
-	char* attributeString;
+	char attributeStringBuffer[MAX_ATTRIBUTE_STRING_LENGTH];
 	char* key;
 	char* value;
+	char* attributeString;
 };
 
 class HTMLParser

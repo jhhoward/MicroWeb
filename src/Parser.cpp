@@ -275,7 +275,31 @@ void HTMLParser::FlushTextBuffer()
 				}
 				else
 				{
+					HTMLParseContext& oldContext = CurrentContext();
 					tagHandler->Open(*this, attributeStr);
+
+					if (&oldContext != &CurrentContext())
+					{
+						AttributeParser attributes(attributeStr);
+						while (attributes.Parse())
+						{
+							if (!stricmp(attributes.Key(), "align"))
+							{
+								if (!stricmp(attributes.Value(), "center"))
+								{
+									CurrentContext().node->style.alignment = ElementAlignment::Center;
+								}
+								else if (!stricmp(attributes.Value(), "left"))
+								{
+									CurrentContext().node->style.alignment = ElementAlignment::Left;
+								}
+								else if (!stricmp(attributes.Value(), "right"))
+								{
+									CurrentContext().node->style.alignment = ElementAlignment::Right;
+								}
+							}
+						}
+					}
 				}
 			}
 		}		
@@ -668,6 +692,12 @@ void HTMLParser::ParseChar(char c)
 	
 }
 
+AttributeParser::AttributeParser(const char* inAttributeString) :key(NULL), value(NULL) 
+{
+	strncpy(attributeStringBuffer, inAttributeString, MAX_ATTRIBUTE_STRING_LENGTH);
+	attributeString = attributeStringBuffer;
+}
+
 bool AttributeParser::Parse()
 {
 	key = value = NULL;
@@ -822,7 +852,9 @@ NamedColour namedColours[] =
 	{ "black",	RGB332(0x00, 0x00, 0x00) },
 	{ "white",	RGB332(0xff, 0xff, 0xff) },
 	{ "gray",	RGB332(0x80, 0x80, 0x80) },
-	{ "silver", RGB332(0xc0, 0xc0, 0xc0) },
+	{ "grey",	RGB332(0x80, 0x80, 0x80) },
+	//	{ "silver", RGB332(0xc0, 0xc0, 0xc0) },
+	{ "silver", RGB332(0xa0, 0xa0, 0xa0) },
 	{ "red",	RGB332(0xff, 0x00, 0x00) },
 	{ "maroon", RGB332(0x80, 0x00, 0x00) },
 	{ "yellow", RGB332(0xff, 0xff, 0x00) },

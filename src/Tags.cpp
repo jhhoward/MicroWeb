@@ -76,7 +76,8 @@ static const HTMLTagHandler* tagHandlers[] =
 	new LiTagHandler(),
 	new HrTagHandler(),
 	new SizeTagHandler("small", 0),
-	new InputTagHandler(),
+	new InputTagHandler("input"),
+	new InputTagHandler("textarea"),
 	new ButtonTagHandler(),
 	new FormTagHandler(),
 	new ImgTagHandler(),
@@ -239,22 +240,29 @@ void FontTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 			{
 				int fontSize = atoi(attributes.Value());
 
-				switch (fontSize)
+				if (attributes.Value()[0] == '+' || attributes.Value()[0] == '-')
 				{
-				case 1:
-				case 2:
-					data->styleOverride.SetFontSize(0);
-					break;
-				case 0:
-					// Probably invalid
-				case 3:
-				case 4:
-					data->styleOverride.SetFontSize(1);
-					break;
-				default:
-					// Anything bigger
-					data->styleOverride.SetFontSize(2);
-					break;
+					data->styleOverride.SetFontSizeDelta(fontSize);
+				}
+				else
+				{
+					switch (fontSize)
+					{
+					case 1:
+					case 2:
+						data->styleOverride.SetFontSize(0);
+						break;
+					case 0:
+						// Probably invalid
+					case 3:
+					case 4:
+						data->styleOverride.SetFontSize(1);
+						break;
+					default:
+						// Anything bigger
+						data->styleOverride.SetFontSize(2);
+						break;
+					}
 				}
 			}
 			else if (!stricmp(attributes.Key(), "color"))

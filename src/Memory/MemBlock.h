@@ -27,7 +27,7 @@ struct  MemBlockHandle
 	void* GetPtr();
 	
 	template <typename T>
-	inline T* Get() { return (T*)GetPtr(); }
+	inline T Get() { return (T)GetPtr(); }
 	void Commit();
 
 	bool IsAllocated() { return type != Unallocated; }

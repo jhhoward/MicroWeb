@@ -247,9 +247,13 @@ bool AppInterface::IsOverNode(Node* node, int x, int y)
 	}
 	else
 	{
-		x -= windowRect.x;
-		y -= windowRect.y - scrollPositionY;
-		return node->IsPointInsideChildren(x, y);
+		if (x >= windowRect.x && y >= windowRect.y && x < windowRect.x + windowRect.width && y < windowRect.y + windowRect.height)
+		{
+			x -= windowRect.x;
+			y -= windowRect.y - scrollPositionY;
+			return node->IsPointInsideChildren(x, y);
+		}
+		return false;
 	}
 }
 
@@ -412,7 +416,7 @@ void AppInterface::SetTitle(const char* title)
 	DrawContext context(Platform::video->drawSurface, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight);
 	Platform::input->HideMouse();
 	uint8_t fillColour = Platform::video->colourScheme.pageColour;
-	context.surface->FillRect(context, titleNode->anchor.x, titleNode->anchor.y, titleNode->size.x, titleNode->size.y, fillColour);
+	context.surface->FillRect(context, 0, titleNode->anchor.y, Platform::video->screenWidth, titleNode->size.y, fillColour);
 	titleNode->Handler().Draw(context, titleNode);
 	Platform::input->ShowMouse();
 }

@@ -13,7 +13,7 @@ void ImageNode::Draw(DrawContext& context, Node* node)
 	//printf("--IMG [%d, %d]\n", node->anchor.x, node->anchor.y);
 	uint8_t outlineColour = Platform::video->colourScheme.textColour;
 
-	if (data->image.isLoaded && data->image.lines)
+	if (data->image.isLoaded && data->image.lines.IsAllocated())
 	{
 		context.surface->BlitImage(context, &data->image, node->anchor.x, node->anchor.y);
 	}
@@ -40,8 +40,20 @@ Node* ImageNode::Construct(Allocator& allocator)
 
 void ImageNode::GenerateLayout(Layout& layout, Node* node)
 {
+	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
 	int imageWidth = node->size.x;
 	int imageHeight = node->size.y;
+
+	if (!data->image.isLoaded && imageWidth > layout.MaxAvailableWidth())
+	{
+		node->size.x = layout.MaxAvailableWidth();
+		node->size.y = ((long)node->size.y * node->size.x) / imageWidth;
+		imageWidth = node->size.x;
+		imageHeight = node->size.y;
+		data->image.width = imageWidth;
+		data->image.height = imageHeight;
+	}
+
 	if (layout.AvailableWidth() < imageWidth)
 	{
 		layout.BreakNewLine();
@@ -54,7 +66,7 @@ void ImageNode::GenerateLayout(Layout& layout, Node* node)
 void ImageNode::LoadContent(Node* node, LoadTask& loadTask)
 {
 	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
-	if (data && data->source && !data->image.lines)
+	if (data && data->source && !data->image.lines.IsAllocated())
 	{
 		loadTask.Load(URL::GenerateFromRelative(App::Get().page.pageURL.url, data->source).url);
 		ImageDecoder::Create(ImageDecoder::Gif);

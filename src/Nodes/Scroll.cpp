@@ -72,9 +72,20 @@ bool ScrollBarNode::HandleEvent(Node* node, const Event& event)
 	{
 		case Event::MouseClick:
 		{
-			ui.FocusNode(node);
-			startDragOffset = (event.y - node->anchor.y) - widgetPosition;
-			draggingScrollPosition = data->scrollPosition;
+			if (event.y < widgetPosition + node->anchor.y)
+			{
+				ui.ScrollRelative(-(ui.windowRect.height - 24));
+			}
+			else if (event.y >= widgetPosition + widgetSize + node->anchor.y)
+			{
+				ui.ScrollRelative((ui.windowRect.height - 24));
+			}
+			else
+			{
+				ui.FocusNode(node);
+				startDragOffset = (event.y - node->anchor.y) - widgetPosition;
+				draggingScrollPosition = data->scrollPosition;
+			}
 		}
 		return true;
 		case Event::MouseRelease:

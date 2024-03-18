@@ -85,8 +85,8 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 						outputImage->pitch = outputImage->width;
 					}
 
-					outputImage->lines = (MemBlockHandle*)MemoryManager::pageAllocator.Allocate(sizeof(MemBlockHandle) * outputImage->height);
-					if(!outputImage->lines)
+					outputImage->lines = MemoryManager::pageBlockAllocator.Allocate(sizeof(MemBlockHandle) * outputImage->height);
+					if(!outputImage->lines.IsAllocated())
 					{
 						// Allocation error
 						DEBUG_MESSAGE("Could not allocate!\n");
@@ -94,22 +94,32 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 						return;
 					}
 
+					MemBlockHandle* lines = outputImage->lines.Get<MemBlockHandle*>();
+
 					for (int j = 0; j < outputImage->height; j++)
 					{
-						outputImage->lines[j] = MemoryManager::pageBlockAllocator.Allocate(outputImage->pitch);
-						if (!outputImage->lines[j].IsAllocated())
+						lines[j] = MemoryManager::pageBlockAllocator.Allocate(outputImage->pitch);
+
+						if (!lines[j].IsAllocated())
 						{
 							// Allocation error
 							DEBUG_MESSAGE("Could not allocate!\n");
-							outputImage->lines = nullptr;
+							outputImage->lines.type = MemBlockHandle::Unallocated;
 							state = ImageDecoder::Error;
 							return;
 						}
-						void* pixels = outputImage->lines[j].GetPtr();
+					}
+
+					outputImage->lines.Commit();
+					for (int j = 0; j < outputImage->height; j++)
+					{
+						lines = outputImage->lines.Get<MemBlockHandle*>();
+						MemBlockHandle line = lines[j];
+						void* pixels = line.GetPtr();
 						if (pixels)
 						{
 							memset(pixels, TRANSPARENT_COLOUR_VALUE, outputImage->pitch);
-							outputImage->lines[j].Commit();
+							line.Commit();
 						}
 					}
 					
@@ -560,48 +570,6 @@ void GifDecoder::ClearDictionary()
 	dictionaryIndex += 2;
 }
 
-void GifDecoder::OutputPixel(uint8_t pixelValue)
-{	
-	//printf(" value: %x\n", pixelValue);
-	/*if(pixelValue == header.backgroundColour)
-	{
-		outputImage->data[drawX++] = 0xff;
-		outputImage->data[drawX++] = 0x00;
-		outputImage->data[drawX++] = 0xff;
-		outputImage->data[drawX++] = 0xff;
-	}
-	else*/
-	{
-		outputImage->lines[outputLine].Get<uint8_t>()[drawX] = paletteLUT[pixelValue];
-		outputImage->lines[outputLine].Commit();
-		drawX++;
-
-		if (drawX == imageDescriptor.width)
-		{
-			drawX = 0;
-			drawY++;
-			if (imageDescriptor.fields & GIF_INTERLACE_BIT)
-			{
-				outputLine = CalculateLineIndex(drawY);
-			}
-			else
-			{
-				outputLine = drawY;
-			}
-
-			if (outputLine >= imageDescriptor.height)
-			{
-				outputLine = imageDescriptor.height - 1;
-			}
-
-		}
-		//outputImage->data[drawX++] = palette[pixelValue * 3];
-		//outputImage->data[drawX++] = palette[pixelValue * 3 + 1];
-		//outputImage->data[drawX++] = palette[pixelValue * 3 + 2];
-		//outputImage->data[drawX++] = pixelValue == header.backgroundColour ? 0 : 255;
-	}
-}
-
 // Compute output index of y-th input line, in frame of height h. 
 int GifDecoder::CalculateLineIndex(int y)
 {
@@ -638,8 +606,8 @@ void GifDecoder::ProcessLineBuffer()
 	}
 	else
 	{
-		int first = outputY * outputImage->height / header.height;
-		int last = (outputY + 1) * outputImage->height / header.height;
+		int first = outputY * (long)outputImage->height / header.height;
+		int last = (outputY + 1) * (long)outputImage->height / header.height;
 
 		for (int y = first; y < last; y++)
 		{
@@ -652,7 +620,9 @@ void GifDecoder::ProcessLineBuffer()
 
 void GifDecoder::EmitLine(int y)
 {
-	uint8_t* output = outputImage->lines[y].Get<uint8_t>();
+	MemBlockHandle* lines = outputImage->lines.Get<MemBlockHandle*>();
+	MemBlockHandle lineOutput = lines[y];
+	uint8_t* output = lineOutput.Get<uint8_t*>();
 	
 	if (outputImage->bpp == 8)
 	{
@@ -856,6 +826,6 @@ void GifDecoder::EmitLine(int y)
 		}
 	}
 
-	outputImage->lines[y].Commit();
+	lineOutput.Commit();
 }
 

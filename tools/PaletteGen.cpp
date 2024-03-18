@@ -97,7 +97,7 @@ void GeneratePaletteLUT(FILE* fs, const char* name, const RGBQUAD* palette, int 
 			{
 				index |= (index << 2);
 			}
-			index |= (index << 4);
+			//index |= (index << 4);
 		}
 
 		fprintf(fs, "%d", index);

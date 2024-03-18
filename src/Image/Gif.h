@@ -31,7 +31,6 @@ private:
 	bool SkipBytes(uint8_t** data, size_t& dataLength, size_t size);
 
 	void ClearDictionary();
-	void OutputPixel(uint8_t pixelValue);
 	
 	int CalculateLineIndex(int y);
 	void ProcessLineBuffer();

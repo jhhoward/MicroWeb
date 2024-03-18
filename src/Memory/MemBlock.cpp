@@ -26,6 +26,7 @@ void* MemBlockHandle::GetPtr()
 	}
 #endif
 	default:
+		printf("Invalid pointer type: %d\n", type);
 		exit(1);
 		return nullptr;
 	}
@@ -87,7 +88,7 @@ MemBlockHandle MemBlockAllocator::AllocString(const char* inString)
 	MemBlockHandle result = Allocate(strlen(inString) + 1);
 	if (result.IsAllocated())
 	{
-		strcpy(result.Get<char>(), inString);
+		strcpy(result.Get<char*>(), inString);
 		result.Commit();
 	}
 	return result;
@@ -158,7 +159,7 @@ MemBlockHandle MemBlockAllocator::Allocate(uint16_t size)
 
 void* MemBlockAllocator::AccessSwap(MemBlockHandle& handle)
 {
-	if (lastSwapRead != handle.swapFilePosition)
+	if (swapFile && lastSwapRead != handle.swapFilePosition)
 	{
 		fseek(swapFile, handle.swapFilePosition, SEEK_SET);
 		uint16_t allocatedSize = 0;
@@ -172,11 +173,14 @@ void* MemBlockAllocator::AccessSwap(MemBlockHandle& handle)
 
 void MemBlockAllocator::CommitSwap(MemBlockHandle& handle)
 {
-	fseek(swapFile, handle.swapFilePosition, SEEK_SET);
-	uint16_t allocatedSize = 0;
-	fread(&allocatedSize, sizeof(uint16_t), 1, swapFile);
-	fseek(swapFile, handle.swapFilePosition + sizeof(uint16_t), SEEK_SET);
-	fwrite(swapBuffer, 1, allocatedSize, swapFile);
+	if (swapFile)
+	{
+		fseek(swapFile, handle.swapFilePosition, SEEK_SET);
+		uint16_t allocatedSize = 0;
+		fread(&allocatedSize, sizeof(uint16_t), 1, swapFile);
+		fseek(swapFile, handle.swapFilePosition + sizeof(uint16_t), SEEK_SET);
+		fwrite(swapBuffer, 1, allocatedSize, swapFile);
+	}
 }
 
 void MemBlockAllocator::Reset()

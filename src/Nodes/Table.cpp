@@ -31,6 +31,7 @@ void TableNode::Draw(DrawContext& context, Node* node)
 	int y = node->anchor.y;
 	int w = node->size.x;
 	int h = node->size.y;
+	bool needsFill = data->bgColour != TRANSPARENT_COLOUR_VALUE && context.surface->bpp > 1;
 
 	if (data->border)
 	{
@@ -40,12 +41,12 @@ void TableNode::Draw(DrawContext& context, Node* node)
 		context.surface->VLine(context, x, y + 1, h - 2, borderColour);
 		context.surface->VLine(context, x + w - 1, y + 1, h - 2, borderColour);
 
-		if (data->bgColour != TRANSPARENT_COLOUR_VALUE && context.surface->bpp > 1)
+		if (needsFill)
 		{
 			context.surface->FillRect(context, x + 1, y + 1, w - 2, h - 2, data->bgColour);
 		}
 	}
-	else if (data->bgColour != TRANSPARENT_COLOUR_VALUE && context.surface->bpp > 1)
+	else if (needsFill)
 	{
 		context.surface->FillRect(context, x, y, w, h, data->bgColour);
 	}
@@ -214,12 +215,23 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 
 		layout.PushCursor();
 		layout.PushLayout();
-		if (node->style.alignment == ElementAlignment::Center)
+
+		int available = layout.AvailableWidth();
+		if (totalWidth < available)
 		{
-			int available = layout.AvailableWidth();
-			if (totalWidth < available)
+			int alignmentPadding = 0;
+
+			if (node->style.alignment == ElementAlignment::Center)
 			{
-				layout.PadHorizontal((available - totalWidth) / 2, 0);
+				alignmentPadding = (available - totalWidth) / 2;
+			}
+			else if (node->style.alignment == ElementAlignment::Right)
+			{
+				alignmentPadding = (available - totalWidth);
+			}
+			if (alignmentPadding)
+			{
+				layout.PadHorizontal(alignmentPadding, 0);
 				node->anchor = layout.Cursor();
 			}
 		}
@@ -471,20 +483,27 @@ void TableCellNode::Draw(DrawContext& context, Node* node)
 		int w = node->size.x;
 		int h = node->size.y;
 
+		bool needsFill = context.surface->bpp > 1
+			&& data->bgColour != TRANSPARENT_COLOUR_VALUE
+			&& data->bgColour != tableData->bgColour;
+
 		if (tableData->border)
 		{
 			context.surface->HLine(context, x, y, w, borderColour);
 			context.surface->HLine(context, x, y + h - 1, w, borderColour);
 			context.surface->VLine(context, x, y + 1, h - 2, borderColour);
 			context.surface->VLine(context, x + w - 1, y + 1, h - 2, borderColour);
-			if (data->bgColour != TRANSPARENT_COLOUR_VALUE && context.surface->bpp > 1)
+			if (needsFill)
 			{
 				context.surface->FillRect(context, x + 1, y + 1, w - 2, h - 2, data->bgColour);
 			}
 		}
 		else if (data->bgColour != TRANSPARENT_COLOUR_VALUE && context.surface->bpp > 1)
 		{
-			context.surface->FillRect(context, x, y, w, h, data->bgColour);
+			if (needsFill)
+			{
+				context.surface->FillRect(context, x, y, w, h, data->bgColour);
+			}
 		}
 	}
 

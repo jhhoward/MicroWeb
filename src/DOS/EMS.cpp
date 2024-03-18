@@ -9,6 +9,8 @@ void EMSManager::Init()
 {
     union REGS inregs, outregs;
 
+    //return;
+
     // Check for EMS driver
     inregs.h.ah = 0x40;
     int86(EMS_INTERRUPT_NUMBER, &inregs, &outregs);
@@ -43,7 +45,12 @@ void EMSManager::Init()
 
     allocationPageIndex = 0;
     allocationPageUsed = 0;
-    mappedPage = 0xffff;
+
+    for (int n = 0; n < NUM_MAPPABLE_PAGES; n++)
+    {
+        mappedPages[n] = 0xffff;
+    }
+    nextPageToMap = 0;
 
     isAvailable = true;
 }
@@ -95,18 +102,32 @@ void* EMSManager::MapBlock(MemBlockHandle& handle)
 {
     if (isAvailable && handle.type == MemBlockHandle::EMS)
     {
-        if (mappedPage != handle.emsPage)
+        // Check if this page is already mapped first
+        for (int n = 0; n < NUM_MAPPABLE_PAGES; n++)
+        {
+            if (mappedPages[n] == handle.emsPage)
+            {
+                return MK_FP(pageAddressSegment + n * EMS_PAGE_SEGMENT_SPACING, handle.emsPageOffset);
+            }
+        }
+
+        int mappedPageIndex = nextPageToMap;
+
+        nextPageToMap++;
+        if (nextPageToMap >= NUM_MAPPABLE_PAGES)
+            nextPageToMap = 0;
+
         {
             union REGS inregs, outregs;
             inregs.h.ah = 0x44;
-            inregs.h.al = 0;
+            inregs.h.al = mappedPageIndex;
             inregs.x.bx = handle.emsPage;
             inregs.x.dx = allocationHandle;
             int86(EMS_INTERRUPT_NUMBER, &inregs, &outregs);
-            mappedPage = handle.emsPage;
+            mappedPages[mappedPageIndex] = handle.emsPage;
         }
 
-        return MK_FP(pageAddressSegment, handle.emsPageOffset);
+        return MK_FP(pageAddressSegment + mappedPageIndex * EMS_PAGE_SEGMENT_SPACING, handle.emsPageOffset);
     }
 
     return nullptr;

@@ -145,7 +145,7 @@ private:
 class InputTagHandler : public HTMLTagHandler
 {
 public:
-	InputTagHandler() : HTMLTagHandler("input") {}
+	InputTagHandler(const char* tagName) : HTMLTagHandler(tagName) {}
 	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
 };
 
