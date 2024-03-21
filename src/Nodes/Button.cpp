@@ -67,7 +67,7 @@ Coord ButtonNode::CalculateSize(Node* node)
 
 	if (data->buttonText)
 	{
-		labelWidth = font->CalculateWidth(data->buttonText);
+		labelWidth = font->CalculateWidth(data->buttonText, node->style.fontStyle);
 	}
 
 	Coord result;

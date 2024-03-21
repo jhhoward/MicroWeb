@@ -16,6 +16,7 @@
 #include "App.h"
 #include "Platform.h"
 #include "HTTP.h"
+#include "Image/Decoder.h"
 
 App* App::app;
 
@@ -46,11 +47,10 @@ void App::ResetPage()
 void App::Run(int argc, char* argv[])
 {
 	running = true;
-
-	ui.Init();
-	pageRenderer.Init();
-
 	char* targetURL = nullptr;
+
+	config.loadImages = true;
+
 	if (argc > 1)
 	{
 		for (int n = 1; n < argc; n++)
@@ -60,8 +60,20 @@ void App::Run(int argc, char* argv[])
 				targetURL = argv[n];
 				break;
 			}
+			else if (!stricmp(argv[n], "-noimages"))
+			{
+				config.loadImages = false;
+			}
 		}
 	}
+
+	if (config.loadImages)
+	{
+		ImageDecoder::Allocate();
+	}
+
+	ui.Init();
+	pageRenderer.Init();
 
 	if (targetURL)
 	{
@@ -76,80 +88,80 @@ void App::Run(int argc, char* argv[])
 	{
 		Platform::Update();
 
-		if (loadTask.HasContent())
+		if (pageLoadTask.HasContent())
 		{
 			if (requestedNewPage)
 			{
 				ResetPage();
 				requestedNewPage = false;
-				page.pageURL = loadTask.GetURL();
+				page.pageURL = pageLoadTask.GetURL();
 				ui.UpdateAddressBar(page.pageURL);
 				loadTaskTargetNode = page.GetRootNode();
 			}
 
-			static char buffer[256];
-
-			size_t bytesRead = loadTask.GetContent(buffer, 256);
+			size_t bytesRead = pageLoadTask.GetContent(loadBuffer, APP_LOAD_BUFFER_SIZE);
 			if (bytesRead)
 			{
-				if (loadTask.debugDumpFile)
+				if (pageLoadTask.debugDumpFile)
 				{
-					fwrite(buffer, 1, bytesRead, loadTask.debugDumpFile);
+					fwrite(loadBuffer, 1, bytesRead, pageLoadTask.debugDumpFile);
 				}
 
-				if (loadTaskTargetNode == page.GetRootNode())
-				{
-					parser.Parse(buffer, bytesRead);
-				}
-				else if(loadTaskTargetNode)
-				{
-					bool stillProcessing = loadTaskTargetNode->Handler().ParseContent(loadTaskTargetNode, buffer, bytesRead);
-					if (!stillProcessing)
-					{
-						loadTask.Stop();
-					}
-				}
+				parser.Parse(loadBuffer, bytesRead);
 			}
 		}
 		else
 		{
 			if (requestedNewPage)
 			{
-				if (loadTask.type == LoadTask::RemoteFile)
+				if (pageLoadTask.type == LoadTask::RemoteFile)
 				{
-					if (!loadTask.request)
+					if (!pageLoadTask.request)
 					{
 						ShowErrorPage("No network interface available");
 						requestedNewPage = false;
 					}
-					else if (loadTask.request->GetStatus() == HTTPRequest::Error)
+					else if (pageLoadTask.request->GetStatus() == HTTPRequest::Error)
 					{
-						ShowErrorPage(loadTask.request->GetStatusString());
+						ShowErrorPage(pageLoadTask.request->GetStatusString());
 						requestedNewPage = false;
 					}
-					else if (loadTask.request->GetStatus() == HTTPRequest::UnsupportedHTTPS)
+					else if (pageLoadTask.request->GetStatus() == HTTPRequest::UnsupportedHTTPS)
 					{
 						ShowNoHTTPSPage();
 						requestedNewPage = false;
 					}
-				}				
+				}
 			}
-			else
+			else if (!parser.IsFinished())
 			{
-				bool isStillConnecting = loadTask.type == LoadTask::RemoteFile && loadTask.request && loadTask.request->GetStatus() == HTTPRequest::Connecting;
-				
-				if(!isStillConnecting)
+				parser.Finish();
+			}
+		}
+
+		if (pageContentLoadTask.HasContent())
+		{
+			size_t bytesRead = pageContentLoadTask.GetContent(loadBuffer, APP_LOAD_BUFFER_SIZE);
+			if (bytesRead)
+			{
+				bool stillProcessing = loadTaskTargetNode->Handler().ParseContent(loadTaskTargetNode, loadBuffer, bytesRead);
+				if (!stillProcessing)
 				{
-					if (loadTaskTargetNode)
-					{
-						loadTaskTargetNode = page.ProcessNextLoadTask(loadTaskTargetNode, loadTask);
-					}
+					pageContentLoadTask.Stop();
 				}
 			}
 		}
-		if (loadTask.type == LoadTask::RemoteFile && loadTask.request && loadTask.request->GetStatus() == HTTPRequest::Connecting)
-			ui.SetStatusMessage(loadTask.request->GetStatusString());
+		else if(!pageContentLoadTask.IsBusy())
+		{
+			if (loadTaskTargetNode)
+			{
+				loadTaskTargetNode = page.ProcessNextLoadTask(loadTaskTargetNode, pageContentLoadTask);
+			}
+		}
+		//if (loadTask.type == LoadTask::RemoteFile && loadTask.request && loadTask.request->GetStatus() == HTTPRequest::Connecting)
+		//	ui.SetStatusMessage(loadTask.request->GetStatusString());
 
+		page.layout.Update();
 		pageRenderer.Update();
 		ui.Update();
 	}
@@ -246,6 +258,12 @@ const char* LoadTask::GetURL()
 	return url.url;
 }
 
+bool LoadTask::IsBusy()
+{
+	bool isStillConnecting = type == LoadTask::RemoteFile && request && request->GetStatus() == HTTPRequest::Connecting;
+	return isStillConnecting || HasContent();
+}
+
 bool LoadTask::HasContent()
 {
 	if (type == LoadTask::LocalFile)
@@ -294,7 +312,7 @@ size_t LoadTask::GetContent(char* buffer, size_t count)
 void App::RequestNewPage(const char* url)
 {
 	StopLoad();
-	loadTask.Load(url);
+	pageLoadTask.Load(url);
 	requestedNewPage = true;
 	loadTaskTargetNode = nullptr;
 	//ui.UpdateAddressBar(loadTask.url);
@@ -314,18 +332,19 @@ void App::OpenURL(const char* url)
 		pageHistoryPos--;
 	}
 
-	pageHistory[pageHistoryPos] = loadTask.url;
+	pageHistory[pageHistoryPos] = pageLoadTask.url;
 	pageHistorySize = pageHistoryPos + 1;
 }
 
 void App::StopLoad()
 {
-	loadTask.Stop();
+	pageLoadTask.Stop();
+	pageContentLoadTask.Stop();
 }
 
 void App::ShowErrorPage(const char* message)
 {
-	loadTask.Stop();
+	StopLoad();
 	ResetPage();
 
 //	page.BreakLine(2);
@@ -370,10 +389,10 @@ void App::ShowNoHTTPSPage()
 	//page.FinishSection();
 
 	page.SetTitle("HTTPS unsupported");
-	page.pageURL = loadTask.GetURL();
+	page.pageURL = pageLoadTask.GetURL();
 	ui.UpdateAddressBar(page.pageURL);
 
-	loadTask.Stop();
+	StopLoad();
 }
 
 void App::PreviousPage()
@@ -392,6 +411,12 @@ void App::NextPage()
 		pageHistoryPos++;
 		RequestNewPage(pageHistory[pageHistoryPos].url);
 	}
+}
+
+void App::LoadImageNodeContent(Node* node)
+{
+	loadTaskTargetNode = node;
+	node->Handler().LoadContent(node, pageContentLoadTask);
 }
 
 void VideoDriver::InvertVideoOutput()
@@ -413,3 +438,4 @@ void VideoDriver::InvertVideoOutput()
 		Platform::input->ShowMouse();
 	}
 }
+

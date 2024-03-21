@@ -89,6 +89,10 @@ public:
 	virtual void SetMouseCursor(MouseCursor::Type type) = 0;
 	virtual void GetMouseStatus(int& buttons, int& x, int& y) = 0;
 	virtual void SetMousePosition(int x, int y) = 0;
+	
+	virtual bool GetMouseButtonPress(int& x, int& y) = 0;
+	virtual bool GetMouseButtonRelease(int& x, int& y) = 0;
+
 	virtual InputButtonCode GetKeyPress() { return 0; }
 };
 
@@ -98,6 +102,8 @@ public:
 	static bool Init(int argc, char* argv[]);
 	static void Shutdown();
 	static void Update();
+
+	static void FatalError(const char* message, ...);
 
 	static VideoDriver* video;
 	static NetworkDriver* network;

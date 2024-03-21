@@ -56,12 +56,12 @@ void GenerateAssetPack(const char* name)
 	AddEntryHeader("FHELV3", entries, data);
 	EncodeFont(basePath, "Helv3.png", data, false);
 
-	AddEntryHeader("FHELV1B", entries, data);
-	EncodeFont(basePath, "Helv1.png", data, true);
-	AddEntryHeader("FHELV2B", entries, data);
-	EncodeFont(basePath, "Helv2.png", data, true);
-	AddEntryHeader("FHELV3B", entries, data);
-	EncodeFont(basePath, "Helv3.png", data, true);
+	//AddEntryHeader("FHELV1B", entries, data);
+	//EncodeFont(basePath, "Helv1.png", data, true);
+	//AddEntryHeader("FHELV2B", entries, data);
+	//EncodeFont(basePath, "Helv2.png", data, true);
+	//AddEntryHeader("FHELV3B", entries, data);
+	//EncodeFont(basePath, "Helv3.png", data, true);
 
 	AddEntryHeader("FCOUR1", entries, data);
 	EncodeFont(basePath, "Cour1.png", data, false);
@@ -70,12 +70,12 @@ void GenerateAssetPack(const char* name)
 	AddEntryHeader("FCOUR3", entries, data);
 	EncodeFont(basePath, "Cour3.png", data, false);
 
-	AddEntryHeader("FCOUR1B", entries, data);
-	EncodeFont(basePath, "Cour1.png", data, true);
-	AddEntryHeader("FCOUR2B", entries, data);
-	EncodeFont(basePath, "Cour2.png", data, true);
-	AddEntryHeader("FCOUR3B", entries, data);
-	EncodeFont(basePath, "Cour3.png", data, true);
+	//AddEntryHeader("FCOUR1B", entries, data);
+	//EncodeFont(basePath, "Cour1.png", data, true);
+	//AddEntryHeader("FCOUR2B", entries, data);
+	//EncodeFont(basePath, "Cour2.png", data, true);
+	//AddEntryHeader("FCOUR3B", entries, data);
+	//EncodeFont(basePath, "Cour3.png", data, true);
 
 	AddEntryHeader("CMOUSE", entries, data);
 	EncodeCursor(basePath, "mouse.png", data);

@@ -70,6 +70,26 @@ void WindowsInputDriver::SetMousePosition(int x, int y)
 	}
 }
 
+bool WindowsInputDriver::GetMouseButtonPress(int& x, int& y)
+{
+	static int oldButtons = 0;
+	int buttons;
+	GetMouseStatus(buttons, x, y);
+	bool pressed = (buttons & 1) && !(oldButtons & 1);
+	oldButtons = buttons;
+	return pressed;
+}
+
+bool WindowsInputDriver::GetMouseButtonRelease(int& x, int& y)
+{
+	static int oldButtons = 0;
+	int buttons;
+	GetMouseStatus(buttons, x, y);
+	bool released = !(buttons & 1) && (oldButtons & 1);
+	oldButtons = buttons;
+	return released;
+}
+
 void WindowsInputDriver::GetMouseStatus(int& buttons, int& x, int& y)
 {
 	x = y = 0;

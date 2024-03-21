@@ -24,8 +24,9 @@ GifDecoder::GifDecoder()
 {
 }
 
-void GifDecoder::Begin(Image* image)
+void GifDecoder::Begin(Image* image, bool dimensionsOnly)
 {
+	onlyDownloadDimensions = dimensionsOnly;
 	state = ImageDecoder::Decoding;
 	outputImage = image;
 	outputImage->bpp = Platform::video->drawSurface->bpp == 1 ? 1 : 8;
@@ -74,6 +75,12 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 
 						outputImage->width = width;
 						outputImage->height = height;
+
+						if (onlyDownloadDimensions)
+						{
+							state = ImageDecoder::Success;
+							return;
+						}
 					}
 
 					if (outputImage->bpp == 1)
@@ -377,6 +384,13 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 								dictionary[dictionaryIndex].prev = prev;
 								if (prev != -1)
 								{
+									/*if (dictionary[prev].len == 255)
+									{
+										DEBUG_MESSAGE("Dictionary entry length too long");
+										state = ImageDecoder::Error;
+										return;
+									}*/
+
 									dictionary[dictionaryIndex].len = dictionary[prev].len + 1;
 								}
 								else
@@ -403,8 +417,7 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 								{
 									if (stackSize >= 1024)
 									{
-										DEBUG_MESSAGE("Stack overflow!");
-										exit(-1);
+										Platform::FatalError("Stack overflow in GIF decoding");
 									}
 
 									stack[stackSize++] = dictionary[code].byte;

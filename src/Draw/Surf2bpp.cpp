@@ -87,9 +87,9 @@ void DrawSurface_2BPP::VLine(DrawContext& context, int x, int y, int count, uint
 	{
 		return;
 	}
-	if (y + count >= context.clipBottom)
+	if (y + count > context.clipBottom)
 	{
-		count = context.clipBottom - 1 - y;
+		count = context.clipBottom - y;
 	}
 	if (count <= 0)
 	{
@@ -217,7 +217,8 @@ void DrawSurface_2BPP::DrawString(DrawContext& context, Font* font, const char* 
 		}
 
 		int index = c - 32;
-		uint8_t glyphWidth = font->glyphWidth[index];
+		uint8_t glyphWidth = font->glyphs[index].width;
+		uint8_t glyphWidthBytes = (glyphWidth + 7) >> 3;
 
 		if (glyphWidth == 0)
 		{
@@ -229,9 +230,9 @@ void DrawSurface_2BPP::DrawString(DrawContext& context, Font* font, const char* 
 			break;
 		}
 
-		uint8_t* glyphData = font->glyphData + (font->glyphDataStride * index);
+		uint8_t* glyphData = font->glyphData + font->glyphs[index].offset;
 
-		glyphData += (firstLine * font->glyphWidthBytes);
+		glyphData += (firstLine * glyphWidthBytes);
 
 		int outY = y;
 
@@ -247,7 +248,7 @@ void DrawSurface_2BPP::DrawString(DrawContext& context, Font* font, const char* 
 				writeOffset++;
 			}
 
-			for (uint8_t i = 0; i < font->glyphWidthBytes; i++)
+			for (uint8_t i = 0; i < glyphWidthBytes; i++)
 			{
 				uint8_t glyphPixels = *glyphData++;
 

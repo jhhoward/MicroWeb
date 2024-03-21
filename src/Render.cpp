@@ -442,6 +442,12 @@ void PageRenderer::MarkNodeDirty(Node* dirtyNode)
 void PageRenderer::MarkPageLayoutComplete()
 {
 	Node* node = lastCompleteNode;
+
+	if (!lastCompleteNode)
+	{
+		node = app.page.GetRootNode();
+	}
+
 	while (node)
 	{
 		Node* next = node->GetNextInTree();

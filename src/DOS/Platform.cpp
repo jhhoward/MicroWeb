@@ -13,6 +13,7 @@
 //
 
 #include <i86.h>
+#include <stdarg.h>
 #include "../Platform.h"
 #include "Hercules.h"
 #include "../VidModes.h"
@@ -26,12 +27,9 @@
 #include "../Draw/Surface.h"
 #include "../Memory/Memory.h"
 
-static DOSInputDriver DOSinput;
-static DOSNetworkDriver DOSNet;
-
-VideoDriver* Platform::video = NULL;
-InputDriver* Platform::input = &DOSinput;
-NetworkDriver* Platform::network = &DOSNet;
+VideoDriver* Platform::video = nullptr;
+InputDriver* Platform::input = nullptr;
+NetworkDriver* Platform::network = nullptr;
 
 /*
 	Find6845
@@ -159,7 +157,6 @@ static int AutoDetectVideoMode()
 bool Platform::Init(int argc, char* argv[])
 {
 	bool inverse = false;
-	video = NULL;
 
 	for (int n = 1; n < argc; n++)
 	{
@@ -168,6 +165,15 @@ bool Platform::Init(int argc, char* argv[])
 			inverse = true;
 		}
 	}
+
+	network = new DOSNetworkDriver();
+	if (network)
+	{
+		network->Init();
+	}
+	else FatalError("Could not create network driver");
+
+	MemoryManager::pageBlockAllocator.Init();
 
 	int suggestedMode = AutoDetectVideoMode();
 	VideoModeInfo* videoMode = ShowVideoModePicker(suggestedMode);
@@ -185,21 +191,30 @@ bool Platform::Init(int argc, char* argv[])
 		video = new BIOSVideoDriver();
 	}
 
+	if (!video)
+	{
+		FatalError("Could not create video driver");
+	}
+
 	if (videoMode->biosVideoMode == HP95LX || videoMode->biosVideoMode == CGAPalmtop)
 	{
 		inverse = true;
 	}
 
-	network->Init();
 	video->Init(videoMode);
 	video->drawSurface->Clear();
-	input->Init();
-	MemoryManager::pageBlockAllocator.Init();
 
 	if (inverse)
 	{
 		video->InvertVideoOutput();
 	}
+
+	input = new DOSInputDriver();
+	if (input)
+	{
+		input->Init();
+	}
+	else FatalError("Could not create input driver");
 
 	return true;
 }
@@ -219,3 +234,23 @@ void Platform::Update()
 	network->Update();
 	input->Update();
 }
+
+void Platform::FatalError(const char* message, ...)
+{
+	va_list args;
+
+	if (video)
+	{
+		video->Shutdown();
+	}
+
+	va_start(args, message);
+	vfprintf(stderr, message, args);
+	printf("\n");
+	va_end(args);
+
+	MemoryManager::pageBlockAllocator.Shutdown();
+
+	exit(1);
+}
+

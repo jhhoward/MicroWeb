@@ -23,6 +23,7 @@
 #include "Render.h"
 
 #define MAX_PAGE_URL_HISTORY 5
+#define APP_LOAD_BUFFER_SIZE 256
 
 class HTTPRequest;
 
@@ -33,6 +34,7 @@ struct LoadTask
 	void Load(const char* url);
 	void Stop();
 	bool HasContent();
+	bool IsBusy();
 	size_t GetContent(char* buffer, size_t count);
 	const char* GetURL();
 
@@ -55,6 +57,11 @@ struct LoadTask
 };
 
 struct Widget;
+
+struct AppConfig
+{
+	bool loadImages : 1;
+};
 
 class App
 {
@@ -79,6 +86,12 @@ public:
 	PageRenderer pageRenderer;
 	HTMLParser parser;
 	AppInterface ui;
+	AppConfig config;
+
+	LoadTask pageLoadTask;
+	LoadTask pageContentLoadTask;
+
+	void LoadImageNodeContent(Node* node);
 
 private:
 	void ResetPage();
@@ -87,7 +100,6 @@ private:
 	void ShowNoHTTPSPage();
 
 	bool requestedNewPage;
-	LoadTask loadTask;
 	Node* loadTaskTargetNode;
 	bool running;
 
@@ -97,6 +109,7 @@ private:
 
 	static App* app;
 
+	char loadBuffer[APP_LOAD_BUFFER_SIZE];
 };
 
 

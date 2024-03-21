@@ -13,7 +13,7 @@ void ImageNode::Draw(DrawContext& context, Node* node)
 	//printf("--IMG [%d, %d]\n", node->anchor.x, node->anchor.y);
 	uint8_t outlineColour = Platform::video->colourScheme.textColour;
 
-	if (data->image.isLoaded && data->image.lines.IsAllocated())
+	if (data->state == ImageNode::FinishedDownloadingContent)
 	{
 		context.surface->BlitImage(context, &data->image, node->anchor.x, node->anchor.y);
 	}
@@ -41,84 +41,106 @@ Node* ImageNode::Construct(Allocator& allocator)
 void ImageNode::GenerateLayout(Layout& layout, Node* node)
 {
 	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
-	int imageWidth = node->size.x;
-	int imageHeight = node->size.y;
 
-	if (!data->image.isLoaded && imageWidth > layout.MaxAvailableWidth())
+	if (!data->AreDimensionsLocked() && data->image.width > layout.MaxAvailableWidth())
 	{
-		node->size.x = layout.MaxAvailableWidth();
-		node->size.y = ((long)node->size.y * node->size.x) / imageWidth;
-		imageWidth = node->size.x;
-		imageHeight = node->size.y;
-		data->image.width = imageWidth;
-		data->image.height = imageHeight;
+		int imageWidth = data->image.width;
+		data->image.width = layout.MaxAvailableWidth();
+		data->image.height = ((long)data->image.height * data->image.width) / imageWidth;
 	}
 
-	if (layout.AvailableWidth() < imageWidth)
+	node->size.x = data->image.width;
+	node->size.y = data->image.height;
+
+	if (layout.AvailableWidth() < node->size.x)
 	{
 		layout.BreakNewLine();
 	}
 
-	node->anchor = layout.GetCursor(imageHeight);
-	layout.ProgressCursor(node, imageWidth, imageHeight);
+	node->anchor = layout.GetCursor(node->size.y);
+	layout.ProgressCursor(node, node->size.x, node->size.y);
 }
 
 void ImageNode::LoadContent(Node* node, LoadTask& loadTask)
 {
-	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
-	if (data && data->source && !data->image.lines.IsAllocated())
+	if (!App::Get().config.loadImages)
 	{
-		loadTask.Load(URL::GenerateFromRelative(App::Get().page.pageURL.url, data->source).url);
-		ImageDecoder::Create(ImageDecoder::Gif);
-		ImageDecoder::Get()->Begin(&data->image);
+		return;
+	}
+
+	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
+	if (data && data->state != ImageNode::ErrorDownloading && data->state != ImageNode::FinishedDownloadingContent) 
+	{
+		if (data->HasDimensions() && !App::Get().page.layout.IsFinished())
+		{
+			return;
+		}
+
+		if (!data->source)
+		{
+			data->state = ImageNode::ErrorDownloading;
+		}
+		else 
+		{
+			bool loadDimensionsOnly = !data->HasDimensions();
+			if (!loadDimensionsOnly && App::Get().pageLoadTask.HasContent())
+				return;
+			loadTask.Load(URL::GenerateFromRelative(App::Get().page.pageURL.url, data->source).url);
+			ImageDecoder::Create(ImageDecoder::Gif);
+			ImageDecoder::Get()->Begin(&data->image, loadDimensionsOnly);
+			data->state = loadDimensionsOnly ? ImageNode::DownloadingDimensions : ImageNode::DownloadingContent;
+		}
 	}
 }
 
 bool ImageNode::ParseContent(Node* node, char* buffer, size_t count)
 {
+	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
 	ImageDecoder* decoder = ImageDecoder::Get();
 
 	decoder->Process((uint8_t*) buffer, count);
 	if (decoder->GetState() == ImageDecoder::Success)
 	{
-		ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
-		data->image.isLoaded = true;
-
-		App::Get().pageRenderer.MarkNodeDirty(node);
+		if (data->state == ImageNode::DownloadingDimensions)
+		{
+			data->state = ImageNode::FinishedDownloadingDimensions;
+		}
+		else
+		{
+			data->state = ImageNode::FinishedDownloadingContent;
+			App::Get().pageRenderer.MarkNodeDirty(node);
+		}
 
 		// Loop through image nodes in case this image is used multiple times
-		bool needsLayoutRefresh = false;
 		for (Node* n = node; n; n = n->GetNextInTree())
 		{
 			if (n->type == Node::Image)
 			{
 				ImageNode::Data* otherData = static_cast<ImageNode::Data*>(n->data);
 
-				if (otherData->source && !strcmp(data->source, otherData->source))
+				if (otherData->source && !strcmp(data->source, otherData->source) && n != node)
 				{
-					if (n != node)
+					if (!otherData->HasDimensions() || (otherData->image.width == data->image.width && otherData->image.height == data->image.height))
 					{
 						otherData->image = data->image;
-						App::Get().pageRenderer.MarkNodeDirty(n);
-					}
+						otherData->state = data->state;
 
-					if (n->size.x != data->image.width || n->size.y != data->image.height)
-					{
-						n->size.x = data->image.width;
-						n->size.y = data->image.height;
-						needsLayoutRefresh = true;
+						if (data->state == ImageNode::FinishedDownloadingContent)
+						{
+							App::Get().pageRenderer.MarkNodeDirty(n);
+						}
 					}
 				}
 			}
 		}
-
-		if (needsLayoutRefresh)
+	}
+	else if (decoder->GetState() != ImageDecoder::Decoding)
+	{
+		data->state = ImageNode::ErrorDownloading;
+		if (!data->HasDimensions())
 		{
-			node->size.x = data->image.width;
-			node->size.y = data->image.height;
-			App::Get().page.layout.RecalculateLayout();
+			data->image.width = data->image.height = 1;
 		}
-		//printf("Success!\n");
 	}
 
 	return decoder->GetState() == ImageDecoder::Decoding;

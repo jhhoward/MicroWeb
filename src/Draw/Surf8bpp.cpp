@@ -155,6 +155,8 @@ void DrawSurface_8BPP::DrawString(DrawContext& context, Font* font, const char* 
 		y += firstLine;
 	}
 
+	uint8_t bold = (style & FontStyle::Bold) ? 1 : 0;
+
 	while (*text)
 	{
 		unsigned char c = (unsigned char) *text++;
@@ -165,21 +167,24 @@ void DrawSurface_8BPP::DrawString(DrawContext& context, Font* font, const char* 
 		}
 
 		int index = c - 32;
-		uint8_t glyphWidth = font->glyphWidth[index];
+		uint8_t glyphWidth = font->glyphs[index].width;
+		uint8_t glyphWidthBytes = (glyphWidth + 7) >> 3;
 
 		if (glyphWidth == 0)
 		{
 			continue;
 		}
 
+		glyphWidth += bold;
+
 		if (x + glyphWidth > context.clipRight)
 		{
 			break;
 		}
 
-		uint8_t* glyphData = font->glyphData + (font->glyphDataStride * index);
+		uint8_t* glyphData = font->glyphData + font->glyphs[index].offset;
 
-		glyphData += (firstLine * font->glyphWidthBytes);
+		glyphData += (firstLine * glyphWidthBytes);
 
 		int outY = y;
 		uint8_t* VRAMptr = lines[y] + x;
@@ -191,9 +196,25 @@ void DrawSurface_8BPP::DrawString(DrawContext& context, Font* font, const char* 
 				VRAMptr++;
 			}
 
-			for (uint8_t i = 0; i < font->glyphWidthBytes; i++)
+			uint8_t boldCarry = 0;
+
+			for (uint8_t i = 0; i < glyphWidthBytes; i++)
 			{
 				uint8_t glyphPixels = *glyphData++;
+
+				if (bold)
+				{
+					if (boldCarry)
+					{
+						boldCarry = glyphPixels & 1;
+						glyphPixels |= (glyphPixels >> 1) | 0x80;
+					}
+					else
+					{
+						boldCarry = glyphPixels & 1;
+						glyphPixels |= (glyphPixels >> 1);
+					}
+				}
 
 				for (uint8_t k = 0; k < 8; k++)
 				{

@@ -15,7 +15,7 @@ class GifDecoder : public ImageDecoder
 public:
 	GifDecoder();
 	
-	virtual void Begin(Image* image);
+	virtual void Begin(Image* image, bool onlyDimensions);
 	virtual void Process(uint8_t* data, size_t dataLength);
 	virtual ImageDecoder::State GetState() { return state; }
 	
@@ -81,8 +81,8 @@ private:
 	struct DictionaryEntry
 	{
 		uint8_t byte;
-		int32_t prev;
-		int len;
+		int16_t prev;
+		uint16_t len;
 	};
 
 	struct GraphicControlExtension
@@ -95,6 +95,7 @@ private:
 
 	ImageDecoder::State state;
 	InternalState internalState;
+	bool onlyDownloadDimensions;
 	
 	uint8_t palette[256*3];			// RGB values
 	uint8_t paletteLUT[256];		// GIF palette colour to video mode palette colour

@@ -79,17 +79,22 @@ void AppInterface::Update()
 		hoverNode = PickNode(mouseX, mouseY);
 	}
 
-	if ((buttons & 1) && !(oldButtons & 1))
+	int clickX, clickY;
+
+	if (Platform::input->GetMouseButtonPress(clickX, clickY))
 	{
+		hoverNode = PickNode(clickX, clickY);
 		HandleClick(mouseX, mouseY);
 	}
-	else if (!(buttons & 1) && (oldButtons & 1))
-	{
-		HandleRelease(mouseX, mouseY);
-	}
-	else if ((buttons & 1) && (oldButtons & 1) && (mouseX != oldMouseX || mouseY != oldMouseY))
+
+	if ((buttons & 1) && (oldButtons & 1) && (mouseX != oldMouseX || mouseY != oldMouseY))
 	{
 		HandleDrag(mouseX, mouseY);
+	}
+
+	if (Platform::input->GetMouseButtonRelease(clickX, clickY))
+	{
+		HandleRelease(clickX, clickY);
 	}
 
 	oldMouseX = mouseX;
@@ -195,6 +200,10 @@ void AppInterface::Update()
 		case KEYCODE_CTRL_L:
 		case KEYCODE_F6:
 			FocusNode(addressBarNode);
+			break;
+		case KEYCODE_F5:
+			app.page.layout.RecalculateLayout();
+			//FocusNode(addressBarNode);
 			break;
 		case KEYCODE_F3:
 			ToggleStatusAndTitleBar();

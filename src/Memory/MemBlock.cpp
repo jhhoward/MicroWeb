@@ -2,6 +2,7 @@
 #include "MemBlock.h"
 #include "LinAlloc.h"
 #include "Memory.h"
+#include "../Platform.h"
 
 #ifdef __DOS__
 #include "../DOS/EMS.h"
@@ -26,8 +27,8 @@ void* MemBlockHandle::GetPtr()
 	}
 #endif
 	default:
-		printf("Invalid pointer type: %d\n", type);
-		exit(1);
+		
+		Platform::FatalError("Invalid pointer type: %d\n", type);
 		return nullptr;
 	}
 }

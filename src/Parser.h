@@ -72,7 +72,6 @@ public:
 
 	Page& page;
 
-
 	void PushContext(Node* node, const HTMLTagHandler* tag);
 	void PopContext(const HTMLTagHandler* tag);
 	HTMLParseContext& CurrentContext() { return contextStack.Top(); }
@@ -91,6 +90,9 @@ public:
 
 	static void ReplaceAmpersandEscapeSequences(char* buffer, bool replaceNonBreakingSpace = true);
 
+	void Finish();
+	bool IsFinished() { return parseState == ParseFinished; }
+
 private:
 	void ParseChar(char c);
 
@@ -107,7 +109,8 @@ private:
 		ParsePossibleTag,
 		ParseTag,
 		ParseAmpersandEscape,
-		ParseComment
+		ParseComment,
+		ParseFinished
 	};
 	
 	ParseState parseState;

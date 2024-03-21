@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "DataPack.h"
+#include "Platform.h"
 #include <malloc.h>
 
 DataPack Assets;
@@ -16,18 +17,19 @@ const char* DataPack::datapackFilenames[] =
 	"LOWRES.DAT"
 };
 
-bool DataPack::LoadPreset(DataPack::Preset preset, bool forceBold)
+bool DataPack::LoadPreset(DataPack::Preset preset)
 {
-	return Load(datapackFilenames[preset], forceBold);
+	return Load(datapackFilenames[preset]);
 }
 
 
-bool DataPack::Load(const char* path, bool forceBold)
+bool DataPack::Load(const char* path)
 {
 	FILE* fs = fopen(path, "rb");
 
 	if (!fs)
 	{
+		Platform::FatalError("Could not load %s", path);
 		return false;
 	}
 
@@ -35,6 +37,13 @@ bool DataPack::Load(const char* path, bool forceBold)
 
 	fread(&header.numEntries, sizeof(uint16_t), 1, fs);
 	header.entries = new DataPackEntry[header.numEntries];
+
+	if (!header.entries)
+	{
+		Platform::FatalError("Could not allocate memory for data pack header from %s", path);
+		return false;
+	}
+
 	fread(header.entries, sizeof(DataPackEntry), header.numEntries, fs);
 
 	pointerCursor = (MouseCursorData*)LoadAsset(fs, header, "CMOUSE");
@@ -43,32 +52,12 @@ bool DataPack::Load(const char* path, bool forceBold)
 
 	imageIcon = LoadImageAsset(fs, header, "IIMG");
 
-	boldFonts[0] = (Font*)LoadAsset(fs, header, "FHELV1B");
-	boldFonts[1] = (Font*)LoadAsset(fs, header, "FHELV2B");
-	boldFonts[2] = (Font*)LoadAsset(fs, header, "FHELV3B");
-	boldMonoFonts[0] = (Font*)LoadAsset(fs, header, "FCOUR1B");
-	boldMonoFonts[1] = (Font*)LoadAsset(fs, header, "FCOUR2B");
-	boldMonoFonts[2] = (Font*)LoadAsset(fs, header, "FCOUR3B");
-
-	if (forceBold)
-	{
-		fonts[0] = boldFonts[0];
-		fonts[1] = boldFonts[1];
-		fonts[2] = boldFonts[2];
-		monoFonts[0] = boldMonoFonts[0];
-		monoFonts[1] = boldMonoFonts[1];
-		monoFonts[2] = boldMonoFonts[2];
-	}
-	else
-	{
-		fonts[0] = (Font*)LoadAsset(fs, header, "FHELV1");
-		fonts[1] = (Font*)LoadAsset(fs, header, "FHELV2");
-		fonts[2] = (Font*)LoadAsset(fs, header, "FHELV3");
-		monoFonts[0] = (Font*)LoadAsset(fs, header, "FCOUR1");
-		monoFonts[1] = (Font*)LoadAsset(fs, header, "FCOUR2");
-		monoFonts[2] = (Font*)LoadAsset(fs, header, "FCOUR3");
-	}
-
+	fonts[0] = (Font*)LoadAsset(fs, header, "FHELV1");
+	fonts[1] = (Font*)LoadAsset(fs, header, "FHELV2");
+	fonts[2] = (Font*)LoadAsset(fs, header, "FHELV3");
+	monoFonts[0] = (Font*)LoadAsset(fs, header, "FCOUR1");
+	monoFonts[1] = (Font*)LoadAsset(fs, header, "FCOUR2");
+	monoFonts[2] = (Font*)LoadAsset(fs, header, "FCOUR3");
 
 	delete[] header.entries;
 	fclose(fs);
@@ -95,25 +84,11 @@ Font* DataPack::GetFont(int fontSize, FontStyle::Type fontStyle)
 {
 	if (fontStyle & FontStyle::Monospace)
 	{
-		if (fontStyle & FontStyle::Bold)
-		{
-			return boldMonoFonts[FontSizeToIndex(fontSize)];
-		}
-		else
-		{
-			return monoFonts[FontSizeToIndex(fontSize)];
-		}
+		return monoFonts[FontSizeToIndex(fontSize)];
 	}
 	else
 	{
-		if (fontStyle & FontStyle::Bold)
-		{
-			return boldFonts[FontSizeToIndex(fontSize)];
-		}
-		else
-		{
-			return fonts[FontSizeToIndex(fontSize)];
-		}
+		return fonts[FontSizeToIndex(fontSize)];
 	}
 }
 
@@ -137,6 +112,10 @@ Image* DataPack::LoadImageAsset(FILE* fs, DataPackHeader& header, const char* en
 	if (asset)
 	{
 		Image* image = new Image();
+		if (!image)
+		{
+			Platform::FatalError("Could not allocate memory for data pack image %s", entryName);
+		}
 		memcpy(image, asset, sizeof(ImageMetadata));
 		//image->data = ((uint8_t*) asset) + sizeof(ImageMetadata);
 		return image;
@@ -168,6 +147,10 @@ void* DataPack::LoadAsset(FILE* fs, DataPackHeader& header, const char* entryNam
 	if (!buffer)
 	{
 		buffer = malloc(length);
+	}
+	if (!buffer)
+	{
+		Platform::FatalError("Could not allocate memory for data pack asset %s", entryName);
 	}
 
 	fread(buffer, length, 1, fs);

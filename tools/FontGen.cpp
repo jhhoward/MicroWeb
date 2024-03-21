@@ -459,6 +459,7 @@ void EncodeFont(const char* basePath, const char* imageFilename, vector<uint8_t>
 	//}
 
 
+	/*
 	int requiredBytes = 0;
 
 	for (int n = 0; n < glyphWidths.size(); n++)
@@ -474,42 +475,26 @@ void EncodeFont(const char* basePath, const char* imageFilename, vector<uint8_t>
 			requiredBytes = needed;
 		}
 	}
+	*/
 
-	// Output the metadata 
-	// uint8_t glyphWidth[256 - 32];
-	// uint8_t glyphWidthBytes;
-	// uint8_t glyphHeight;
-	// uint8_t glyphDataStride;
-
-	const int numNeededGlyphs = 256 - 32;
-
-	for (int n = 0; n < numNeededGlyphs; n++)
-	{
-		if (n < glyphWidths.size())
-		{
-			outputStream.push_back(glyphWidths[n]);
-		}
-		else
-		{
-			outputStream.push_back(0);
-		}
-	}
-
-	outputStream.push_back(requiredBytes);
-	outputStream.push_back(glyphHeight);
-
-	int stride = requiredBytes * glyphHeight;
-	outputStream.push_back((uint8_t) stride);
 
 	// Output the glyph data
+	vector<uint16_t> outputOffsets;
+	vector<uint8_t> outputData;
+	int count = 0;
+
 	for (int n = 0; n < offsets.size(); n++)
 	{
+		outputOffsets.push_back(count);
+
 		int glyphWidth = glyphWidths[n];
 		for (unsigned int y = 0; y < glyphHeight; y++)
 		{
 			int x = 0;
 
-			for (int b = 0; b < requiredBytes; b++)
+			int glyphWidthBytes = (glyphWidth + 7) / 8;
+
+			for (int b = 0; b < glyphWidthBytes; b++)
 			{
 				int mask = 0;
 
@@ -527,9 +512,47 @@ void EncodeFont(const char* basePath, const char* imageFilename, vector<uint8_t>
 					x++;
 				}
 
-				outputStream.push_back((uint8_t)mask);
+				outputData.push_back((uint8_t)mask);
+				count++;
 			}
 		}
+	}
+
+
+	// Output the metadata 
+	// struct Glyph
+	// {
+	// 	uint8_t width;
+	// 	uint16_t offset;
+	// };
+	// 
+	// Glyph glyphs[NUM_GLYPH_ENTRIES];
+	// uint8_t glyphHeight;
+
+	const int numNeededGlyphs = 256 - 32;
+
+	for (int n = 0; n < numNeededGlyphs; n++)
+	{
+		if (n < glyphWidths.size())
+		{
+			outputStream.push_back(glyphWidths[n]);
+			uint16_t offset = outputOffsets[n];
+			outputStream.push_back(offset & 0xff);
+			outputStream.push_back(offset >> 8);
+		}
+		else
+		{
+			outputStream.push_back(0);
+			outputStream.push_back(0);
+			outputStream.push_back(0);
+		}
+	}
+
+	outputStream.push_back(glyphHeight);
+
+	for (int n = 0; n < outputData.size(); n++)
+	{
+		outputStream.push_back(outputData[n]);
 	}
 
 }

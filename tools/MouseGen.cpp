@@ -192,6 +192,8 @@ void EncodeCursor(const char* basePath, const char* imageFilename, vector<uint8_
 	vector<unsigned char> data;
 	unsigned width, height;
 	unsigned error = lodepng::decode(data, width, height, imageFilePath);
+	int hotSpotX = 0;
+	int hotSpotY = 0;
 
 	if (error)
 	{
@@ -213,7 +215,14 @@ void EncodeCursor(const char* basePath, const char* imageFilename, vector<uint8_
 		for (int x = 0; x < 16; x++)
 		{
 			int index = (y * width + x) * 4;
-			unsigned col = data[index] | (data[index + 1] << 8) | (data[index + 2] << 16);
+			unsigned col = data[index];
+
+			if (data[index] > 0 && data[index + 1] == 0)
+			{
+				hotSpotX = x;
+				hotSpotY = y;
+			}
+
 
 			if (data[index + 3] == 0)
 			{
@@ -223,7 +232,7 @@ void EncodeCursor(const char* basePath, const char* imageFilename, vector<uint8_
 			else
 			{
 				maskData.push_back(0);
-				colourData.push_back(col == 0 ? 0 : 1);
+				colourData.push_back(col < 127 ? 0 : 1);
 			}
 
 		}
@@ -258,9 +267,6 @@ void EncodeCursor(const char* basePath, const char* imageFilename, vector<uint8_
 			output = 0;
 		}
 	}
-
-	int hotSpotX = 0;
-	int hotSpotY = 0;
 
 	outputData.push_back((uint8_t)(hotSpotX & 0xff));
 	outputData.push_back((uint8_t)(hotSpotX >> 8));

@@ -18,10 +18,8 @@ struct Image : ImageMetadata
 	Image() 
 	{
 		width = height = pitch = bpp = 0;
-		isLoaded = false;
 	}
 	MemBlockHandle lines;
-	bool isLoaded;
 };
 
 #endif

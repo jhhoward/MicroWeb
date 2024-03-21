@@ -81,7 +81,7 @@ void HTMLParser::PushContext(Node* node, const HTMLTagHandler* tag)
 		contextStack.Top().parseSection = data->type;
 	}
 
-	node->Handler().BeginLayoutContext(page.layout, node);
+	//node->Handler().BeginLayoutContext(page.layout, node);
 }
 
 void HTMLParser::PopContext(const HTMLTagHandler* tag)
@@ -113,7 +113,7 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 		contextStack.Pop();
 		contextStackSize--;
 
-		parseContext.node->Handler().EndLayoutContext(page.layout, parseContext.node);
+		//parseContext.node->Handler().EndLayoutContext(page.layout, parseContext.node);
 
 		if (parseContext.tag == tag)
 		{
@@ -123,18 +123,23 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 #ifdef _WIN32
 				page.DebugDumpNodeGraph();
 #endif
+				Finish();
 				//page.GetApp().pageRenderer.RefreshAll();
-				page.GetApp().pageRenderer.MarkPageLayoutComplete();
-
-				page.GetApp().StopLoad();
+				//page.GetApp().pageRenderer.MarkPageLayoutComplete();
 			}
 
 			return;
 		}
 	}
 
-	// TODO: ERROR
-	exit(1);
+	Platform::FatalError("Error popping context in HTML parser");
+}
+
+void HTMLParser::Finish()
+{
+	parseState = ParseFinished;
+	page.layout.MarkParsingComplete();
+	page.GetApp().StopLoad();
 }
 
 #define NUM_AMPERSAND_ESCAPE_SEQUENCES (sizeof(ampersandEscapeSequences) / (2 * sizeof(const char*)))
@@ -909,3 +914,4 @@ uint8_t HTMLParser::ParseColourCode(const char* colourCode)
 	}
 	return 0;
 }
+

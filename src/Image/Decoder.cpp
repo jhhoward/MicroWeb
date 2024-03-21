@@ -1,14 +1,20 @@
 #include <new>
 #include "Gif.h"
 #include "Decoder.h"
+#include "../Platform.h"
 
-union 
+#include <stdio.h>
+#include <conio.h>
+
+typedef union 
 {
 	char gif[sizeof(GifDecoder)];
 	//char png[sizeof(PngDecoder)];
 	//char jpeg[sizeof(JpegDecoder)];
 	char buffer[1];
 } ImageDecoderUnion;
+
+static ImageDecoderUnion* imageDecoderUnion = nullptr;
 
 #define COLDITH(x) ((x * 4) - 32)
 
@@ -44,12 +50,28 @@ const uint8_t ImageDecoder::greyDitherMatrix[256] =
     254, 127, 223,  95, 247, 119, 215,  87, 253, 125, 221,  93, 245, 117, 213,  85 
 };
 
+void ImageDecoder::Allocate()
+{
+    if (!imageDecoderUnion)
+    {
+        imageDecoderUnion = new ImageDecoderUnion;
+        
+        
+        //printf("Decoder size: %u bytes", (long) sizeof(ImageDecoderUnion));
+        //getch();
+    }
+    if (!imageDecoderUnion)
+    {
+        Platform::FatalError("Could not allocate memory for image decoder");
+    }
+}
+
 ImageDecoder* ImageDecoder::Get()
 {
-	return (ImageDecoder*)(ImageDecoderUnion.buffer);
+	return (ImageDecoder*)(imageDecoderUnion->buffer);
 }
 
 ImageDecoder* ImageDecoder::Create(DecoderType type)
 {
-	return new (ImageDecoderUnion.buffer) GifDecoder();
+	return new (imageDecoderUnion->buffer) GifDecoder();
 }

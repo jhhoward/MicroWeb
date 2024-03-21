@@ -25,10 +25,11 @@ public:
 	};
 
 	ImageDecoder() : outputImage(NULL) {}
-	virtual void Begin(Image* image) = 0;
+	virtual void Begin(Image* image, bool dimensionsOnly) = 0;
 	virtual void Process(uint8_t* data, size_t dataLength) = 0;
 	virtual State GetState() = 0;
 	
+	static void Allocate();
 	static ImageDecoder* Get();
 	static ImageDecoder* Create(DecoderType type);
 

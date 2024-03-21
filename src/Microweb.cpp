@@ -29,8 +29,7 @@ int main(int argc, char* argv[])
 
 	if (!app)
 	{
-		Platform::Shutdown();
-		fprintf(stderr, "Not enough memory\n");
+		Platform::FatalError("Error allocating memory for application");
 		return 0;
 	}
 

@@ -2,20 +2,32 @@
 #include <dos.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define EMS_INTERRUPT_NUMBER 0x67
 
 void EMSManager::Init()
 {
     union REGS inregs, outregs;
-
-    //return;
+    struct SREGS sregs;
 
     // Check for EMS driver
-    inregs.h.ah = 0x40;
-    int86(EMS_INTERRUPT_NUMBER, &inregs, &outregs);
-    if (outregs.h.ah) {
+    inregs.h.ah = 0x35;
+    inregs.h.al = EMS_INTERRUPT_NUMBER;
+    int86x(0x21, &inregs, &outregs, &sregs);
+    char* emm = (char*) MK_FP(sregs.es, 0xa);
+
+    if(memcmp(emm, "EMMXXXX0", 8))
+    {
         // No EMS present
+        return;
+    }
+
+    // Check for EMS version 4
+    inregs.h.ah = 0x46;
+    int86(EMS_INTERRUPT_NUMBER, &inregs, &outregs);
+    if ((outregs.h.al & 0xf0) < 0x40) {
+        // Incorrect version
         return;
     }
 

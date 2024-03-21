@@ -18,6 +18,7 @@ public:
 	Layout(Page& page);
 
 	void Reset();
+	void Update();
 
 	Page& page;
 
@@ -31,6 +32,7 @@ public:
 	void RestrictHorizontal(int maxWidth);
 
 	void OnNodeEmitted(Node* node);
+	void MarkParsingComplete();
 	void ProgressCursor(Node* nodeContext, int width, int lineHeight);
 
 	void RecalculateLayout();
@@ -46,8 +48,13 @@ public:
 	int AvailableWidth() { return GetParams().marginRight - Cursor().x; }
 	int MaxAvailableWidth() { return GetParams().marginRight - GetParams().marginLeft; }
 
+	bool IsFinished() { return isFinished; }
+
 	Node* lineStartNode;
 	Node* lastNodeContext;
+
+	Node* currentNodeToProcess;
+	Node* lastNodeToProcess;
 
 	Coord& Cursor()
 	{
@@ -64,6 +71,8 @@ public:
 	Stack<LayoutParams> paramStack;
 
 	void TranslateNodes(Node* start, Node* end, int deltaX, int deltaY);
+
+	bool isFinished;
 };
 
 /*

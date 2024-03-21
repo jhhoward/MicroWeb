@@ -73,6 +73,12 @@ public:
 			return NULL;
 		}
 
+		if (!currentChunk)
+		{
+			errorFlag = Error_OutOfMemory;
+			return nullptr;
+		}
+
 		uint8_t* result = &currentChunk->data[allocOffset];
 
 		if (allocOffset + numBytes > CHUNK_DATA_SIZE)

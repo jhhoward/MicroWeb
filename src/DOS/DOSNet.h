@@ -24,7 +24,7 @@
 #define MAX_CONCURRENT_HTTP_REQUESTS 1
 #else
 #define TCP_RECV_BUFFER_SIZE  (16384)
-#define MAX_CONCURRENT_HTTP_REQUESTS 1
+#define MAX_CONCURRENT_HTTP_REQUESTS 2
 #endif
 
 struct TcpSocket;
@@ -68,7 +68,7 @@ public:
 
 private:
 	HTTPRequest* requests[MAX_CONCURRENT_HTTP_REQUESTS];
-	DOSTCPSocket sockets[MAX_CONCURRENT_HTTP_REQUESTS];
+	DOSTCPSocket* sockets[MAX_CONCURRENT_HTTP_REQUESTS];
 
 	bool isConnected;
 };

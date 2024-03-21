@@ -4,7 +4,7 @@
 #include <WinSock2.h>
 #include "../Platform.h"
 
-#define MAX_CONCURRENT_REQUESTS 1
+#define MAX_CONCURRENT_REQUESTS 2
 
 class WindowsNetworkDriver : public NetworkDriver
 {

@@ -28,6 +28,9 @@ public:
 
 	virtual void GetMouseStatus(int& buttons, int& x, int& y);
 	virtual void SetMousePosition(int x, int y);
+	virtual bool GetMouseButtonPress(int& x, int& y);
+	virtual bool GetMouseButtonRelease(int& x, int& y);
+
 	virtual InputButtonCode GetKeyPress();
 
 private:

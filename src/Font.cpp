@@ -18,6 +18,8 @@ int Font::CalculateWidth(const char* text, FontStyle::Type style)
 {
 	int result = 0;
 
+	uint8_t bold = (style & FontStyle::Bold) ? 1 : 0;
+
 	while (*text)
 	{
 		char c = *text++;
@@ -28,7 +30,11 @@ int Font::CalculateWidth(const char* text, FontStyle::Type style)
 			continue;
 		}
 
-		result += glyphWidth[index];
+		uint8_t width = glyphs[index].width;
+		if (width)
+		{
+			result += width + bold;
+		}
 	}
 
 	return result;
@@ -41,6 +47,12 @@ int Font::GetGlyphWidth(char c, FontStyle::Type style)
 	{
 		return 0;
 	}
-	int result = glyphWidth[index];
+	int result = glyphs[index].width;
+
+	if (result)
+	{
+		if (style & FontStyle::Bold)
+			result++;
+	}
 	return result;
 }

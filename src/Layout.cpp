@@ -3,6 +3,7 @@
 #include "Platform.h"
 #include "App.h"
 #include "Render.h"
+#include "Nodes/ImgNode.h"
 
 Layout::Layout(Page& inPage)
 	: page(inPage), cursorStack(MemoryManager::pageAllocator), paramStack(MemoryManager::pageAllocator)
@@ -16,12 +17,94 @@ void Layout::Reset()
 	currentLineHeight = 0;
 	lineStartNode = nullptr;
 	lastNodeContext = nullptr;
+	currentNodeToProcess = nullptr;
 	Cursor().Clear();
 	tableDepth = 0;
+	isFinished = false;
 
 	LayoutParams& params = GetParams();
 	params.marginLeft = 0;
 	params.marginRight = page.GetApp().ui.windowRect.width;
+}
+
+void Layout::Update()
+{
+	while (currentNodeToProcess && currentNodeToProcess != lastNodeToProcess)
+	{
+		if (currentNodeToProcess->type == Node::Image && App::Get().config.loadImages)
+		{
+			ImageNode::Data* imageData = static_cast<ImageNode::Data*>(currentNodeToProcess->data);
+			if (!imageData->HasDimensions())
+			{
+				// Waiting to first determine image size
+				if (!App::Get().pageContentLoadTask.IsBusy())
+				{
+					App::Get().LoadImageNodeContent(currentNodeToProcess);
+				}
+				return;
+			}
+		}
+
+		currentNodeToProcess->Handler().BeginLayoutContext(*this, currentNodeToProcess);
+		currentNodeToProcess->Handler().GenerateLayout(*this, currentNodeToProcess);
+
+		if (currentNodeToProcess->firstChild)
+		{
+			currentNodeToProcess = currentNodeToProcess->firstChild;
+		}
+		else
+		{
+			currentNodeToProcess->Handler().EndLayoutContext(*this, currentNodeToProcess);
+
+			if (!tableDepth && !lineStartNode)
+			{
+				page.GetApp().pageRenderer.MarkNodeLayoutComplete(currentNodeToProcess);
+			}
+
+			if (currentNodeToProcess->next)
+			{
+				currentNodeToProcess = currentNodeToProcess->next;
+			}
+			else if(currentNodeToProcess->parent)
+			{
+				while (currentNodeToProcess)
+				{
+					currentNodeToProcess = currentNodeToProcess->parent;
+
+					if (currentNodeToProcess)
+					{
+						currentNodeToProcess->Handler().EndLayoutContext(*this, currentNodeToProcess);
+
+						if (currentNodeToProcess->next)
+						{
+							currentNodeToProcess = currentNodeToProcess->next;
+							break;
+						}
+					}
+				}
+			}
+		}
+
+//		if (lastNodeContext && !tableDepth && !lineStartNode)
+//		{
+//			page.GetApp().pageRenderer.MarkNodeLayoutComplete(lastNodeContext);
+//		}
+	}
+
+	if (!isFinished && App::Get().parser.IsFinished() && !currentNodeToProcess)
+	{
+		// Layout has finished so now we can load image content
+		//RecalculateLayout();
+		page.GetApp().pageRenderer.MarkPageLayoutComplete();
+		App::Get().LoadImageNodeContent(page.GetRootNode());
+		isFinished = true;
+	}
+
+	//if (!currentNodeToProcess)
+	//{
+	//	page.GetApp().pageRenderer.MarkNodeLayoutComplete(page.GetRootNode());
+	//	page.GetApp().pageRenderer.MarkPageLayoutComplete();
+	//}
 }
 
 void Layout::BreakNewLine()
@@ -49,13 +132,8 @@ void Layout::BreakNewLine()
 
 	if (lastNodeContext && !tableDepth)
 	{
-		page.GetApp().pageRenderer.MarkNodeLayoutComplete(lastNodeContext);
+		//page.GetApp().pageRenderer.MarkNodeLayoutComplete(lastNodeContext);
 	}
-
-	//if (lineStartNode && lineStartNode->parent)
-	//{
-	//	lineStartNode->parent->OnChildLayoutChanged();
-	//}
 
 	Cursor().x = GetParams().marginLeft;
 	Cursor().y += currentLineHeight;
@@ -106,17 +184,19 @@ void Layout::TranslateNodes(Node* start, Node* end, int deltaX, int deltaY)
 
 void Layout::OnNodeEmitted(Node* node)
 {
-	if (!lineStartNode)
+	if (!currentNodeToProcess)
 	{
-		lineStartNode = node;
+		currentNodeToProcess = page.GetRootNode();
 	}
 
-	node->Handler().GenerateLayout(*this, node);
+	lastNodeToProcess = node;
 
-	//if (node->parent)
-	//{
-	//	node->parent->OnChildLayoutChanged();
-	//}
+//	if (!lineStartNode)
+//	{
+//		lineStartNode = node;
+//	}
+//
+//	node->Handler().GenerateLayout(*this, node);
 }
 
 void Layout::PadHorizontal(int left, int right)
@@ -229,4 +309,9 @@ void Layout::RecalculateLayout()
 #ifdef _WIN32
 	//page.DebugDumpNodeGraph(page.GetRootNode());
 #endif
+}
+
+void Layout::MarkParsingComplete()
+{
+	lastNodeToProcess = nullptr;
 }

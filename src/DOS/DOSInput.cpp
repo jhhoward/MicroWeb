@@ -66,6 +66,35 @@ void DOSInputDriver::SetMousePosition(int x, int y)
 	int86(0x33, &inreg, &outreg);
 }
 
+bool DOSInputDriver::GetMouseButtonPress(int& x, int& y)
+{
+	if (!hasMouse)
+		return false;
+
+	union REGS inreg, outreg;
+	inreg.x.ax = 5;
+	inreg.x.bx = 0;
+	int86(0x33, &inreg, &outreg);
+	x = outreg.x.cx;
+	y = outreg.x.dx;
+	return (outreg.x.bx > 0);
+}
+
+bool DOSInputDriver::GetMouseButtonRelease(int& x, int& y)
+{
+	if (!hasMouse)
+		return false;
+
+	union REGS inreg, outreg;
+	inreg.x.ax = 6;
+	inreg.x.bx = 0;
+	int86(0x33, &inreg, &outreg);
+	x = outreg.x.cx;
+	y = outreg.x.dx;
+	return (outreg.x.bx > 0);
+}
+
+
 void DOSInputDriver::HideMouse()
 {
 	if (!hasMouse)

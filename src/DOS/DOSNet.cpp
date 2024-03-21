@@ -53,21 +53,29 @@ void DOSNetworkDriver::Init()
 
 	//printf("Init network driver\n");
 	if (Utils::parseEnv() != 0) {
-		fprintf(stderr, "\nFailed in parseEnv()\n");
-		//exit(1);
+		printf("Failed in parseEnv()\n");
 		return;
 	}
 
 	//printf("Init network stack\n");
 	if (Utils::initStack(MAX_CONCURRENT_HTTP_REQUESTS, TCP_SOCKET_RING_SIZE, ctrlBreakHandler, ctrlBreakHandler)) {
-		fprintf(stderr, "\nFailed to initialize TCP/IP - exiting\n");
-		//exit(1);
+		printf("Failed to initialize TCP/IP\n");
 		return;
 	}
 
 	for (int n = 0; n < MAX_CONCURRENT_HTTP_REQUESTS; n++)
 	{
 		requests[n] = new HTTPRequest();
+		if (!requests[n])
+		{
+			Platform::FatalError("Could not allocate memory for HTTP request");
+		}
+
+		sockets[n] = new DOSTCPSocket();
+		if (!sockets[n])
+		{
+			Platform::FatalError("Could not allocate memory for TCP socket");
+		}
 	}
 
 	isConnected = true;
@@ -133,13 +141,13 @@ NetworkTCPSocket* DOSNetworkDriver::CreateSocket()
 {
 	for (int n = 0; n < MAX_CONCURRENT_HTTP_REQUESTS; n++)
 	{
-		if (sockets[n].GetSock() == NULL)
+		if (sockets[n]->GetSock() == NULL)
 		{
 			TcpSocket* sock = TcpSocketMgr::getSocket();
 			if (sock)
 			{
-				sockets[n].SetSock(sock);
-				return &sockets[n];
+				sockets[n]->SetSock(sock);
+				return sockets[n];
 			}
 			return NULL;
 		}

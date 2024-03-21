@@ -30,6 +30,7 @@
 
 BIOSVideoDriver::BIOSVideoDriver()
 {
+	startingScreenMode = -1;
 }
 
 void BIOSVideoDriver::Init(VideoModeInfo* inVideoModeInfo)
@@ -91,6 +92,11 @@ void BIOSVideoDriver::Init(VideoModeInfo* inVideoModeInfo)
 		screenPitch = screenWidth;
 		colourScheme = colourScheme666;
 		paletteLUT = new uint8_t[256];
+		if (!paletteLUT)
+		{
+			Platform::FatalError("Could not allocate memory for paletteLUT");
+		}
+
 		for (int n = 0; n < 256; n++)
 		{
 			int r = (n & 0xe0);
@@ -120,6 +126,11 @@ void BIOSVideoDriver::Init(VideoModeInfo* inVideoModeInfo)
 				}
 			}
 		}
+	}
+
+	if (!drawSurface || !drawSurface->lines)
+	{
+		Platform::FatalError("Could not allocate memory for draw surface");
 	}
 
 	if (videoModeInfo->vramPage3)
@@ -174,7 +185,10 @@ void BIOSVideoDriver::Init(VideoModeInfo* inVideoModeInfo)
 
 void BIOSVideoDriver::Shutdown()
 {
-	SetScreenMode(startingScreenMode);
+	if (startingScreenMode != -1)
+	{
+		SetScreenMode(startingScreenMode);
+	}
 }
 
 int BIOSVideoDriver::GetScreenMode()

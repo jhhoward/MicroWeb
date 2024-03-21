@@ -13,6 +13,7 @@
 //
 
 #include <windows.h>
+#include <stdarg.h>
 #include "../Platform.h"
 #include "WinVid.h"
 #include "WinInput.h"
@@ -126,4 +127,37 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
 	}
 
 	return DefWindowProcW(hwnd, msg, wParam, lParam);
+}
+
+void Platform::FatalError(const char* message, ...)
+{
+	va_list args;
+
+	if (video)
+	{
+		video->Shutdown();
+	}
+
+	va_start(args, message);
+
+	size_t size = vsnprintf(NULL, 0, message, args);
+
+	// Allocate memory for the message
+	char* buffer = new char[size + 1];
+
+	// Format the message
+	vsnprintf(buffer, size + 1, message, args);
+
+	va_end(args);
+
+	int wsize = MultiByteToWideChar(CP_ACP, 0, buffer, -1, NULL, 0);
+	wchar_t* wbuffer = new wchar_t[wsize + 1];
+	MultiByteToWideChar(CP_ACP, 0, buffer, -1, wbuffer, wsize);
+
+	MessageBox(NULL, wbuffer, L"Fatal error", MB_OK);
+
+	delete[] wbuffer;
+	delete[] buffer;
+
+	exit(1);
 }

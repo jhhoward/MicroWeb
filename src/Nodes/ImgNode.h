@@ -7,12 +7,25 @@
 class ImageNode: public NodeHandler
 {
 public:
+	enum State
+	{
+		WaitingToDownload,
+		DownloadingDimensions,
+		FinishedDownloadingDimensions,
+		DownloadingContent,
+		FinishedDownloadingContent,
+		ErrorDownloading
+	};
+
 	class Data
 	{
 	public:
-		Data() : source(nullptr) {}
+		Data() : source(nullptr), state(WaitingToDownload) {}
+		bool HasDimensions() { return image.width > 0; }
+		bool AreDimensionsLocked() { return state == DownloadingContent || state == FinishedDownloadingContent; }
 		Image image;
 		const char* source;
+		State state;
 	};
 
 	static Node* Construct(Allocator& allocator);
