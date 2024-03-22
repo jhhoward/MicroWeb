@@ -51,6 +51,8 @@ bool DataPack::Load(const char* path)
 	textSelectCursor = (MouseCursorData*)LoadAsset(fs, header, "CTEXT");
 
 	imageIcon = LoadImageAsset(fs, header, "IIMG");
+	brokenImageIcon = LoadImageAsset(fs, header, "IBROKEN");
+	bulletIcon = LoadImageAsset(fs, header, "IBULLET");
 
 	fonts[0] = (Font*)LoadAsset(fs, header, "FHELV1");
 	fonts[1] = (Font*)LoadAsset(fs, header, "FHELV2");
@@ -117,7 +119,18 @@ Image* DataPack::LoadImageAsset(FILE* fs, DataPackHeader& header, const char* en
 			Platform::FatalError("Could not allocate memory for data pack image %s", entryName);
 		}
 		memcpy(image, asset, sizeof(ImageMetadata));
-		//image->data = ((uint8_t*) asset) + sizeof(ImageMetadata);
+		uint8_t* data = ((uint8_t*) asset) + sizeof(ImageMetadata);
+		MemBlockHandle* lines = new MemBlockHandle[image->height];
+		if (!lines)
+		{
+			Platform::FatalError("Could not allocate memory for data pack image %s", entryName);
+		}
+		for (int y = 0; y < image->height; y++)
+		{
+			lines[y] = MemBlockHandle(data + y * image->pitch);
+		}
+		image->lines = MemBlockHandle(lines);
+
 		return image;
 	}
 	return nullptr;

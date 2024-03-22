@@ -468,6 +468,7 @@ void AppInterface::OnAddressBarSubmit(Node* node)
 	App& app = App::Get();
 	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
 	app.OpenURL(data->buffer);
+	app.ui.FocusNode(nullptr);
 }
 
 void AppInterface::SetStatusMessage(const char* message)

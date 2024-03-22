@@ -120,7 +120,7 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 			// If the stack is emptied then we have finished parsing the document
 			if (contextStackSize == 0)
 			{
-#ifdef _WIN32
+#ifdef WIN32
 				page.DebugDumpNodeGraph();
 #endif
 				Finish();
@@ -137,9 +137,10 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 
 void HTMLParser::Finish()
 {
+	FlushTextBuffer();
 	parseState = ParseFinished;
 	page.layout.MarkParsingComplete();
-	page.GetApp().StopLoad();
+	page.GetApp().pageLoadTask.Stop();
 }
 
 #define NUM_AMPERSAND_ESCAPE_SEQUENCES (sizeof(ampersandEscapeSequences) / (2 * sizeof(const char*)))
@@ -224,13 +225,20 @@ void HTMLParser::FlushTextBuffer()
 				OptionNode::Data* option = static_cast<OptionNode::Data*>(CurrentContext().node->data);
 				option->text = MemoryManager::pageAllocator.AllocString(textBuffer);
 			}
-			else if(CurrentSection() == SectionElement::Body && textBufferSize > 0)
+			else if(textBufferSize > 0)
 			{
-				EmitText(textBuffer);
-			}
-			else if (CurrentSection() == SectionElement::Title && textBufferSize > 0)
-			{
-				page.SetTitle(textBuffer);
+				switch (CurrentSection())
+				{
+				case SectionElement::Title:
+					page.SetTitle(textBuffer);
+					break;
+				case SectionElement::Script:
+				case SectionElement::Style:
+					break;
+				default:
+					EmitText(textBuffer);
+					break;
+				}
 			}
 		}
 		break;
@@ -422,6 +430,11 @@ void HTMLParser::ReplaceAmpersandEscapeSequences(char* buffer, bool replaceNonBr
 bool HTMLParser::IsWhiteSpace(char c)
 {
 	return c == ' ' || c == '\n' || c == '\t' || c == '\r';
+}
+
+void HTMLParser::Write(const char* str)
+{
+	Parse((char*) str, strlen(str));
 }
 
 void HTMLParser::Parse(char* buffer, size_t count)

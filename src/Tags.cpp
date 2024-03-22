@@ -34,6 +34,8 @@
 #include "Nodes/Form.h"
 #include "Nodes/Table.h"
 #include "Nodes/Select.h"
+#include "Nodes/ListItem.h"
+#include "Nodes/Text.h"
 
 static const HTMLTagHandler* tagHandlers[] =
 {
@@ -56,8 +58,6 @@ static const HTMLTagHandler* tagHandlers[] =
 	new BlockTagHandler("div", false),
 	new BlockTagHandler("dt", false),
 	new BlockTagHandler("dd", false, 16),
-//	new BlockTagHandler("tr", false),			// Table rows shouldn't really be a block but we don't have table support yet
-	new BlockTagHandler("ul", true, 16),
 	new BrTagHandler(),
 	new AlignmentTagHandler("center", ElementAlignment::Center),
 	new FontTagHandler(),
@@ -153,11 +153,11 @@ void SizeTagHandler::Close(class HTMLParser& parser) const
 
 void LiTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	// TODO-refactor : add bullet point
-	parser.EmitNode(BreakNode::Construct(MemoryManager::pageAllocator));
+	parser.PushContext(ListItemNode::Construct(MemoryManager::pageAllocator), this);
 }
 void LiTagHandler::Close(class HTMLParser& parser) const
 {
+	parser.PopContext(this);
 }
 
 void ATagHandler::Open(class HTMLParser& parser, char* attributeStr) const
@@ -285,14 +285,12 @@ void FontTagHandler::Close(class HTMLParser& parser) const
 
 void ListTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	// TODO-refactor
-	parser.EmitNode(BreakNode::Construct(MemoryManager::pageAllocator));
+	parser.PushContext(ListNode::Construct(MemoryManager::pageAllocator), this);
 }
 
 void ListTagHandler::Close(class HTMLParser& parser) const
 {
-	// TODO-refactor
-	parser.EmitNode(BreakNode::Construct(MemoryManager::pageAllocator));
+	parser.PopContext(this);
 }
 
 struct HTMLInputTag
@@ -481,6 +479,11 @@ void ImgTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 				imageNode->size.y = 16;
 				data->image.width = 0;
 				data->image.height = 0;
+			}
+
+			if (altText)
+			{
+				data->altText = MemoryManager::pageAllocator.AllocString(altText);
 			}
 
 			parser.EmitNode(imageNode);

@@ -86,6 +86,10 @@ void GenerateAssetPack(const char* name)
 
 	AddEntryHeader("IIMG", entries, data);
 	EncodeImage(basePath, "image-icon.png", data);
+	AddEntryHeader("IBROKEN", entries, data);
+	EncodeImage(basePath, "broken-image-icon.png", data);
+	AddEntryHeader("IBULLET", entries, data);
+	EncodeImage(basePath, "bullet.png", data);
 
 	AddEntryHeader("END", entries, data);
 

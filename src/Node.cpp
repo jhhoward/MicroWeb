@@ -16,6 +16,7 @@
 #include "Nodes/Scroll.h"
 #include "Nodes/Table.h"
 #include "Nodes/Select.h"
+#include "Nodes/ListItem.h"
 
 NodeHandler* Node::nodeHandlers[Node::NumNodeTypes] =
 {
@@ -36,7 +37,9 @@ NodeHandler* Node::nodeHandlers[Node::NumNodeTypes] =
 	new TableRowNode(),
 	new TableCellNode(),
 	new SelectNode(),
-	new OptionNode()
+	new OptionNode(),
+	new ListNode(),
+	new ListItemNode()
 };
 
 Node::Node(Type inType, void* inData)
@@ -66,6 +69,14 @@ void Node::AddChild(Node* child)
 		for(lastChild = firstChild; lastChild->next; lastChild = lastChild->next) {}
 		lastChild->next = child;
 	}
+}
+
+void Node::InsertSibling(Node* sibling)
+{
+	sibling->style = style;
+	sibling->parent = parent;
+	sibling->next = next;
+	next = sibling;
 }
 
 void Node::CalculateEncapsulatingRect(Rect& rect)

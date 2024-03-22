@@ -2,6 +2,7 @@
 #include "../Memory/Memory.h"
 #include "../Event.h"
 #include "../App.h"
+#include "../KeyCodes.h"
 
 void LinkNode::ApplyStyle(Node* node)
 {
@@ -41,6 +42,19 @@ bool LinkNode::HandleEvent(Node* node, const Event& event)
 				App::Get().OpenURL(URL::GenerateFromRelative(App::Get().page.pageURL.url, data->url).url);
 			}
 			return true;
+		}
+		case Event::KeyPress:
+		{
+			if (event.key == KEYCODE_ENTER)
+			{
+				LinkNode::Data* data = static_cast<LinkNode::Data*>(node->data);
+				if (data->url)
+				{
+					App::Get().OpenURL(URL::GenerateFromRelative(App::Get().page.pageURL.url, data->url).url);
+				}
+				return true;
+			}
+			return false;
 		}
 		default:
 			break;

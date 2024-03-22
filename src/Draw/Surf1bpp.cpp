@@ -626,3 +626,4 @@ void DrawSurface_1BPP::ScrollScreen(int top, int bottom, int width, int amount)
 		}
 	}
 }
+

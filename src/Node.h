@@ -28,6 +28,8 @@ public:
 
 	virtual void LoadContent(Node* node, struct LoadTask& loadTask) {}
 	virtual bool ParseContent(Node* node, char* buffer, size_t count) { return false; }
+	virtual void FinishContent(Node* node, struct LoadTask& loadTask) {}
+
 };
 
 struct Coord
@@ -69,6 +71,8 @@ public:
 		TableCell,
 		Select,
 		Option,
+		List,
+		ListItem,
 		NumNodeTypes
 	};
 
@@ -79,6 +83,7 @@ public:
 
 	Node(Type inType, void* inData);
 	void AddChild(Node* child);
+	void InsertSibling(Node* sibling);
 	void CalculateEncapsulatingRect(Rect& rect);
 	bool IsPointInsideNode(int x, int y);
 	bool IsPointInsideChildren(int x, int y);

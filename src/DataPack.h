@@ -64,6 +64,8 @@ struct DataPack
 	MouseCursorData* linkCursor;
 	MouseCursorData* textSelectCursor;
 	Image* imageIcon;
+	Image* brokenImageIcon;
+	Image* bulletIcon;
 
 	Font* fonts[NUM_FONT_SIZES];
 	Font* monoFonts[NUM_FONT_SIZES];

@@ -77,6 +77,14 @@ struct URL
 			}
 		}
 
+		// Starting with // should be treated as an absolte URL but we will prepend with http://
+		if (strstr(relativeURL, "//") == relativeURL)
+		{
+			strcpy(result.url, "http:");
+			strcpy(result.url + 5, relativeURL);
+			return result;
+		}
+
 		// Check if this is a hash link
 		if (relativeURL[0] == '#')
 		{

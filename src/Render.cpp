@@ -433,6 +433,7 @@ void PageRenderer::MarkNodeDirty(Node* dirtyNode)
 		DrawContext clearContext;
 		InitContext(clearContext);
 		clearContext.clipBottom = windowRect.y + windowRect.height;
+		clearContext.drawOffsetY = windowRect.y - app.ui.GetScrollPositionY();
 		clearContext.surface->FillRect(clearContext, dirtyNode->anchor.x, dirtyNode->anchor.y, dirtyNode->size.x, dirtyNode->size.y, Platform::video->colourScheme.pageColour);
 
 		Platform::input->ShowMouse();

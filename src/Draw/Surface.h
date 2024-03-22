@@ -14,6 +14,23 @@ struct DrawContext
 	{
 
 	}
+
+	void Restrict(int left, int top, int right, int bottom)
+	{
+		left += drawOffsetX;
+		right += drawOffsetX;
+		top += drawOffsetY;
+		bottom += drawOffsetY;
+		if (left > clipLeft)
+			clipLeft = left;
+		if (right < clipRight)
+			clipRight = right;
+		if (top > clipTop)
+			clipTop = top;
+		if (bottom < clipBottom)
+			clipBottom = bottom;
+	}
+
 	DrawSurface* surface;
 	int clipLeft, clipTop, clipRight, clipBottom;
 	int drawOffsetX, drawOffsetY;

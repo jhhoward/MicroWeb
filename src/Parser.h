@@ -69,6 +69,7 @@ public:
 
 	void Reset();
 	void Parse(char* buffer, size_t count);
+	void Write(const char* str);
 
 	Page& page;
 

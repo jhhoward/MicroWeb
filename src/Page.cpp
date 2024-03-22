@@ -80,7 +80,9 @@ static const char* nodeTypeNames[] =
 	"TableRow",
 	"TableCell",
 	"Select",
-	"Option"
+	"Option",
+	"List",
+	"ListItem"
 };
 
 void Page::DebugDumpNodeGraph()

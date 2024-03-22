@@ -6,6 +6,8 @@
 #include "../Draw/Surface.h"
 #include "../App.h"
 #include "../Image/Decoder.h"
+#include "../DataPack.h"
+#include "Text.h"
 
 void ImageNode::Draw(DrawContext& context, Node* node)
 {
@@ -19,11 +21,42 @@ void ImageNode::Draw(DrawContext& context, Node* node)
 	}
 	else
 	{
-		context.surface->HLine(context, node->anchor.x, node->anchor.y, node->size.x, outlineColour);
-		context.surface->HLine(context, node->anchor.x, node->anchor.y + node->size.y - 1, node->size.x, outlineColour);
-		context.surface->VLine(context, node->anchor.x, node->anchor.y + 1, node->size.y - 2, outlineColour);
-		context.surface->VLine(context, node->anchor.x + node->size.x - 1, node->anchor.y + 1, node->size.y - 2, outlineColour);
+		Image* image = data->state == ImageNode::ErrorDownloading ? Assets.brokenImageIcon : Assets.imageIcon;
+
+		if (data->IsBrokenImageWithoutDimensions())
+		{
+			context.surface->BlitImage(context, image, node->anchor.x, node->anchor.y);
+		}
+		else
+		{
+			context.surface->HLine(context, node->anchor.x, node->anchor.y, node->size.x, outlineColour);
+			context.surface->HLine(context, node->anchor.x, node->anchor.y + node->size.y - 1, node->size.x, outlineColour);
+			context.surface->VLine(context, node->anchor.x, node->anchor.y + 1, node->size.y - 2, outlineColour);
+			context.surface->VLine(context, node->anchor.x + node->size.x - 1, node->anchor.y + 1, node->size.y - 2, outlineColour);
+
+			DrawContext croppedContext = context;
+			croppedContext.Restrict(node->anchor.x + 1, node->anchor.y + 1, node->anchor.x + node->size.x - 1, node->anchor.y + node->size.y - 1);
+			croppedContext.surface->BlitImage(croppedContext, image, node->anchor.x + 2, node->anchor.y + 2);
+
+			if (data->altText)
+			{
+				Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+				uint8_t textColour = Platform::video->colourScheme.textColour;
+				croppedContext.surface->DrawString(croppedContext, font, data->altText, node->anchor.x + image->width + 4, node->anchor.y + 2, textColour, node->style.fontStyle);
+			}
+		}
 	}
+
+	Node* focusedNode = App::Get().ui.GetFocusedNode();
+	if (focusedNode && node->IsChildOf(focusedNode))
+	{
+		context.surface->InvertRect(context, node->anchor.x, node->anchor.y, node->size.x, node->size.y);
+	}
+}
+
+bool ImageNode::Data::IsBrokenImageWithoutDimensions()
+{
+	return state == ImageNode::ErrorDownloading && image.width == Assets.brokenImageIcon->width && image.height == Assets.brokenImageIcon->height;
 }
 
 
@@ -58,6 +91,7 @@ void ImageNode::GenerateLayout(Layout& layout, Node* node)
 	}
 
 	node->anchor = layout.GetCursor(node->size.y);
+
 	layout.ProgressCursor(node, node->size.x, node->size.y);
 }
 
@@ -78,7 +112,7 @@ void ImageNode::LoadContent(Node* node, LoadTask& loadTask)
 
 		if (!data->source)
 		{
-			data->state = ImageNode::ErrorDownloading;
+			ImageLoadError(node);
 		}
 		else 
 		{
@@ -92,6 +126,48 @@ void ImageNode::LoadContent(Node* node, LoadTask& loadTask)
 		}
 	}
 }
+
+void ImageNode::FinishContent(Node* node, struct LoadTask& loadTask) 
+{
+	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
+
+	if (data)
+	{
+		switch (data->state)
+		{
+		case ImageNode::DownloadingDimensions:
+		case ImageNode::DownloadingContent:
+			ImageLoadError(node);
+			break;
+		}
+	}
+}
+
+void ImageNode::ImageLoadError(Node* node)
+{
+	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
+
+	if (data->state != ImageNode::ErrorDownloading)
+	{
+		if (!data->HasDimensions())
+		{
+			data->image.width = Assets.brokenImageIcon->width;
+			data->image.height = Assets.brokenImageIcon->height;
+
+			if (data->altText)
+			{
+				Node* altTextNode = TextElement::Construct(MemoryManager::pageAllocator, data->altText);
+				if (altTextNode)
+				{
+					node->InsertSibling(altTextNode);
+					altTextNode->Handler().ApplyStyle(altTextNode);
+				}
+			}
+		}
+		data->state = ImageNode::ErrorDownloading;
+	}
+}
+
 
 bool ImageNode::ParseContent(Node* node, char* buffer, size_t count)
 {
@@ -136,11 +212,7 @@ bool ImageNode::ParseContent(Node* node, char* buffer, size_t count)
 	}
 	else if (decoder->GetState() != ImageDecoder::Decoding)
 	{
-		data->state = ImageNode::ErrorDownloading;
-		if (!data->HasDimensions())
-		{
-			data->image.width = data->image.height = 1;
-		}
+		ImageLoadError(node);
 	}
 
 	return decoder->GetState() == ImageDecoder::Decoding;
