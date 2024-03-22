@@ -153,6 +153,12 @@ void SizeTagHandler::Close(class HTMLParser& parser) const
 
 void LiTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
+	if (parser.CurrentContext().tag == this)
+	{
+		// Have to do this because sometimes people dont close their <li> tag and just
+		// treat them as bullet point markers
+		parser.PopContext(this);
+	}
 	parser.PushContext(ListItemNode::Construct(MemoryManager::pageAllocator), this);
 }
 void LiTagHandler::Close(class HTMLParser& parser) const

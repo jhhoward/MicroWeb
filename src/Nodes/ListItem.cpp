@@ -66,8 +66,7 @@ void ListItemNode::BeginLayoutContext(Layout& layout, Node* node)
 	layout.BreakNewLine();
 	node->anchor = layout.GetCursor();
 	node->anchor.y += (font->glyphHeight - Assets.bulletIcon->height) / 2;
-	node->size.x = Assets.bulletIcon->width;
-	node->size.y = Assets.bulletIcon->height;
+	node->size.x = layout.AvailableWidth();
 	layout.PushLayout();
 	layout.PadHorizontal(Assets.bulletIcon->width * 2, 0);
 }
@@ -78,4 +77,6 @@ void ListItemNode::EndLayoutContext(Layout& layout, Node* node)
 
 	layout.PopLayout();
 	layout.BreakNewLine();
+
+	node->size.y = layout.Cursor().y - node->anchor.y;
 }

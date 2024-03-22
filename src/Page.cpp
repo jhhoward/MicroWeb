@@ -24,6 +24,7 @@
 #include "Nodes/Form.h"
 #include "Nodes/StyNode.h"
 #include "Nodes/Select.h"
+#include "Nodes/LinkNode.h"
 #include "Draw/Surface.h"
 #include "Memory/Memory.h"
 
@@ -131,7 +132,14 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 		case Node::Text:
 		{
 			TextElement::Data* data = static_cast<TextElement::Data*>(node->data);
-			printf("<%s> [%d,%d:%d,%d]\n", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y);
+			if (node->firstChild)
+			{
+				printf("<%s> [%d,%d:%d,%d]\n", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y);
+			}
+			else
+			{
+				printf("<%s> [%d,%d:%d,%d] %s\n", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y, data->text.Get<char*>());
+			}
 		}
 		break;
 	case Node::SubText:
@@ -149,6 +157,12 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 		{
 			OptionNode::Data* data = static_cast<OptionNode::Data*>(node->data);
 			printf("<%s> [%s]\n", nodeTypeNames[node->type], data->text);
+		}
+		break;
+	case Node::Link:
+		{
+			LinkNode::Data* data = static_cast<LinkNode::Data*>(node->data);
+			printf("<%s> [%d,%d:%d,%d] %s\n", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y, data->url);
 		}
 		break;
 	case Node::Section:
