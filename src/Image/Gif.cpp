@@ -20,18 +20,7 @@
 #define BLOCK_TYPE_GRAPHIC_CONTROL_EXTENSION 0xF9
 
 GifDecoder::GifDecoder() 
-: state(ImageDecoder::Stopped)
 {
-}
-
-void GifDecoder::Begin(Image* image, bool dimensionsOnly)
-{
-	onlyDownloadDimensions = dimensionsOnly;
-	state = ImageDecoder::Decoding;
-	outputImage = image;
-	outputImage->bpp = Platform::video->drawSurface->bpp == 1 ? 1 : 8;
-
-	structFillPosition = 0;
 	internalState = ParseHeader;
 	lineBufferSkipCount = 0;
 	transparentColourIndex = -1;
@@ -527,47 +516,6 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 			}
 			break;
 		}
-	}
-}
-
-bool GifDecoder::SkipBytes(uint8_t** data, size_t& dataLength, size_t size)
-{
-	size_t bytesLeft = size - structFillPosition;
-	if (bytesLeft <= dataLength)
-	{
-		*data += bytesLeft;
-		dataLength -= bytesLeft;
-		structFillPosition = 0;
-		return true;
-	}
-	else
-	{
-		*data += dataLength;
-		structFillPosition += dataLength;
-		dataLength = 0;
-		return false;
-	}
-}
-
-
-bool GifDecoder::FillStruct(uint8_t** data, size_t& dataLength, void* dest, size_t size)
-{
-	size_t bytesLeft = size - structFillPosition;
-	if(bytesLeft <= dataLength)
-	{
-		memcpy((uint8_t*)dest + structFillPosition, *data, bytesLeft);
-		*data += bytesLeft;
-		dataLength -= bytesLeft;
-		structFillPosition = 0;
-		return true;
-	}
-	else
-	{
-		memcpy((uint8_t*)dest + structFillPosition, *data, dataLength);
-		*data += dataLength;
-		structFillPosition += dataLength;
-		dataLength = 0;
-		return false;
 	}
 }
 

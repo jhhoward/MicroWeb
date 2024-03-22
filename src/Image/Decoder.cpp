@@ -1,7 +1,14 @@
 #include <new>
+#include <memory.h>
+#include <string.h>
 #include "Gif.h"
+#include "Jpeg.h"
+#include "Png.h"
 #include "Decoder.h"
 #include "../Platform.h"
+#include "Image.h"
+#include "../Draw/Surface.h"
+#pragma warning(disable:4996)
 
 #include <stdio.h>
 #include <conio.h>
@@ -9,8 +16,8 @@
 typedef union 
 {
 	char gif[sizeof(GifDecoder)];
-	//char png[sizeof(PngDecoder)];
-	//char jpeg[sizeof(JpegDecoder)];
+	char png[sizeof(PngDecoder)];
+	char jpeg[sizeof(JpegDecoder)];
 	char buffer[1];
 } ImageDecoderUnion;
 
@@ -73,5 +80,92 @@ ImageDecoder* ImageDecoder::Get()
 
 ImageDecoder* ImageDecoder::Create(DecoderType type)
 {
-	return new (imageDecoderUnion->buffer) GifDecoder();
+    switch (type)
+    {
+    case ImageDecoder::Jpeg:
+        return new (imageDecoderUnion->buffer) JpegDecoder();
+    case ImageDecoder::Gif:
+        return new (imageDecoderUnion->buffer) GifDecoder();
+    case ImageDecoder::Png:
+        return new (imageDecoderUnion->buffer) PngDecoder();
+    default:
+        return nullptr;
+    }
+}
+
+ImageDecoder* ImageDecoder::CreateFromExtension(const char* path)
+{
+    const char* extension = path + strlen(path);
+    while (extension > path)
+    {
+        extension--;
+        if (*extension == '.')
+        {
+            extension++;
+            if (!stricmp(extension, "gif"))
+            {
+                return Create(ImageDecoder::Gif);
+            }
+            if (!stricmp(extension, "png"))
+            {
+                return Create(ImageDecoder::Png);
+            }
+            if (!stricmp(extension, "jpeg") || !stricmp(extension, "jpg"))
+            {
+                return Create(ImageDecoder::Jpeg);
+            }
+
+            return nullptr;
+        }
+    }
+
+    return nullptr;
+}
+
+bool ImageDecoder::FillStruct(uint8_t** data, size_t& dataLength, void* dest, size_t size)
+{
+    size_t bytesLeft = size - structFillPosition;
+    if (bytesLeft <= dataLength)
+    {
+        memcpy((uint8_t*)dest + structFillPosition, *data, bytesLeft);
+        *data += bytesLeft;
+        dataLength -= bytesLeft;
+        structFillPosition = 0;
+        return true;
+    }
+    else
+    {
+        memcpy((uint8_t*)dest + structFillPosition, *data, dataLength);
+        *data += dataLength;
+        structFillPosition += dataLength;
+        dataLength = 0;
+        return false;
+    }
+}
+
+bool ImageDecoder::SkipBytes(uint8_t** data, size_t& dataLength, size_t size)
+{
+    size_t bytesLeft = size - structFillPosition;
+    if (bytesLeft <= dataLength)
+    {
+        *data += bytesLeft;
+        dataLength -= bytesLeft;
+        structFillPosition = 0;
+        return true;
+    }
+    else
+    {
+        *data += dataLength;
+        structFillPosition += dataLength;
+        dataLength = 0;
+        return false;
+    }
+}
+
+void ImageDecoder::Begin(Image* image, bool dimensionsOnly)
+{
+    onlyDownloadDimensions = dimensionsOnly;
+    state = ImageDecoder::Decoding;
+    outputImage = image;
+    outputImage->bpp = Platform::video->drawSurface->bpp == 1 ? 1 : 8;
 }

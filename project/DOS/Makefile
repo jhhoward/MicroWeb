@@ -1,7 +1,7 @@
 bin = MicroWeb.exe
 SRC_PATH = ..\..\src
 OBJDIR=obj
-objects = MicroWeb.obj App.obj Parser.obj Tags.obj Platform.obj Colour.obj Hercules.obj BIOSVid.obj VidModes.obj Font.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj Layout.obj Node.obj Text.obj Table.obj ListItem.obj Section.obj ImgNode.obj Block.obj StyNode.obj LinkNode.obj Break.obj Render.obj Button.obj Select.obj Field.obj DataPack.obj Surf1bpp.obj Surf2bpp.obj Surf4bpp.obj Surf8bpp.obj Form.obj Status.obj Scroll.obj HTTP.obj Decoder.obj Gif.obj MemBlock.obj Memory.obj EMS.obj
+objects = MicroWeb.obj App.obj Parser.obj Tags.obj Platform.obj Colour.obj Hercules.obj BIOSVid.obj VidModes.obj Font.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj Layout.obj Node.obj Text.obj Table.obj ListItem.obj Section.obj ImgNode.obj Block.obj StyNode.obj LinkNode.obj Break.obj Render.obj Button.obj Select.obj Field.obj DataPack.obj Surf1bpp.obj Surf2bpp.obj Surf4bpp.obj Surf8bpp.obj Form.obj Status.obj Scroll.obj HTTP.obj Decoder.obj Gif.obj Jpeg.obj Png.obj MemBlock.obj Memory.obj EMS.obj
 memory_model = -ml
 CC = wpp
 CFLAGS = -zq -0 -ot -bt=DOS -w2 $(memory_model) -fi=$(SRC_PATH)\Defines.h
@@ -120,6 +120,12 @@ Decoder.obj: $(SRC_PATH)\Image\Decoder.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 Gif.obj: $(SRC_PATH)\Image\Gif.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+Png.obj: $(SRC_PATH)\Image\Png.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+Jpeg.obj: $(SRC_PATH)\Image\Jpeg.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 MemBlock.obj: $(SRC_PATH)\Memory\MemBlock.cpp

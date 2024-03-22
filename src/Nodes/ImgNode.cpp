@@ -79,7 +79,7 @@ void ImageNode::GenerateLayout(Layout& layout, Node* node)
 	{
 		int imageWidth = data->image.width;
 		data->image.width = layout.MaxAvailableWidth();
-		data->image.height = ((long)data->image.height * data->image.width) / imageWidth;
+		data->image.height = (uint16_t)(((long)data->image.height * data->image.width) / imageWidth);
 	}
 
 	node->size.x = data->image.width;
@@ -119,10 +119,18 @@ void ImageNode::LoadContent(Node* node, LoadTask& loadTask)
 			bool loadDimensionsOnly = !data->HasDimensions();
 			if (!loadDimensionsOnly && App::Get().pageLoadTask.HasContent())
 				return;
-			loadTask.Load(URL::GenerateFromRelative(App::Get().page.pageURL.url, data->source).url);
-			ImageDecoder::Create(ImageDecoder::Gif);
-			ImageDecoder::Get()->Begin(&data->image, loadDimensionsOnly);
-			data->state = loadDimensionsOnly ? ImageNode::DownloadingDimensions : ImageNode::DownloadingContent;
+
+			if (ImageDecoder::CreateFromExtension(data->source))
+			{
+				loadTask.Load(URL::GenerateFromRelative(App::Get().page.pageURL.url, data->source).url);
+				ImageDecoder::Get()->Begin(&data->image, loadDimensionsOnly);
+				data->state = loadDimensionsOnly ? ImageNode::DownloadingDimensions : ImageNode::DownloadingContent;
+			}
+			else
+			{
+				// Unsupported image format
+				ImageLoadError(node);
+			}
 		}
 	}
 }

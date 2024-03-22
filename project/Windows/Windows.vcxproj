@@ -148,6 +148,8 @@
     <ClCompile Include="..\..\src\HTTP.cpp" />
     <ClCompile Include="..\..\src\Image\Decoder.cpp" />
     <ClCompile Include="..\..\src\Image\Gif.cpp" />
+    <ClCompile Include="..\..\src\Image\Jpeg.cpp" />
+    <ClCompile Include="..\..\src\Image\Png.cpp" />
     <ClCompile Include="..\..\src\Layout.cpp" />
     <ClCompile Include="..\..\src\Memory\MemBlock.cpp" />
     <ClCompile Include="..\..\src\Memory\Memory.cpp" />
@@ -193,6 +195,8 @@
     <ClInclude Include="..\..\src\Image\Decoder.h" />
     <ClInclude Include="..\..\src\Image\Gif.h" />
     <ClInclude Include="..\..\src\Image\Image.h" />
+    <ClInclude Include="..\..\src\Image\Jpeg.h" />
+    <ClInclude Include="..\..\src\Image\Png.h" />
     <ClInclude Include="..\..\src\Layout.h" />
     <ClInclude Include="..\..\src\Memory\LinAlloc.h" />
     <ClInclude Include="..\..\src\Memory\MemBlock.h" />

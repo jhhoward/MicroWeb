@@ -15,20 +15,9 @@ class GifDecoder : public ImageDecoder
 public:
 	GifDecoder();
 	
-	virtual void Begin(Image* image, bool onlyDimensions);
 	virtual void Process(uint8_t* data, size_t dataLength);
-	virtual ImageDecoder::State GetState() { return state; }
 	
 private:
-	bool FillStruct(uint8_t** data, size_t& dataLength, void* dest, size_t size);
-	uint8_t NextByte(uint8_t** data, size_t& dataLength)
-	{
-		uint8_t result = **data;
-		(*data)++;
-		dataLength--;
-		return result;
-	}
-	bool SkipBytes(uint8_t** data, size_t& dataLength, size_t size);
 
 	void ClearDictionary();
 	
@@ -93,9 +82,7 @@ private:
 	};
 	#pragma pack(pop)
 
-	ImageDecoder::State state;
 	InternalState internalState;
-	bool onlyDownloadDimensions;
 	
 	uint8_t palette[256*3];			// RGB values
 	uint8_t paletteLUT[256];		// GIF palette colour to video mode palette colour
@@ -103,8 +90,6 @@ private:
 	uint8_t backgroundColour;
 	int transparentColourIndex;
 	uint8_t lzwCodeSize;
-
-	size_t structFillPosition;
 	
 	DictionaryEntry dictionary[GIF_MAX_DICTIONARY_ENTRIES];
 
