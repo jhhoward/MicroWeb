@@ -31,6 +31,8 @@ public:
 	void MarkPageLayoutComplete();
 	void MarkNodeDirty(Node* node);
 
+	void InvertNode(Node* node);
+
 	int GetVisiblePageHeight() { return visiblePageHeight; }
 
 private:

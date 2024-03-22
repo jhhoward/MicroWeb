@@ -87,6 +87,10 @@ void Node::CalculateEncapsulatingRect(Rect& rect)
 
 	if (!firstChild)
 	{
+		rect.x = anchor.x;
+		rect.y = anchor.y;
+		rect.width = size.x;
+		rect.height = size.y;
 		return;
 	}
 

@@ -489,7 +489,7 @@ void AppInterface::ScrollRelative(int delta)
 	if (scrollPositionY < 0)
 		scrollPositionY = 0;
 
-	int maxScrollY = app.pageRenderer.GetVisiblePageHeight() - app.ui.windowRect.height;
+	int maxScrollY = app.pageRenderer.GetVisiblePageHeight() - windowRect.height;
 	if (maxScrollY < 0)
 		maxScrollY = 0;
 
@@ -523,6 +523,17 @@ void AppInterface::CycleNodes(int direction)
 		node = app.page.GetRootNode();
 	}
 
+	bool isFocusedNodeVisible = false;
+	if (focusedNode)
+	{
+		Rect nodeRect;
+		node->CalculateEncapsulatingRect(nodeRect);
+		bool offPage = (nodeRect.y + nodeRect.height < scrollPositionY || nodeRect.y > scrollPositionY + windowRect.height);
+		isFocusedNodeVisible = !offPage;
+		if (!isFocusedNodeVisible)
+			node = app.page.GetRootNode();
+	}
+
 	if (node)
 	{
 		if (!IsInterfaceNode(node))
@@ -540,6 +551,23 @@ void AppInterface::CycleNodes(int direction)
 
 				if (node && node->Handler().CanPick(node))
 				{
+					Rect nodeRect;
+					node->CalculateEncapsulatingRect(nodeRect);
+
+					if (!isFocusedNodeVisible && (nodeRect.y + nodeRect.height < scrollPositionY || nodeRect.y > scrollPositionY + windowRect.height))
+					{
+						// Not visible on page and we haven't selected anything yet, try find something else to focus on
+						continue;
+					}
+
+					if (nodeRect.y < scrollPositionY)
+					{
+						ScrollAbsolute(nodeRect.y);
+					}
+					else if (nodeRect.y + nodeRect.height > scrollPositionY + windowRect.height)
+					{
+						ScrollAbsolute(nodeRect.y + nodeRect.height - windowRect.height);
+					}
 					FocusNode(node);
 					return;
 				}

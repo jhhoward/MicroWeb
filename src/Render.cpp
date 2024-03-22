@@ -463,3 +463,27 @@ void PageRenderer::MarkPageLayoutComplete()
 		}
 	}
 }
+
+void PageRenderer::InvertNode(Node* node)
+{
+	Platform::input->HideMouse();
+	Rect& windowRect = app.ui.windowRect;
+	DrawContext invertContext;
+
+	InitContext(invertContext);
+	invertContext.clipBottom = windowRect.y + windowRect.height;
+
+	if (invertContext.clipTop < upperContext.clipBottom)
+	{
+		invertContext.clipTop = upperContext.clipBottom;
+	}
+	if (invertContext.clipBottom > lowerContext.clipTop)
+	{
+		invertContext.clipBottom = lowerContext.clipTop;
+	}
+
+	invertContext.drawOffsetY = windowRect.y - app.ui.GetScrollPositionY();
+	invertContext.surface->InvertRect(invertContext, node->anchor.x, node->anchor.y, node->size.x, node->size.y);
+
+	Platform::input->ShowMouse();
+}

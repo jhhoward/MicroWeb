@@ -65,16 +65,11 @@ bool LinkNode::HandleEvent(Node* node, const Event& event)
 
 void LinkNode::HighlightChildren(Node* node)
 {
-	DrawContext context;
-	App::Get().pageRenderer.GenerateDrawContext(context, node);
-
 	Node* child = node->firstChild;
 	if (!child)
 		return;
 
 	bool isDescendingTree = true;
-
-	Platform::input->HideMouse();
 
 	while (child != node)
 	{
@@ -95,7 +90,7 @@ void LinkNode::HighlightChildren(Node* node)
 
 			if (shouldHighlight)
 			{
-				context.surface->InvertRect(context, child->anchor.x, child->anchor.y, child->size.x, child->size.y);
+				App::Get().pageRenderer.InvertNode(child);
 			}
 
 			if (child->firstChild)
@@ -125,7 +120,5 @@ void LinkNode::HighlightChildren(Node* node)
 			}
 		}
 	}
-
-	Platform::input->ShowMouse();
 
 }
