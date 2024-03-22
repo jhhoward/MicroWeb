@@ -435,10 +435,6 @@ void DrawSurface_1BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 		return; // Nothing to draw if fully outside the clipping region.
 	}
 
-	int srcByteWidth = (srcWidth + 7) >> 3; // Calculate the width of the source image in bytes
-//	int destByteWidth = (destWidth + 7) >> 3; // Calculate the width of the destination image in bytes
-	int destByteWidth = (destWidth) >> 3; // Calculate the width of the destination image in bytes
-
 	// Blit the image data line by line
 	for (int j = 0; j < destHeight; j++)
 	{

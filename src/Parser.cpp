@@ -234,8 +234,11 @@ void HTMLParser::FlushTextBuffer()
 					break;
 				case SectionElement::Script:
 				case SectionElement::Style:
+				case SectionElement::Document:
 					break;
 				default:
+				case SectionElement::Body:
+				case SectionElement::HTML:
 					EmitText(textBuffer);
 					break;
 				}

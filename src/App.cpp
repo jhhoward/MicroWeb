@@ -217,6 +217,13 @@ void LoadTask::Load(const char* targetURL)
 		}
 	}
 
+	// Replace back slashes with forward ones
+	for (char* ptr = url.url; *ptr; ptr++)
+	{
+		if (*ptr == '\\')
+			*ptr = '/';
+	}
+
 	if (type == LoadTask::RemoteFile)
 	{
 		request = Platform::network->CreateRequest(url.url);
@@ -355,9 +362,11 @@ void App::ShowErrorPage(const char* message)
 //	page.pageURL = "about:error";
 //	ui.UpdateAddressBar(page.pageURL);
 
+	parser.Write("<html>");
 	parser.Write("<h1>Error loading page</h1>");
 	parser.Write("<hr>");
 	parser.Write(message);
+	parser.Write("</html>");
 	parser.Finish();
 }
 
@@ -377,12 +386,14 @@ void App::ShowNoHTTPSPage()
 	page.pageURL = frogFindURL;
 	strncpy(page.pageURL.url + FROG_FIND_URL_LENGTH, pageLoadTask.GetURL(), MAX_URL_LENGTH - FROG_FIND_URL_LENGTH);
 
+	parser.Write("<html>");
 	parser.Write("<h1>HTTPS unsupported</h1>");
 	parser.Write("<hr>");
 	parser.Write("Sorry this browser does not support HTTPS!<br>");
 	parser.Write("<a href=\"");
 	parser.Write(page.pageURL.url);
 	parser.Write("\">Visit this site via FrogFind</a>");
+	parser.Write("</html>");
 	parser.Finish();
 }
 
