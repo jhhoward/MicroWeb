@@ -45,16 +45,39 @@ struct URL
 		return *this;
 	}
 
-	static void ProcessEscapeCodes(URL& url)
+	void CleanUp()
 	{
-		char* match;
-
-		while (match = strstr(url.url, "/./"))
+		// Replace back slashes with forward ones
+		for (char* ptr = url; *ptr; ptr++)
 		{
-			memmove(match, match + 2, strlen(match) - 1);
+			if (*ptr == '\\')
+				*ptr = '/';
 		}
 
-		while (match = strstr(url.url, "&amp;"))
+		// Collapse /./ and /../ 
+		char* directory;
+		while (directory = strstr(url, "/./"))
+		{
+			strcpy(directory, directory + 2);
+		}
+		directory = strstr(url, "/../");
+		while (directory && directory > url)
+		{
+			char* prevSlash = directory - 1;
+			while (prevSlash > url && *prevSlash != '/')
+			{
+				prevSlash--;
+			}
+			if (*prevSlash == '/' && prevSlash > url)
+			{
+				strcpy(prevSlash, directory + 3);
+			}
+			directory = strstr(prevSlash + 1, "/../");
+		}
+
+		// Fix &amp escape sequences
+		char* match;
+		while (match = strstr(url, "&amp;"))
 		{
 			memmove(match + 1, match + 5, strlen(match + 1) - 3);
 		}
@@ -168,7 +191,7 @@ struct URL
 			strcpy(result.url + 7, relativeURL);
 		}
 
-		ProcessEscapeCodes(result);
+		result.CleanUp();
 
 		return result;
 	}

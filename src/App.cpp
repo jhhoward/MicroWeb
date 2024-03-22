@@ -132,6 +132,11 @@ void App::Run(int argc, char* argv[])
 						requestedNewPage = false;
 					}
 				}
+				else if (pageLoadTask.type == LoadTask::LocalFile)
+				{
+					ShowErrorPage("File not found");
+					requestedNewPage = false;
+				}
 			}
 			else if (!parser.IsFinished())
 			{
@@ -210,19 +215,23 @@ void LoadTask::Load(const char* targetURL)
 		}
 		else
 		{
-			// Assume this should be http://
-			type = LoadTask::RemoteFile;
-			strcpy(url.url, "http://");
-			strcpy(url.url + 7, targetURL);
+			// did this start with X:\ ?
+			if (targetURL[0] >= 'A' && targetURL[0] <= 'z' && targetURL[1] == ':' && targetURL[2] == '\\')
+			{
+				type = LoadTask::LocalFile;
+				fs = nullptr;
+			}
+			else
+			{
+				// Assume this should be http://
+				type = LoadTask::RemoteFile;
+				strcpy(url.url, "http://");
+				strcpy(url.url + 7, targetURL);
+			}
 		}
 	}
 
-	// Replace back slashes with forward ones
-	for (char* ptr = url.url; *ptr; ptr++)
-	{
-		if (*ptr == '\\')
-			*ptr = '/';
-	}
+	url.CleanUp();
 
 	if (type == LoadTask::RemoteFile)
 	{

@@ -343,7 +343,25 @@ void HTTPRequest::Update()
 						//printf("Redirecting to %s", lineBuffer + 10);
 						//getchar();
 						Stop();
-						Open(lineBuffer + 10);
+
+						char* redirectedAddress = lineBuffer + 10;
+						if (!strnicmp(redirectedAddress, "https://", 8) && !strnicmp(url.url, "http://", 7))
+						{
+							// Check if the redirected address is http -> https
+							if (!strcmp(url.url + 7, redirectedAddress + 8))
+							{
+								url = redirectedAddress;
+								status = HTTPRequest::UnsupportedHTTPS;
+								break;
+							}
+							else
+							{
+								// Attempt to change this to http:// instead
+								strcpy(redirectedAddress + 4, redirectedAddress + 5);
+							}
+						}
+
+						Open(redirectedAddress);
 						break;
 					}
 				}
