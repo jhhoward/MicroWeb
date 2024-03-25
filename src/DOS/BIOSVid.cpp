@@ -35,44 +35,44 @@ BIOSVideoDriver::BIOSVideoDriver()
 
 void BIOSVideoDriver::Init(VideoModeInfo* inVideoModeInfo)
 {
-	videoModeInfo = inVideoModeInfo;
+	videoMode = inVideoModeInfo;
 	startingScreenMode = GetScreenMode();
 
-	screenWidth = videoModeInfo->screenWidth;
-	screenHeight = videoModeInfo->screenHeight;
+	screenWidth = videoMode->screenWidth;
+	screenHeight = videoMode->screenHeight;
 
-	if (!SetScreenMode(videoModeInfo->biosVideoMode))
+	if (!SetScreenMode(videoMode->biosVideoMode))
 	{
-		Platform::FatalError("Could not set video mode: %d", videoModeInfo->biosVideoMode);
+		Platform::FatalError("Could not set video mode: %d", videoMode->biosVideoMode);
 		return;
 	}
 
-	if (videoModeInfo->biosVideoMode == CGA_COMPOSITE_MODE)
+	if (videoMode->biosVideoMode == CGA_COMPOSITE_MODE)
 	{
 		SetScreenMode(6);
 		outp(0x3D8, 0x1a);
-		Assets.LoadPreset(videoModeInfo->dataPackIndex);
+		Assets.LoadPreset(videoMode->dataPackIndex);
 	}
 	else
 	{
-		Assets.LoadPreset(videoModeInfo->dataPackIndex);
+		Assets.LoadPreset(videoMode->dataPackIndex);
 	}
 
 	int screenPitch = 0;
 
-	if (videoModeInfo->bpp == 1)
+	if (videoMode->bpp == 1)
 	{
 		drawSurface = new DrawSurface_1BPP(screenWidth, screenHeight);
 		screenPitch = screenWidth / 8;
 		colourScheme = monochromeColourScheme;
 		paletteLUT = nullptr;
 	}
-	else if (videoModeInfo->bpp == 2)
+	else if (videoMode->bpp == 2)
 	{
 		drawSurface = new DrawSurface_2BPP(screenWidth, screenHeight);
 		screenPitch = screenWidth / 4;
 
-		if (videoModeInfo->biosVideoMode == CGA_COMPOSITE_MODE)
+		if (videoMode->biosVideoMode == CGA_COMPOSITE_MODE)
 		{
 			paletteLUT = compositeCgaPaletteLUT;
 			colourScheme = compositeCgaColourScheme;
@@ -83,14 +83,14 @@ void BIOSVideoDriver::Init(VideoModeInfo* inVideoModeInfo)
 			colourScheme = cgaColourScheme;
 		}
 	}
-	else if (videoModeInfo->bpp == 4)
+	else if (videoMode->bpp == 4)
 	{
 		drawSurface = new DrawSurface_4BPP(screenWidth, screenHeight);
 		screenPitch = screenWidth / 8;
 		colourScheme = egaColourScheme;
 		paletteLUT = egaPaletteLUT;
 	}
-	else if (videoModeInfo->bpp == 8)
+	else if (videoMode->bpp == 8)
 	{
 		drawSurface = new DrawSurface_8BPP(screenWidth, screenHeight);
 		screenPitch = screenWidth;
@@ -137,27 +137,27 @@ void BIOSVideoDriver::Init(VideoModeInfo* inVideoModeInfo)
 		Platform::FatalError("Could not allocate memory for draw surface");
 	}
 
-	if (videoModeInfo->vramPage3)
+	if (videoMode->vramPage3)
 	{
 		// 4 page interlaced memory layout
 		int offset = 0;
 		for (int y = 0; y < screenHeight; y += 4)
 		{
-			drawSurface->lines[y] = (uint8_t*) MK_FP(videoModeInfo->vramPage1, offset);
-			drawSurface->lines[y + 1] = (uint8_t*) MK_FP(videoModeInfo->vramPage2, offset);
-			drawSurface->lines[y + 2] = (uint8_t*) MK_FP(videoModeInfo->vramPage3, offset);
-			drawSurface->lines[y + 3] = (uint8_t*) MK_FP(videoModeInfo->vramPage4, offset);
+			drawSurface->lines[y] = (uint8_t*) MK_FP(videoMode->vramPage1, offset);
+			drawSurface->lines[y + 1] = (uint8_t*) MK_FP(videoMode->vramPage2, offset);
+			drawSurface->lines[y + 2] = (uint8_t*) MK_FP(videoMode->vramPage3, offset);
+			drawSurface->lines[y + 3] = (uint8_t*) MK_FP(videoMode->vramPage4, offset);
 			offset += screenPitch;
 		}
 	}
-	else if (videoModeInfo->vramPage2)
+	else if (videoMode->vramPage2)
 	{
 		// 2 page interlaced memory layout
 		int offset = 0;
 		for (int y = 0; y < screenHeight; y += 2)
 		{
-			drawSurface->lines[y] = (uint8_t*)MK_FP(videoModeInfo->vramPage1, offset);
-			drawSurface->lines[y + 1] = (uint8_t*)MK_FP(videoModeInfo->vramPage2, offset);
+			drawSurface->lines[y] = (uint8_t*)MK_FP(videoMode->vramPage1, offset);
+			drawSurface->lines[y + 1] = (uint8_t*)MK_FP(videoMode->vramPage2, offset);
 			offset += screenPitch;
 		}
 	}
@@ -167,7 +167,7 @@ void BIOSVideoDriver::Init(VideoModeInfo* inVideoModeInfo)
 		int offset = 0;
 		for (int y = 0; y < screenHeight; y++)
 		{
-			drawSurface->lines[y] = (uint8_t*)MK_FP(videoModeInfo->vramPage1, offset);
+			drawSurface->lines[y] = (uint8_t*)MK_FP(videoMode->vramPage1, offset);
 			offset += screenPitch;
 		}
 	}
@@ -217,30 +217,3 @@ bool BIOSVideoDriver::SetScreenMode(int screenMode)
 }
 
 
-void BIOSVideoDriver::ScaleImageDimensions(int& width, int& height)
-{
-	if (screenWidth <= 320)
-	{
-		width = (3l * width) / 4;
-		height = (3l * height) / 4;
-	}
-
-	height /= videoModeInfo->aspectRatio;
-
-	int maxWidth = screenWidth - 16;
-
-	if (width > maxWidth)
-	{
-		height = ((long)height * maxWidth) / width;
-		width = maxWidth;
-	}
-
-	if (width == 0)
-	{
-		width = 1;
-	}
-	if (height == 0)
-	{
-		height = 1;
-	}
-}

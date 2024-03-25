@@ -309,3 +309,24 @@ bool Node::IsChildOf(Node* potentialParent)
 
 	return false;
 }
+
+ExplicitDimension ExplicitDimension::Parse(const char* str)
+{
+	ExplicitDimension result;
+
+	char* unit;
+	long value = strtol(str, &unit, 10);
+	if (value)
+	{
+		if (unit && *unit == '%')
+		{
+			result.value = (int16_t)(-value);
+		}
+		else
+		{
+			result.value = (int16_t) value;
+		}
+	}
+
+	return result;
+}

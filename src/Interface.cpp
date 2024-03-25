@@ -274,7 +274,6 @@ void AppInterface::Update()
 	if (scrollDelta)
 	{
 		ScrollRelative(scrollDelta);
-		//app.renderer.Scroll(scrollDelta);
 	}
 
 	if (jumpNode)
@@ -455,6 +454,8 @@ void AppInterface::GenerateInterfaceNodes()
 	windowRect.y = backButtonNode->anchor.y + backButtonNode->size.y + 2;
 	windowRect.width = Platform::video->screenWidth - scrollBarNode->size.x;
 	windowRect.height = Platform::video->screenHeight - windowRect.y - statusBarNode->size.y;
+
+	pageHeightForDimensionScaling = windowRect.height;
 }
 
 void AppInterface::DrawInterfaceNodes(DrawContext& context)

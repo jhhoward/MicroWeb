@@ -38,6 +38,9 @@ public:
 	void RecalculateLayout();
 	void RecalculateLayoutForNode(Node* node);
 
+	int CalculateWidth(ExplicitDimension explicitWidth);
+	int CalculateHeight(ExplicitDimension explicitHeight);
+
 	Coord GetCursor(int lineHeight = 0) 
 	{ 
 		Coord result = Cursor();

@@ -27,8 +27,6 @@ public:
 	virtual void Init(VideoModeInfo* videoMode);
 	virtual void Shutdown();
 
-	virtual void ScaleImageDimensions(int& width, int& height);
-
 private:
 	void SetGraphicsMode();
 	void SetTextMode();

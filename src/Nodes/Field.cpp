@@ -85,7 +85,14 @@ void TextFieldNode::GenerateLayout(Layout& layout, Node* node)
 	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
 	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
 
-	node->size.x = Platform::video->screenWidth / 3;
+	if (data->explicitWidth.IsSet())
+	{
+		node->size.x = layout.CalculateWidth(data->explicitWidth);
+	}
+	else
+	{
+		node->size.x = Platform::video->screenWidth / 3;
+	}
 	node->size.y = font->glyphHeight + 4;
 
 	if (layout.MaxAvailableWidth() < node->size.x)

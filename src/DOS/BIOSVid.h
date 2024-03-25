@@ -27,14 +27,11 @@ public:
 	virtual void Init(VideoModeInfo* inVideoModeInfo);
 	virtual void Shutdown();
 
-	virtual void ScaleImageDimensions(int& width, int& height);
-
 private:
 	int GetScreenMode();
 	bool SetScreenMode(int screenMode);
 
 	int startingScreenMode;
-	VideoModeInfo* videoModeInfo;
 };
 
 #endif

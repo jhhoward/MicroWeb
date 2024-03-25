@@ -41,8 +41,9 @@ static uint8_t graphicsModeCRTC[] = { 0x35, 0x2d, 0x2e, 0x07, 0x5b, 0x02, 0x57, 
 static uint8_t textModeCRTC[] = { 0x61, 0x50, 0x52, 0x0f, 0x19, 0x06, 0x19, 0x19, 0x02, 0x0d, 0x0b, 0x0c };
 
 
-void HerculesDriver::Init(VideoModeInfo* videoMode)
+void HerculesDriver::Init(VideoModeInfo* inVideoMode)
 {
+	videoMode = inVideoMode;
 	SetGraphicsMode();
 
 	Assets.Load("EGA.DAT");
@@ -96,10 +97,4 @@ void HerculesDriver::SetTextMode()
 
 	outp(0x03B8, 0x08);
 	FastMemSet(BASE_VRAM_ADDRESS, 0, 0x4000);
-}
-
-void HerculesDriver::ScaleImageDimensions(int& width, int& height)
-{
-	// Scale to 4:3
-	height = (height * 29) / 45;
 }

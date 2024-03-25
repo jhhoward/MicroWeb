@@ -26,6 +26,7 @@ public:
 		int bufferSize;
 		char* name;
 		NodeCallbackFunction onSubmit;
+		ExplicitDimension explicitWidth;
 	};
 
 	static Node* Construct(Allocator& allocator, const char* text, NodeCallbackFunction onSubmit = NULL);

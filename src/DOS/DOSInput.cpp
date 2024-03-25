@@ -77,6 +77,12 @@ bool DOSInputDriver::GetMouseButtonPress(int& x, int& y)
 	int86(0x33, &inreg, &outreg);
 	x = outreg.x.cx;
 	y = outreg.x.dx;
+
+	if (Platform::video->screenWidth == 320)
+	{
+		x /= 2;
+	}
+
 	return (outreg.x.bx > 0);
 }
 
@@ -91,6 +97,12 @@ bool DOSInputDriver::GetMouseButtonRelease(int& x, int& y)
 	int86(0x33, &inreg, &outreg);
 	x = outreg.x.cx;
 	y = outreg.x.dx;
+
+	if (Platform::video->screenWidth == 320)
+	{
+		x /= 2;
+	}
+
 	return (outreg.x.bx > 0);
 }
 

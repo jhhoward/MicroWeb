@@ -28,8 +28,6 @@ public:
 	virtual void Shutdown();
 
 	virtual void ClearScreen();
-	virtual void ScaleImageDimensions(int& width, int& height) override;
-
 
 	void Paint(HWND hwnd);
 

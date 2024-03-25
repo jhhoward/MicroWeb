@@ -90,8 +90,10 @@ const RGBQUAD egaPalette[] =
 	{ 0xFF, 0xFF, 0xFF }, // Entry 15 - White
 };
 
-void WindowsVideoDriver::Init(VideoModeInfo* videoMode)
+void WindowsVideoDriver::Init(VideoModeInfo* inVideoMode)
 {
+	videoMode = inVideoMode;
+
 	screenWidth = videoMode->screenWidth;
 	screenHeight = videoMode->screenHeight;
 	verticalScale = videoMode->aspectRatio; // ((screenWidth * 3.0f) / 4.0f) / screenHeight;
@@ -355,30 +357,3 @@ void WindowsVideoDriver::Paint(HWND hwnd)
 	EndPaint(hwnd, &ps);
 }
 
-void WindowsVideoDriver::ScaleImageDimensions(int& width, int& height)
-{
-	if (screenWidth <= 320)
-	{
-		width /= 2;
-		height /= 2;
-	}
-
-	height = (height / verticalScale);
-
-	int maxWidth = screenWidth - 16;
-
-	if (width > maxWidth)
-	{
-		height = (height * maxWidth) / width;
-		width = maxWidth;
-	}
-
-	if (width == 0)
-	{
-		width = 1;
-	}
-	if (height == 0)
-	{
-		height = 1;
-	}
-}

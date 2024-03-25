@@ -64,12 +64,7 @@ void PngDecoder::Process(uint8_t* data, size_t dataLength)
 			{
 				if (outputImage->width == 0 && outputImage->height == 0)
 				{
-					int width = imageHeader.width;
-					int height = imageHeader.height;
-					Platform::video->ScaleImageDimensions(width, height);
-
-					outputImage->width = width;
-					outputImage->height = height;
+					CalculateImageDimensions(imageHeader.width, imageHeader.height);
 
 					if (onlyDownloadDimensions)
 					{

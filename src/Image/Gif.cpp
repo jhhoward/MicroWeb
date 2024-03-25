@@ -56,20 +56,12 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 						lineBufferDivider++;
 					}
 					
-					if (outputImage->width == 0 && outputImage->height == 0)
+					CalculateImageDimensions(header.width, header.height);
+
+					if (onlyDownloadDimensions)
 					{
-						int width = header.width;
-						int height = header.height;
-						Platform::video->ScaleImageDimensions(width, height);
-
-						outputImage->width = width;
-						outputImage->height = height;
-
-						if (onlyDownloadDimensions)
-						{
-							state = ImageDecoder::Success;
-							return;
-						}
+						state = ImageDecoder::Success;
+						return;
 					}
 
 					if (outputImage->bpp == 1)

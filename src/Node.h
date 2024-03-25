@@ -47,6 +47,21 @@ struct Rect
 	void Clear() { x = y = width = height = 0; }
 };
 
+// For when width / height are set on an element
+// percentage is stored internally as a negative number, px as positive, zero is no value set
+struct ExplicitDimension
+{
+	static ExplicitDimension Parse(const char* str);
+
+	ExplicitDimension() : value(0) {}
+	bool IsSet() { return value != 0; }
+	bool IsPercentage() { return value < 0; }
+	int16_t Value() { return value < 0 ? -value : value; }
+
+private:
+	int16_t value;
+};
+
 #pragma pack(push, 1)
 class Node
 {

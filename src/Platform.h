@@ -30,9 +30,8 @@ public:
 	virtual void Init(VideoModeInfo* videoMode) = 0;
 	virtual void Shutdown() = 0;
 
-	virtual void ScaleImageDimensions(int& width, int& height) {}
-
 	void InvertVideoOutput();
+	VideoModeInfo* GetVideoModeInfo() { return videoMode; }
 
 	int screenWidth;
 	int screenHeight;
@@ -40,6 +39,9 @@ public:
 	DrawSurface* drawSurface;
 	ColourScheme colourScheme;
 	uint8_t* paletteLUT;
+	
+protected:
+	VideoModeInfo* videoMode;
 };
 
 typedef uint8_t NetworkAddress[4];   // An IPv4 address is 4 bytes

@@ -61,6 +61,7 @@ struct Widget;
 struct AppConfig
 {
 	bool loadImages : 1;
+	bool dumpPage : 1;
 };
 
 class App

@@ -95,12 +95,7 @@ void JpegDecoder::Process(uint8_t* data, size_t dataLength)
 			{
 				if (outputImage->width == 0 && outputImage->height == 0)
 				{
-					int width = frameHeader.width;
-					int height = frameHeader.height;
-					Platform::video->ScaleImageDimensions(width, height);
-
-					outputImage->width = width;
-					outputImage->height = height;
+					CalculateImageDimensions(frameHeader.width, frameHeader.height);
 
 					if (onlyDownloadDimensions)
 					{

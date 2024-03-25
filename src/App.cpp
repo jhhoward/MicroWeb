@@ -50,6 +50,7 @@ void App::Run(int argc, char* argv[])
 	char* targetURL = nullptr;
 
 	config.loadImages = true;
+	config.dumpPage = false;
 
 	if (argc > 1)
 	{
@@ -63,6 +64,10 @@ void App::Run(int argc, char* argv[])
 			else if (!stricmp(argv[n], "-noimages"))
 			{
 				config.loadImages = false;
+			}
+			else if (!stricmp(argv[n], "-dumppage"))
+			{
+				config.dumpPage = true;
 			}
 		}
 	}
@@ -257,7 +262,10 @@ void LoadTask::Load(const char* targetURL)
 	{
 		request = Platform::network->CreateRequest(url.url);
 
-		//debugDumpFile = fopen("dump.htm", "wb");
+		if (App::Get().config.dumpPage && this == &App::Get().pageLoadTask)
+		{
+			debugDumpFile = fopen("dump.htm", "wb");
+		}
 	}
 }
 
@@ -474,4 +482,3 @@ void VideoDriver::InvertVideoOutput()
 		Platform::input->ShowMouse();
 	}
 }
-

@@ -6,6 +6,7 @@
 #include "Png.h"
 #include "Decoder.h"
 #include "../Platform.h"
+#include "../VidModes.h"
 #include "Image.h"
 #include "../Draw/Surface.h"
 #pragma warning(disable:4996)
@@ -185,4 +186,43 @@ void ImageDecoder::Begin(Image* image, bool dimensionsOnly)
     state = ImageDecoder::Decoding;
     outputImage = image;
     outputImage->bpp = Platform::video->drawSurface->bpp == 1 ? 1 : 8;
+}
+
+void ImageDecoder::CalculateImageDimensions(int sourceWidth, int sourceHeight)
+{
+    sourceHeight /= Platform::video->GetVideoModeInfo()->aspectRatio;
+    sourceWidth *= Platform::video->GetVideoModeInfo()->zoom;
+    sourceHeight *= Platform::video->GetVideoModeInfo()->zoom;
+
+    int calculatedWidth = sourceWidth;
+    int calculatedHeight = sourceHeight;
+
+    if (outputImage->width != 0)
+    {
+        // Specified by layout
+        calculatedWidth = outputImage->width;
+        
+        if (outputImage->height == 0)
+        {
+            calculatedHeight = ((long)sourceHeight * outputImage->width) / sourceWidth;
+        }
+    }
+    if (outputImage->height != 0)
+    {
+        // Specified by layout
+        calculatedHeight = outputImage->height;
+
+        if (outputImage->width == 0)
+        {
+            calculatedWidth = ((long)sourceWidth * outputImage->height) / sourceHeight;
+        }
+    }
+
+    if (calculatedWidth <= 0)
+        calculatedWidth = 1;
+    if (calculatedHeight <= 0)
+        calculatedHeight = 1;
+
+    outputImage->width = calculatedWidth;
+    outputImage->height = calculatedHeight;
 }

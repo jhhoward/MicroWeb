@@ -87,6 +87,8 @@ protected:
 	bool SkipBytes(uint8_t** data, size_t& dataLength, size_t size);
 	size_t structFillPosition;
 
+	void CalculateImageDimensions(int sourceWidth, int sourceHeight);
+
 	Image* outputImage;
 	ImageDecoder::State state;
 	bool onlyDownloadDimensions;

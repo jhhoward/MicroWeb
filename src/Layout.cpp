@@ -1,3 +1,4 @@
+#include "VidModes.h"
 #include "Layout.h"
 #include "Page.h"
 #include "Platform.h"
@@ -31,6 +32,8 @@ void Layout::Update()
 {
 	while (currentNodeToProcess && currentNodeToProcess != lastNodeToProcess)
 	{
+		currentNodeToProcess->Handler().BeginLayoutContext(*this, currentNodeToProcess);
+
 		if (currentNodeToProcess->type == Node::Image && App::Get().config.loadImages)
 		{
 			ImageNode::Data* imageData = static_cast<ImageNode::Data*>(currentNodeToProcess->data);
@@ -45,7 +48,6 @@ void Layout::Update()
 			}
 		}
 
-		currentNodeToProcess->Handler().BeginLayoutContext(*this, currentNodeToProcess);
 		currentNodeToProcess->Handler().GenerateLayout(*this, currentNodeToProcess);
 
 		if (currentNodeToProcess->firstChild)
@@ -308,4 +310,37 @@ void Layout::RecalculateLayout()
 void Layout::MarkParsingComplete()
 {
 	lastNodeToProcess = nullptr;
+}
+
+int Layout::CalculateWidth(ExplicitDimension explicitWidth)
+{
+	if (explicitWidth.IsSet())
+	{
+		if (explicitWidth.IsPercentage())
+		{
+			return ((long)MaxAvailableWidth() * explicitWidth.Value()) / 100;
+		}
+		else
+		{
+			return explicitWidth.Value() * Platform::video->GetVideoModeInfo()->zoom;
+		}
+	}
+	return 0;
+}
+
+int Layout::CalculateHeight(ExplicitDimension explicitHeight)
+{
+	if (explicitHeight.IsSet())
+	{
+		if (explicitHeight.IsPercentage())
+		{
+			return ((long)App::Get().ui.GetPageHeightForDimensionScaling() * explicitHeight.Value()) / 100;
+		}
+		else
+		{
+			return (explicitHeight.Value() / Platform::video->GetVideoModeInfo()->aspectRatio) * Platform::video->GetVideoModeInfo()->zoom;
+		}
+	}
+	return 0;
+
 }

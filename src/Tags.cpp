@@ -330,6 +330,7 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 	char* name = NULL;
 	HTMLInputTag::Type type = HTMLInputTag::Text;
 	int bufferLength = 80;
+	ExplicitDimension width;
 
 	AttributeParser attributes(attributeStr);
 	while (attributes.Parse())
@@ -357,6 +358,10 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 		{
 			name = MemoryManager::pageAllocator.AllocString(attributes.Value());
 		}
+		if (!stricmp(attributes.Key(), "width"))
+		{
+			width = ExplicitDimension::Parse(attributes.Value());
+		}
 	}
 
 	switch (type)
@@ -374,6 +379,7 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 			{
 				TextFieldNode::Data* fieldData = static_cast<TextFieldNode::Data*>(fieldNode->data);
 				fieldData->name = name;
+				fieldData->explicitWidth = width;
 				parser.EmitNode(fieldNode);
 			}
 		}
@@ -418,103 +424,37 @@ void FormTagHandler::Close(HTMLParser& parser) const
 
 void ImgTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	AttributeParser attributes(attributeStr);
-	int width = -1;
-	int height = -1;
-	char* altText = nullptr;
-	char* src = nullptr;
-
-	while (attributes.Parse())
-	{
-		if (!stricmp(attributes.Key(), "alt"))
-		{
-			altText = (char*) attributes.Value();
-		}
-		else if (!stricmp(attributes.Key(), "src"))
-		{
-			src = (char*)attributes.Value();
-		}
-		else if (!stricmp(attributes.Key(), "width"))
-		{
-			width = atoi(attributes.Value());
-		}
-		else if (!stricmp(attributes.Key(), "height"))
-		{
-			height = atoi(attributes.Value());
-		}
-	}
-
-	if (width == -1)
-	{
-		if (height != -1)
-		{
-			width = height;
-		}
-	}
-	if (height == -1)
-	{
-		if (width != -1)
-		{
-			height = width;
-		}
-	}
-
 	Node* imageNode = ImageNode::Construct(MemoryManager::pageAllocator);
 	if (imageNode)
 	{
 		ImageNode::Data* data = static_cast<ImageNode::Data*>(imageNode->data);
 		if (data)
 		{
-			if (src)
-			{
-				data->source = MemoryManager::pageAllocator.AllocString(src);
-			}
+			AttributeParser attributes(attributeStr);
 
-			if (width != -1 && height != -1)
+			while (attributes.Parse())
 			{
-				Platform::video->ScaleImageDimensions(width, height);
-				imageNode->size.x = width;
-				imageNode->size.y = height;
-				data->image.width = width;
-				data->image.height = height;
-			}
-			else
-			{
-				imageNode->size.x = 16;
-				imageNode->size.y = 16;
-				data->image.width = 0;
-				data->image.height = 0;
-			}
-
-			if (altText)
-			{
-				data->altText = MemoryManager::pageAllocator.AllocString(altText);
+				if (!stricmp(attributes.Key(), "alt"))
+				{
+					data->altText = MemoryManager::pageAllocator.AllocString(attributes.Value());
+				}
+				else if (!stricmp(attributes.Key(), "src"))
+				{
+					data->source = MemoryManager::pageAllocator.AllocString(attributes.Value());
+				}
+				else if (!stricmp(attributes.Key(), "width"))
+				{
+					data->explicitWidth = ExplicitDimension::Parse(attributes.Value());
+				}
+				else if (!stricmp(attributes.Key(), "height"))
+				{
+					data->explicitHeight = ExplicitDimension::Parse(attributes.Value());
+				}
 			}
 
 			parser.EmitNode(imageNode);
 		}
 	}
-
-	/*
-	if (width == -1 && height == -1)
-	{
-		Image* imageIcon = Assets.imageIcon;
-		if (imageIcon)
-		{
-			parser.EmitImage(imageIcon, imageIcon->width, imageIcon->height);
-		}
-
-		if (altText)
-		{
-			parser.EmitText(altText);
-		}
-	}
-	else
-	{
-		Platform::video->ScaleImageDimensions(width, height);
-		parser.EmitImage(NULL, width, height);
-	}
-	*/
 }
 
 void MetaTagHandler::Open(class HTMLParser& parser, char* attributeStr) const

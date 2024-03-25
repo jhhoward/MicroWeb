@@ -72,15 +72,35 @@ Node* ImageNode::Construct(Allocator& allocator)
 	return nullptr;
 }
 
+void ImageNode::BeginLayoutContext(Layout& layout, Node* node)
+{
+	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
+
+	if (!data->AreDimensionsLocked())
+	{
+		if (data->explicitWidth.IsSet())
+		{
+			data->image.width = layout.CalculateWidth(data->explicitWidth);
+		}
+		if(data->explicitHeight.IsSet())
+		{
+			data->image.height = layout.CalculateHeight(data->explicitHeight);
+		}
+	}
+}
+
 void ImageNode::GenerateLayout(Layout& layout, Node* node)
 {
 	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
 
-	if (!data->AreDimensionsLocked() && data->image.width > layout.MaxAvailableWidth())
+	if (!data->AreDimensionsLocked())
 	{
-		int imageWidth = data->image.width;
-		data->image.width = layout.MaxAvailableWidth();
-		data->image.height = (uint16_t)(((long)data->image.height * data->image.width) / imageWidth);
+		if (data->image.width > layout.MaxAvailableWidth())
+		{
+			int imageWidth = data->image.width;
+			data->image.width = layout.MaxAvailableWidth();
+			data->image.height = (uint16_t)(((long)data->image.height * data->image.width) / imageWidth);
+		}
 	}
 
 	node->size.x = data->image.width;

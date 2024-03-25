@@ -54,6 +54,7 @@ public:
 	int GetScrollPositionY() { return scrollPositionY; }
 	void ScrollRelative(int delta);
 	void ScrollAbsolute(int position);
+	int GetPageHeightForDimensionScaling() { return pageHeightForDimensionScaling; }
 
 	Node* addressBarNode;
 	URL addressBarURL;
@@ -98,6 +99,7 @@ private:
 	Node* scrollBarNode;
 
 	int scrollPositionY;
+	int pageHeightForDimensionScaling;
 
 	char titleBuffer[MAX_TITLE_LENGTH];
 };
