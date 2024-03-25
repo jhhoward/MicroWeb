@@ -311,18 +311,17 @@ struct HTMLInputTag
 
 void ButtonTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	char* title = NULL;
-
 	AttributeParser attributes(attributeStr);
 	while (attributes.Parse())
 	{
-		if (!stricmp(attributes.Key(), "title"))
-		{
-			title = MemoryManager::pageAllocator.AllocString(attributes.Value());
-		}
 	}
 
-	parser.EmitNode(ButtonNode::Construct(MemoryManager::pageAllocator, title, NULL));
+	parser.PushContext(ButtonNode::Construct(MemoryManager::pageAllocator, NULL, FormNode::OnSubmitButtonPressed), this);
+}
+
+void ButtonTagHandler::Close(class HTMLParser& parser) const
+{
+	parser.PopContext(this);
 }
 
 void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const

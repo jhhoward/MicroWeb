@@ -24,6 +24,7 @@
 #include "Nodes/ImgNode.h"
 #include "Nodes/Break.h"
 #include "Nodes/Select.h"
+#include "Nodes/Button.h"
 #include "Memory/Memory.h"
 #include "App.h"
 
@@ -53,6 +54,18 @@ void HTMLParser::Reset()
 	contextStack.Reset();
 	contextStackSize = -1;
 	PushContext(page.GetRootNode(), nullptr);
+}
+
+HTMLParseContext* HTMLParser::FindContextInStack(Node::Type nodeType)
+{
+	for (Stack<HTMLParseContext>::Entry* entry = contextStack.top; entry; entry = entry->prev)
+	{
+		if (entry->obj.node && entry->obj.node->type == nodeType)
+		{
+			return &entry->obj;
+		}
+	}
+	return nullptr;
 }
 
 void HTMLParser::PushContext(Node* node, const HTMLTagHandler* tag)
@@ -220,27 +233,38 @@ void HTMLParser::FlushTextBuffer()
 	{
 		case ParseText:
 		{
-			if (CurrentContext().node && CurrentContext().node->type == Node::Option)
+			if(textBufferSize > 0)
 			{
-				OptionNode::Data* option = static_cast<OptionNode::Data*>(CurrentContext().node->data);
-				option->text = MemoryManager::pageAllocator.AllocString(textBuffer);
-			}
-			else if(textBufferSize > 0)
-			{
-				switch (CurrentSection())
+				HTMLParseContext* optionContext = FindContextInStack(Node::Option);
+				HTMLParseContext* buttonContext = FindContextInStack(Node::Button);
+
+				if (optionContext)
 				{
-				case SectionElement::Title:
-					page.SetTitle(textBuffer);
-					break;
-				case SectionElement::Script:
-				case SectionElement::Style:
-				case SectionElement::Document:
-					break;
-				default:
-				case SectionElement::Body:
-				case SectionElement::HTML:
-					EmitText(textBuffer);
-					break;
+					OptionNode::Data* option = static_cast<OptionNode::Data*>(optionContext->node->data);
+					option->text = MemoryManager::pageAllocator.AllocString(textBuffer);
+				}
+				else if (buttonContext)
+				{
+					ButtonNode::Data* button = static_cast<ButtonNode::Data*>(buttonContext->node->data);
+					button->buttonText = MemoryManager::pageAllocator.AllocString(textBuffer);
+				}
+				else
+				{
+					switch (CurrentSection())
+					{
+					case SectionElement::Title:
+						page.SetTitle(textBuffer);
+						break;
+					case SectionElement::Script:
+					case SectionElement::Style:
+					case SectionElement::Document:
+						break;
+					default:
+					case SectionElement::Body:
+					case SectionElement::HTML:
+						EmitText(textBuffer);
+						break;
+					}
 				}
 			}
 		}

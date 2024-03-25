@@ -176,6 +176,7 @@ class ButtonTagHandler : public HTMLTagHandler
 public:
 	ButtonTagHandler() : HTMLTagHandler("button") {}
 	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
+	virtual void Close(class HTMLParser& parser) const;
 };
 
 class TableTagHandler : public HTMLTagHandler

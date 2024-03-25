@@ -77,6 +77,7 @@ public:
 	void PopContext(const HTMLTagHandler* tag);
 	HTMLParseContext& CurrentContext() { return contextStack.Top(); }
 	SectionElement::Type CurrentSection() { return CurrentContext().parseSection; }
+	HTMLParseContext* FindContextInStack(Node::Type nodeType);
 
 	void EmitNode(Node* node);
 	void EmitText(const char* text);

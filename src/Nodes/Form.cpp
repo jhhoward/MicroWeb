@@ -55,6 +55,13 @@ void FormNode::SubmitForm(Node* node)
 		strcpy(address, data->action);
 		int numParams = 0;
 
+		// Remove anything after existing ?
+		char* questionMark = strstr(address, "?");
+		if (questionMark)
+		{
+			*questionMark = '\0';
+		}
+
 		BuildAddressParameterList(node, address, numParams);
 
 		// Replace any spaces with +
