@@ -13,6 +13,8 @@
 #define RESPONSE_TEMPORARY_REDIRECTION 307
 #define RESPONSE_PERMANENT_REDIRECT 308
 
+#define MAX_CONTENT_TYPE_LENGTH 32
+
 class HTTPRequest
 {
 public:
@@ -36,6 +38,7 @@ public:
 	void Update();
 	virtual const char* GetStatusString();
 	virtual const char* GetURL() { return url.url; }
+	const char* GetContentType() { return contentType; }
 
 private:
 	enum InternalStatus
@@ -81,6 +84,7 @@ private:
 	uint16_t serverPort;
 	NetworkTCPSocket* sock;
 	int responseCode;
+	char contentType[MAX_CONTENT_TYPE_LENGTH];
 
 	char lineBuffer[LINE_BUFFER_SIZE];
 	int lineBufferSize;

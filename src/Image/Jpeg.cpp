@@ -109,7 +109,7 @@ void JpegDecoder::Process(uint8_t* data, size_t dataLength)
 					}
 				}
 
-				state = ImageDecoder::Error;
+				state = ImageDecoder::Success;
 				return;
 			}
 			break;

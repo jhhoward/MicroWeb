@@ -5,12 +5,14 @@
 
 HTTPRequest::HTTPRequest() : status(HTTPRequest::Stopped), sock(NULL)
 {
+	contentType[0] = '\0';
 }
 
 void HTTPRequest::Reset()
 {
 	lineBufferSize = 0;
 	lineBufferSendPos = -1;
+	contentType[0] = '\0';
 }
 
 void HTTPRequest::WriteLine(const char* fmt, ...)
@@ -315,6 +317,7 @@ void HTTPRequest::Update()
 
 				contentRemaining = -1;
 				usingChunkedTransfer = false;
+				contentType[0] = '\0';
 			}
 		}
 		break;
@@ -372,6 +375,10 @@ void HTTPRequest::Update()
 				else if (!stricmp(lineBuffer, "Transfer-Encoding: chunked"))
 				{
 					usingChunkedTransfer = true;
+				}
+				else if (!strnicmp(lineBuffer, "Content-Type:", 13))
+				{
+					strncpy(contentType, lineBuffer + 14, MAX_CONTENT_TYPE_LENGTH);
 				}
 
 				//printf("Header: %s  -- \n", lineBuffer);

@@ -93,6 +93,23 @@ ImageDecoder* ImageDecoder::Create(DecoderType type)
     }
 }
 
+ImageDecoder* ImageDecoder::CreateFromMIME(const char* type)
+{
+    if (!stricmp(type, "image/gif"))
+    {
+        return Create(ImageDecoder::Gif);
+    }
+    if (!stricmp(type, "image/png"))
+    {
+        return Create(ImageDecoder::Png);
+    }
+    if (!stricmp(type, "image/jpeg"))
+    {
+        return Create(ImageDecoder::Jpeg);
+    }
+    return nullptr;
+}
+
 ImageDecoder* ImageDecoder::CreateFromExtension(const char* path)
 {
     const char* extension = path + strlen(path);

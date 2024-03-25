@@ -7,6 +7,7 @@
 #include "../App.h"
 #include "../Image/Decoder.h"
 #include "../DataPack.h"
+#include "../HTTP.h"
 #include "Text.h"
 
 void ImageNode::Draw(DrawContext& context, Node* node)
@@ -15,7 +16,7 @@ void ImageNode::Draw(DrawContext& context, Node* node)
 	//printf("--IMG [%d, %d]\n", node->anchor.x, node->anchor.y);
 	uint8_t outlineColour = Platform::video->colourScheme.textColour;
 
-	if (data->state == ImageNode::FinishedDownloadingContent)
+	if (data->state == ImageNode::FinishedDownloadingContent && data->image.lines.IsAllocated())
 	{
 		context.surface->BlitImage(context, &data->image, node->anchor.x, node->anchor.y);
 	}
@@ -120,17 +121,8 @@ void ImageNode::LoadContent(Node* node, LoadTask& loadTask)
 			if (!loadDimensionsOnly && App::Get().pageLoadTask.HasContent())
 				return;
 
-			if (ImageDecoder::CreateFromExtension(data->source))
-			{
-				loadTask.Load(URL::GenerateFromRelative(App::Get().page.pageURL.url, data->source).url);
-				ImageDecoder::Get()->Begin(&data->image, loadDimensionsOnly);
-				data->state = loadDimensionsOnly ? ImageNode::DownloadingDimensions : ImageNode::DownloadingContent;
-			}
-			else
-			{
-				// Unsupported image format
-				ImageLoadError(node);
-			}
+			loadTask.Load(URL::GenerateFromRelative(App::Get().page.pageURL.url, data->source).url);
+			data->state = ImageNode::DeterminingFormat;
 		}
 	}
 }
@@ -145,6 +137,7 @@ void ImageNode::FinishContent(Node* node, struct LoadTask& loadTask)
 		{
 		case ImageNode::DownloadingDimensions:
 		case ImageNode::DownloadingContent:
+		case ImageNode::DeterminingFormat:
 			ImageLoadError(node);
 			break;
 		}
@@ -180,6 +173,26 @@ void ImageNode::ImageLoadError(Node* node)
 bool ImageNode::ParseContent(Node* node, char* buffer, size_t count)
 {
 	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
+
+	if (data->state == ImageNode::DeterminingFormat)
+	{
+		bool loadDimensionsOnly = !data->HasDimensions();
+		LoadTask& loadTask = App::Get().pageContentLoadTask;
+		
+		if((loadTask.type == LoadTask::RemoteFile && ImageDecoder::CreateFromMIME(loadTask.request->GetContentType()))
+			|| ImageDecoder::CreateFromExtension(data->source))
+		{
+			ImageDecoder::Get()->Begin(&data->image, loadDimensionsOnly);
+			data->state = loadDimensionsOnly ? ImageNode::DownloadingDimensions : ImageNode::DownloadingContent;
+		}
+		else
+		{
+			// Unsupported image format
+			ImageLoadError(node);
+			return false;
+		}
+	}
+
 	ImageDecoder* decoder = ImageDecoder::Get();
 
 	decoder->Process((uint8_t*) buffer, count);

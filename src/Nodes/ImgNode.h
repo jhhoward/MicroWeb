@@ -10,6 +10,7 @@ public:
 	enum State
 	{
 		WaitingToDownload,
+		DeterminingFormat,
 		DownloadingDimensions,
 		FinishedDownloadingDimensions,
 		DownloadingContent,

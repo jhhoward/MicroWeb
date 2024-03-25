@@ -73,6 +73,7 @@ public:
 	static ImageDecoder* Get();
 	static ImageDecoder* Create(DecoderType type);
 	static ImageDecoder* CreateFromExtension(const char* path);
+	static ImageDecoder* CreateFromMIME(const char* type);
 
 protected:
 	bool FillStruct(uint8_t** data, size_t& dataLength, void* dest, size_t size);
