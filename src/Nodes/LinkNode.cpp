@@ -22,21 +22,30 @@ Node* LinkNode::Construct(Allocator& allocator, char* url)
 
 bool LinkNode::HandleEvent(Node* node, const Event& event)
 {
+	LinkNode::Data* data = static_cast<LinkNode::Data*>(node->data);
+
 	switch (event.type)
 	{
 		case Event::Focus:
 		{
 			HighlightChildren(node);
+			if (data->url)
+			{
+				App::Get().ui.SetStatusMessage(URL::GenerateFromRelative(App::Get().page.pageURL.url, data->url).url, StatusBarNode::HoverStatus);
+			}
 		}
 		return true;
 		case Event::Unfocus:
 		{
 			HighlightChildren(node);
+			if (data->url)
+			{
+				App::Get().ui.ClearStatusMessage(StatusBarNode::HoverStatus);
+			}
 		}
 		return true;
 		case Event::MouseClick:
 		{
-			LinkNode::Data* data = static_cast<LinkNode::Data*>(node->data);
 			if (data->url)
 			{
 				App::Get().OpenURL(URL::GenerateFromRelative(App::Get().page.pageURL.url, data->url).url);
@@ -47,7 +56,6 @@ bool LinkNode::HandleEvent(Node* node, const Event& event)
 		{
 			if (event.key == KEYCODE_ENTER)
 			{
-				LinkNode::Data* data = static_cast<LinkNode::Data*>(node->data);
 				if (data->url)
 				{
 					App::Get().OpenURL(URL::GenerateFromRelative(App::Get().page.pageURL.url, data->url).url);

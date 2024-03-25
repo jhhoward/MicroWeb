@@ -39,6 +39,8 @@ public:
 	virtual bool ParseContent(Node* node, char* buffer, size_t count) override;
 	virtual void FinishContent(Node* node, struct LoadTask& loadTask) override;
 
+	virtual bool CanPick(Node* node) override { return true; }
+
 	void ImageLoadError(Node* node);
 };
 

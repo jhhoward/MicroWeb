@@ -1,6 +1,7 @@
 #ifndef HTTP_H_
 #define HTTP_H_
 
+#include <time.h>
 #include "Platform.h"
 #include "URL.h"
 
@@ -14,6 +15,9 @@
 #define RESPONSE_PERMANENT_REDIRECT 308
 
 #define MAX_CONTENT_TYPE_LENGTH 32
+
+#define HTTP_RESPONSE_TIMEOUT_SECONDS 20
+#define HTTP_RESPONSE_TIMEOUT (HTTP_RESPONSE_TIMEOUT_SECONDS * CLOCKS_PER_SEC)
 
 class HTTPRequest
 {
@@ -32,12 +36,12 @@ public:
 
 	void Open(char* url);
 
-	virtual HTTPRequest::Status GetStatus() { return status; }
-	virtual size_t ReadData(char* buffer, size_t count);
-	virtual void Stop();
+	HTTPRequest::Status GetStatus() { return status; }
+	size_t ReadData(char* buffer, size_t count);
+	void Stop();
 	void Update();
-	virtual const char* GetStatusString();
-	virtual const char* GetURL() { return url.url; }
+	const char* GetStatusString();
+	const char* GetURL() { return url.url; }
 	const char* GetContentType() { return contentType; }
 
 private:
@@ -53,6 +57,7 @@ private:
 		UnsupportedHTTPError,
 		MalformedHTTPVersionLineError,
 		WriteLineError,
+		TimedOut,
 		HostNameResolveError,
 
 		// Connection states
@@ -73,6 +78,7 @@ private:
 	bool SendPendingWrites();
 
 	void Reset();
+	void ResetTimeOutTimer();
 
 	HTTPRequest::Status status;
 	InternalStatus internalStatus;
@@ -94,6 +100,8 @@ private:
 
 	long chunkSizeRemaining;
 	bool usingChunkedTransfer;
+	
+	clock_t timeout;
 };
 
 

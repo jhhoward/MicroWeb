@@ -355,9 +355,9 @@ void PageRenderer::MarkNodeLayoutComplete(Node* node)
 			int nodeBottom = nodeTop + node->size.y;
 			bool outsideOfWindow = (nodeTop > maxWinY) || (nodeBottom < minWinY);
 
-			if (nodeBottom > visiblePageHeight)
+			if (node->anchor.y + node->size.y > visiblePageHeight)
 			{
-				visiblePageHeight = nodeBottom;
+				visiblePageHeight = node->anchor.y + node->size.y;
 				expandedPage = true;
 			}
 

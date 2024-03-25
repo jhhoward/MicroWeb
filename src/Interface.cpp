@@ -19,8 +19,10 @@
 #include "Nodes/Section.h"
 #include "Nodes/Button.h"
 #include "Nodes/Field.h"
+#include "Nodes/LinkNode.h"
 #include "Nodes/Text.h"
 #include "Nodes/Status.h"
+#include "Nodes/ImgNode.h"
 #include "Nodes/Scroll.h"
 #include "Draw/Surface.h"
 #include "DataPack.h"
@@ -61,6 +63,10 @@ void AppInterface::Reset()
 	{
 		hoverNode = nullptr;
 	}
+
+	ClearStatusMessage(StatusBarNode::HoverStatus);
+	ClearStatusMessage(StatusBarNode::GeneralStatus);
+	UpdatePageScrollBar();
 }
 
 void AppInterface::Update()
@@ -103,16 +109,35 @@ void AppInterface::Update()
 
 	if (hoverNode != oldHoverNode)
 	{
+		bool hasHoverStatusMessage = false;
+
 		if (hoverNode)
 		{
 			switch (hoverNode->type)
 			{
 			case Node::Link:
 				Platform::input->SetMouseCursor(MouseCursor::Hand);
-				// TODO show link URL
+				{
+					LinkNode::Data* linkData = static_cast<LinkNode::Data*>(hoverNode->data);
+					if (linkData && linkData->url)
+					{
+						SetStatusMessage(URL::GenerateFromRelative(app.page.pageURL.url, linkData->url).url, StatusBarNode::HoverStatus);
+						hasHoverStatusMessage = true;
+					}
+				}
 				break;
 			case Node::TextField:
 				Platform::input->SetMouseCursor(MouseCursor::TextSelect);
+				break;
+			case Node::Image:
+				{
+					ImageNode::Data* imageData = static_cast<ImageNode::Data*>(hoverNode->data);
+					if (imageData && imageData->altText)
+					{
+						SetStatusMessage(imageData->altText, StatusBarNode::HoverStatus);
+						hasHoverStatusMessage = true;
+					}
+				}
 				break;
 			default:
 				Platform::input->SetMouseCursor(MouseCursor::Pointer);
@@ -122,6 +147,11 @@ void AppInterface::Update()
 		else
 		{
 			Platform::input->SetMouseCursor(MouseCursor::Pointer);
+		}
+
+		if (!hasHoverStatusMessage)
+		{
+			ClearStatusMessage(StatusBarNode::HoverStatus);
 		}
 
 		if(0)
@@ -220,7 +250,7 @@ void AppInterface::Update()
 		{
 			char tempMessage[100];
 			MemoryManager::GenerateMemoryReport(tempMessage);
-			app.ui.SetStatusMessage(tempMessage);
+			SetStatusMessage(tempMessage, StatusBarNode::GeneralStatus);
 		}
 			break;
 
@@ -414,6 +444,7 @@ void AppInterface::DrawInterfaceNodes(DrawContext& context)
 void AppInterface::SetTitle(const char* title)
 {
 	strncpy(titleBuffer, title, MAX_TITLE_LENGTH);
+	titleBuffer[MAX_TITLE_LENGTH - 1] = '\0';
 	Font* font = Assets.GetFont(titleNode->style.fontSize, titleNode->style.fontStyle);
 	int titleWidth = font->CalculateWidth(titleBuffer, titleNode->style.fontStyle);
 	titleNode->anchor.x = Platform::video->screenWidth / 2 - titleWidth / 2;
@@ -471,14 +502,18 @@ void AppInterface::OnAddressBarSubmit(Node* node)
 	app.ui.FocusNode(nullptr);
 }
 
-void AppInterface::SetStatusMessage(const char* message)
+void AppInterface::SetStatusMessage(const char* message, StatusBarNode::StatusType type)
 {
-	StatusBarNode::Data* data = static_cast<StatusBarNode::Data*>(statusBarNode->data);
-	if (strcmp(data->message, message))
+	if (message)
 	{
-		strcpy(data->message, message);
-		statusBarNode->Redraw();
+		StatusBarNode::SetStatus(statusBarNode, message, type);
 	}
+	else ClearStatusMessage(type);
+}
+
+void AppInterface::ClearStatusMessage(StatusBarNode::StatusType type)
+{
+	StatusBarNode::SetStatus(statusBarNode, "", type);
 }
 
 void AppInterface::ScrollRelative(int delta)

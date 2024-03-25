@@ -713,9 +713,14 @@ void HTMLParser::ParseChar(char c)
 	
 }
 
+// Making this static as we only ever have one attribute parser running at a time
+// and we don't want to blow the stack with a huge buffer
+char AttributeParser::attributeStringBuffer[MAX_ATTRIBUTE_STRING_LENGTH];
+
 AttributeParser::AttributeParser(const char* inAttributeString) :key(NULL), value(NULL) 
 {
 	strncpy(attributeStringBuffer, inAttributeString, MAX_ATTRIBUTE_STRING_LENGTH);
+	attributeStringBuffer[MAX_ATTRIBUTE_STRING_LENGTH - 1] = '\0';
 	attributeString = attributeStringBuffer;
 }
 

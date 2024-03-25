@@ -17,6 +17,7 @@
 #include "Platform.h"
 #include "URL.h"
 #include "Node.h"
+#include "Nodes/Status.h"
 
 #define MAX_TITLE_LENGTH 80
 
@@ -35,7 +36,9 @@ public:
 
 	void DrawInterfaceNodes(DrawContext& context);
 	void UpdateAddressBar(const URL& url);
-	void SetStatusMessage(const char* message);
+
+	void SetStatusMessage(const char* message, StatusBarNode::StatusType type);
+	void ClearStatusMessage(StatusBarNode::StatusType type);
 
 	void UpdatePageScrollBar();
 

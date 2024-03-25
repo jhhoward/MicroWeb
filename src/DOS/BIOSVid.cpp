@@ -41,7 +41,11 @@ void BIOSVideoDriver::Init(VideoModeInfo* inVideoModeInfo)
 	screenWidth = videoModeInfo->screenWidth;
 	screenHeight = videoModeInfo->screenHeight;
 
-	SetScreenMode(videoModeInfo->biosVideoMode);
+	if (!SetScreenMode(videoModeInfo->biosVideoMode))
+	{
+		Platform::FatalError("Could not set video mode: %d", videoModeInfo->biosVideoMode);
+		return;
+	}
 
 	if (videoModeInfo->biosVideoMode == CGA_COMPOSITE_MODE)
 	{
@@ -201,13 +205,15 @@ int BIOSVideoDriver::GetScreenMode()
 	return (int)outreg.h.al;
 }
 
-void BIOSVideoDriver::SetScreenMode(int screenMode)
+bool BIOSVideoDriver::SetScreenMode(int screenMode)
 {
 	union REGS inreg, outreg;
 	inreg.h.ah = 0;
 	inreg.h.al = (unsigned char)screenMode;
 
 	int86(0x10, &inreg, &outreg);
+
+	return GetScreenMode() == screenMode;
 }
 
 

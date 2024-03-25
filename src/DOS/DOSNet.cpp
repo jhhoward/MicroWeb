@@ -78,6 +78,7 @@ void DOSNetworkDriver::Init()
 		}
 	}
 
+	printf("Network interface initialised\n");
 	isConnected = true;
 }
 

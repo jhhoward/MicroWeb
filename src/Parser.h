@@ -41,7 +41,7 @@ struct HTMLParseContext
 	SectionElement::Type parseSection;
 };
 
-#define MAX_ATTRIBUTE_STRING_LENGTH 256
+#define MAX_ATTRIBUTE_STRING_LENGTH 1024
 
 class AttributeParser
 {
@@ -56,7 +56,7 @@ public:
 private:
 	bool IsWhiteSpace(char c);
 	
-	char attributeStringBuffer[MAX_ATTRIBUTE_STRING_LENGTH];
+	static char attributeStringBuffer[MAX_ATTRIBUTE_STRING_LENGTH];
 	char* key;
 	char* value;
 	char* attributeString;

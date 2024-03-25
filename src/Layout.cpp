@@ -85,26 +85,20 @@ void Layout::Update()
 			}
 		}
 
-//		if (lastNodeContext && !tableDepth && !lineStartNode)
-//		{
-//			page.GetApp().pageRenderer.MarkNodeLayoutComplete(lastNodeContext);
-//		}
 	}
 
 	if (!isFinished && App::Get().parser.IsFinished() && !currentNodeToProcess)
 	{
+		if (!MemoryManager::pageAllocator.GetError())
+		{
+			page.GetApp().pageRenderer.MarkPageLayoutComplete();
+		}
+
 		// Layout has finished so now we can load image content
-		//RecalculateLayout();
-		page.GetApp().pageRenderer.MarkPageLayoutComplete();
 		App::Get().LoadImageNodeContent(page.GetRootNode());
+		page.GetApp().ui.SetStatusMessage("Loading images...", StatusBarNode::GeneralStatus);
 		isFinished = true;
 	}
-
-	//if (!currentNodeToProcess)
-	//{
-	//	page.GetApp().pageRenderer.MarkNodeLayoutComplete(page.GetRootNode());
-	//	page.GetApp().pageRenderer.MarkPageLayoutComplete();
-	//}
 }
 
 void Layout::BreakNewLine()

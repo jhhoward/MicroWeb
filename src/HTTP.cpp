@@ -69,6 +69,11 @@ bool HTTPRequest::SendPendingWrites()
 	return false;
 }
 
+void HTTPRequest::ResetTimeOutTimer()
+{
+	timeout = clock() + HTTP_RESPONSE_TIMEOUT;
+}
+
 void HTTPRequest::Open(char* inURL)
 {
 	url = inURL;
@@ -134,6 +139,8 @@ void HTTPRequest::Open(char* inURL)
 
 		status = HTTPRequest::Connecting;
 		internalStatus = QueuedDNSRequest;
+
+		ResetTimeOutTimer();
 	}
 	else if (strnicmp(url.url, "https://", 8) == 0) {
 		status = HTTPRequest::UnsupportedHTTPS;
@@ -158,8 +165,10 @@ size_t HTTPRequest::ReadData(char* buffer, size_t count)
 		{
 			MarkError(ContentReceiveError);
 		}
-		else
+		else if(rc > 0)
 		{
+			ResetTimeOutTimer();
+
 			size_t bytesRead = (size_t)(rc);
 			if (contentRemaining > 0)
 			{
@@ -205,6 +214,12 @@ void HTTPRequest::MarkError(InternalStatus statusError)
 
 void HTTPRequest::Update()
 {
+	if ((status == HTTPRequest::Connecting || status == HTTPRequest::Downloading) && clock() > timeout)
+	{
+		MarkError(TimedOut);
+		return;
+	}
+
 	if (SendPendingWrites())
 	{
 		return;
@@ -260,6 +275,7 @@ void HTTPRequest::Update()
 				break;
 			}
 			internalStatus = ConnectingSocket;
+			ResetTimeOutTimer();
 		}
 		break;
 		case ConnectingSocket:
@@ -267,6 +283,7 @@ void HTTPRequest::Update()
 			if (sock->IsConnectComplete())
 			{
 				internalStatus = SendHeaders;
+				ResetTimeOutTimer();
 				break;
 			}
 			else if (sock->IsClosed())
@@ -327,19 +344,27 @@ void HTTPRequest::Update()
 			{
 				if (lineBuffer[0] == '\0')
 				{
-					// Header has finished
-					if (usingChunkedTransfer)
+					if (contentRemaining == 0)
 					{
-						internalStatus = ParseChunkHeader;
+						// Received header with zero content
+						MarkError(ContentReceiveError);
 					}
 					else
 					{
-						status = Downloading;
-						internalStatus = ReceiveContent;
+						// Header has finished
+						if (usingChunkedTransfer)
+						{
+							internalStatus = ParseChunkHeader;
+						}
+						else
+						{
+							status = Downloading;
+							internalStatus = ReceiveContent;
+						}
 					}
 					break;
 				}
-				else if (!strncmp(lineBuffer, "Location: ", 10))
+				else if (!strnicmp(lineBuffer, "Location: ", 10))
 				{
 					if (responseCode == RESPONSE_MOVED_PERMANENTLY || responseCode == RESPONSE_MOVED_TEMPORARILY || responseCode == RESPONSE_TEMPORARY_REDIRECTION || responseCode == RESPONSE_PERMANENT_REDIRECT)
 					{
@@ -368,7 +393,7 @@ void HTTPRequest::Update()
 						break;
 					}
 				}
-				else if (!strncmp(lineBuffer, "Content-Length:", 15))
+				else if (!strnicmp(lineBuffer, "Content-Length:", 15))
 				{
 					contentRemaining = strtol(lineBuffer + 15, NULL, 10);
 				}
@@ -501,6 +526,8 @@ const char* HTTPRequest::GetStatusString()
 			return "Error writing headers";
 		case HostNameResolveError:
 			return "Error resolving host name";
+		case TimedOut:
+			return "Connection timed out";
 		}
 		break;
 

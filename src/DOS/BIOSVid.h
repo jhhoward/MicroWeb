@@ -31,7 +31,7 @@ public:
 
 private:
 	int GetScreenMode();
-	void SetScreenMode(int screenMode);
+	bool SetScreenMode(int screenMode);
 
 	int startingScreenMode;
 	VideoModeInfo* videoModeInfo;

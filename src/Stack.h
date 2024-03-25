@@ -44,7 +44,7 @@ public:
 			else
 			{
 				// TODO: handle allocation error more gracefully
-				Platform::FatalError("Could not push to stack: out of memory");
+				//Platform::FatalError("Could not push to stack: out of memory");
 			}
 		}
 	}

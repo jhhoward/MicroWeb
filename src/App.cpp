@@ -39,8 +39,8 @@ void App::ResetPage()
 {
 	page.Reset();
 	parser.Reset();
-	ui.Reset();
 	pageRenderer.Reset();
+	ui.Reset();
 	pageRenderer.RefreshAll();
 }
 
@@ -97,6 +97,7 @@ void App::Run(int argc, char* argv[])
 				page.pageURL = pageLoadTask.GetURL();
 				ui.UpdateAddressBar(page.pageURL);
 				loadTaskTargetNode = page.GetRootNode();
+				ui.SetStatusMessage("Parsing page content...", StatusBarNode::GeneralStatus);
 			}
 
 			size_t bytesRead = pageLoadTask.GetContent(loadBuffer, APP_LOAD_BUFFER_SIZE);
@@ -118,7 +119,14 @@ void App::Run(int argc, char* argv[])
 				{
 					if (!pageLoadTask.request)
 					{
-						ShowErrorPage("No network interface available");
+						if (Platform::network->IsConnected())
+						{
+							ShowErrorPage("Failed to make network request");
+						}
+						else
+						{
+							ShowErrorPage("No network interface available");
+						}
 						requestedNewPage = false;
 					}
 					else if (pageLoadTask.request->GetStatus() == HTTPRequest::Error)
@@ -162,6 +170,18 @@ void App::Run(int argc, char* argv[])
 			{
 				loadTaskTargetNode->Handler().FinishContent(loadTaskTargetNode, pageContentLoadTask);
 				loadTaskTargetNode = page.ProcessNextLoadTask(loadTaskTargetNode, pageContentLoadTask);
+
+				if (!loadTaskTargetNode && page.layout.IsFinished())
+				{
+					if (MemoryManager::pageAllocator.GetError())
+					{
+						page.GetApp().ui.SetStatusMessage("Out of memory when loading page", StatusBarNode::GeneralStatus);
+					}
+					else
+					{
+						page.GetApp().ui.ClearStatusMessage(StatusBarNode::GeneralStatus);
+					}
+				}
 			}
 		}
 		//if (loadTask.type == LoadTask::RemoteFile && loadTask.request && loadTask.request->GetStatus() == HTTPRequest::Connecting)
@@ -336,6 +356,11 @@ void App::RequestNewPage(const char* url)
 	requestedNewPage = true;
 	loadTaskTargetNode = nullptr;
 	//ui.UpdateAddressBar(loadTask.url);
+
+	if (pageLoadTask.type == LoadTask::RemoteFile && pageLoadTask.request)
+	{
+		ui.SetStatusMessage("Connecting to server...", StatusBarNode::GeneralStatus);
+	}
 }
 
 void App::OpenURL(const char* url)

@@ -57,6 +57,7 @@ Node* TextFieldNode::Construct(Allocator& allocator, const char* inValue, NodeCa
 		if (inValue)
 		{
 			strncpy(buffer, inValue, DEFAULT_TEXT_FIELD_BUFFER_SIZE);
+			buffer[DEFAULT_TEXT_FIELD_BUFFER_SIZE - 1] = '\0';
 		}
 		else
 		{
