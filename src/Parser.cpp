@@ -338,6 +338,13 @@ void HTMLParser::FlushTextBuffer()
 									CurrentContext().node->style.alignment = ElementAlignment::Right;
 								}
 							}
+							if (!stricmp(attributes.Key(), "name"))
+							{
+								if (App::Get().ui.jumpTagName && !stricmp(attributes.Value(), App::Get().ui.jumpTagName + 1))
+								{
+									App::Get().ui.jumpNode = CurrentContext().node;
+								}
+							}
 						}
 					}
 				}

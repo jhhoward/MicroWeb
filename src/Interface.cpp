@@ -37,6 +37,8 @@ AppInterface::AppInterface(App& inApp) : app(inApp)
 
 	hoverNode = nullptr;
 	focusedNode = nullptr;
+	jumpTagName = nullptr;
+	jumpNode = nullptr;
 }
 
 void AppInterface::Init()
@@ -63,6 +65,8 @@ void AppInterface::Reset()
 	{
 		hoverNode = nullptr;
 	}
+	jumpTagName = nullptr;
+	jumpNode = nullptr;
 
 	ClearStatusMessage(StatusBarNode::HoverStatus);
 	ClearStatusMessage(StatusBarNode::GeneralStatus);
@@ -272,6 +276,26 @@ void AppInterface::Update()
 		ScrollRelative(scrollDelta);
 		//app.renderer.Scroll(scrollDelta);
 	}
+
+	if (jumpNode)
+	{
+		Node* node = App::Get().ui.jumpNode;
+		while (node && node->size.IsZero())
+		{
+			node = node->GetNextInTree();
+		}
+
+		if (node)
+		{
+			int jumpPosition = node->anchor.y;
+
+			if (app.page.layout.IsFinished() || jumpPosition + windowRect.height < app.pageRenderer.GetVisiblePageHeight())
+			{
+				ScrollAbsolute(jumpPosition);
+				jumpNode = nullptr;
+			}			
+		}
+	}
 }
 
 bool AppInterface::IsOverNode(Node* node, int x, int y)
@@ -350,6 +374,8 @@ void AppInterface::UpdateAddressBar(const URL& url)
 {
 	addressBarURL = url;
 	addressBarNode->Redraw();
+
+	jumpTagName = strstr(url.url, "#");
 }
 
 void AppInterface::UpdatePageScrollBar()

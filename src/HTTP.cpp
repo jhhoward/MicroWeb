@@ -122,6 +122,13 @@ void HTTPRequest::Open(char* inURL)
 			path[PATH_LEN - 1] = 0;
 
 		}
+		
+		// If there is a # in the URL, remove from the path
+		char* hashPathPtr = strstr(path, "#");
+		if (hashPathPtr)
+		{
+			*hashPathPtr = '\0';
+		}
 
 		serverPort = 80;
 		char* portStart = strchr(hostname, ':');

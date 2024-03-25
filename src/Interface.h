@@ -60,6 +60,10 @@ public:
 
 	Rect windowRect;
 
+	// For jumping to #name in the page
+	const char* jumpTagName;
+	Node* jumpNode;
+
 private:
 	void GenerateInterfaceNodes();
 
