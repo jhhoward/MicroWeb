@@ -88,6 +88,11 @@ void TextFieldNode::GenerateLayout(Layout& layout, Node* node)
 	node->size.x = Platform::video->screenWidth / 3;
 	node->size.y = font->glyphHeight + 4;
 
+	if (layout.MaxAvailableWidth() < node->size.x)
+	{
+		node->size.x = layout.MaxAvailableWidth();
+	}
+
 	if (layout.AvailableWidth() < node->size.x)
 	{
 		layout.BreakNewLine();
