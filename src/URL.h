@@ -72,7 +72,7 @@ struct URL
 			{
 				strcpy(prevSlash, directory + 3);
 			}
-			directory = strstr(prevSlash + 1, "/../");
+			directory = strstr(prevSlash, "/../");
 		}
 
 		// Fix &amp escape sequences
@@ -165,9 +165,24 @@ struct URL
 
 			
 		// Skip leading '/' on relative URL
-		while (*relativeURL == '/')
+		if (*relativeURL == '/')
 		{
-			relativeURL++;
+			while (*relativeURL == '/')
+			{
+				relativeURL++;
+			}
+
+			// Move lastSlashPos to the first slash position
+			const char* domainPos = strstr(baseURL, "://");
+			if (domainPos)
+			{
+				domainPos += 3;
+				const char* firstSlashPos = strchr(domainPos, '/');
+				if (firstSlashPos)
+				{
+					lastSlashPos = firstSlashPos;
+				}
+			}
 		}
 
 		if (lastSlashPos)
