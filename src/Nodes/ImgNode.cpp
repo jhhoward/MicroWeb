@@ -81,10 +81,14 @@ void ImageNode::BeginLayoutContext(Layout& layout, Node* node)
 		if (data->explicitWidth.IsSet())
 		{
 			data->image.width = layout.CalculateWidth(data->explicitWidth);
+			if (data->image.width <= 0)
+				data->image.width = 1;
 		}
 		if(data->explicitHeight.IsSet())
 		{
 			data->image.height = layout.CalculateHeight(data->explicitHeight);
+			if (data->image.height <= 0)
+				data->image.height = 1;
 		}
 	}
 }

@@ -2,6 +2,7 @@
 #include "../Layout.h"
 #include "../Memory/Memory.h"
 #include "../Draw/Surface.h"
+#include "../VidModes.h"
 #include "Table.h"
 
 /*
@@ -202,7 +203,7 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 						}
 						else
 						{
-							explicitWidth = cell->explicitWidth.Value();
+							explicitWidth = cell->explicitWidth.Value() * Platform::video->GetVideoModeInfo()->zoom;
 						}
 					}
 
@@ -223,7 +224,7 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 					}
 					else
 					{
-						int columnsPreferredWidth = 0;
+						int columnsPreferredWidth = data->cellSpacing * (cell->columnSpan - 1);
 						int columnsExplicitWidthPercentage = 0;
 						int columnsExplicitWidthPixels = 0;
 

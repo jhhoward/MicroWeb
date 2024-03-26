@@ -194,6 +194,11 @@ void ImageDecoder::CalculateImageDimensions(int sourceWidth, int sourceHeight)
     sourceWidth *= Platform::video->GetVideoModeInfo()->zoom;
     sourceHeight *= Platform::video->GetVideoModeInfo()->zoom;
 
+    if (sourceHeight < 1)
+        sourceHeight = 1;
+    if (sourceWidth < 1)
+        sourceWidth = 1;
+
     int calculatedWidth = sourceWidth;
     int calculatedHeight = sourceHeight;
 
@@ -205,6 +210,8 @@ void ImageDecoder::CalculateImageDimensions(int sourceWidth, int sourceHeight)
         if (outputImage->height == 0)
         {
             calculatedHeight = ((long)sourceHeight * outputImage->width) / sourceWidth;
+            if (calculatedHeight <= 0)
+                calculatedHeight = 1;
         }
     }
     if (outputImage->height != 0)
@@ -215,13 +222,10 @@ void ImageDecoder::CalculateImageDimensions(int sourceWidth, int sourceHeight)
         if (outputImage->width == 0)
         {
             calculatedWidth = ((long)sourceWidth * outputImage->height) / sourceHeight;
+            if (calculatedWidth <= 0)
+                calculatedWidth = 1;
         }
     }
-
-    if (calculatedWidth <= 0)
-        calculatedWidth = 1;
-    if (calculatedHeight <= 0)
-        calculatedHeight = 1;
 
     outputImage->width = calculatedWidth;
     outputImage->height = calculatedHeight;
