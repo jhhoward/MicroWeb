@@ -19,6 +19,7 @@ public:
 		int rowSpan;
 		uint8_t bgColour;
 		TableCellNode::Data* nextCell;
+		ExplicitDimension explicitWidth;
 	};
 
 	static Node* Construct(Allocator& allocator, bool isHeader);
@@ -56,8 +57,17 @@ public:
 	public:
 		struct ColumnInfo
 		{
+			void Clear()
+			{
+				preferredWidth = 0;
+				calculatedWidth = 0;
+				explicitWidthPixels = 0;
+				explicitWidthPercentage = 0;
+			}
 			int preferredWidth;
 			int calculatedWidth;
+			int explicitWidthPixels;
+			int explicitWidthPercentage;
 		};
 		enum State
 		{
@@ -83,6 +93,7 @@ public:
 		TableCellNode::Data** cells;
 		uint8_t bgColour;
 		int lastAvailableWidth;
+		ExplicitDimension explicitWidth;
 	};
 
 	static Node* Construct(Allocator& allocator);

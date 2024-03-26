@@ -527,17 +527,21 @@ void TableTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 			{
 				tableNodeData->border = attributes.ValueAsInt();
 			}
-			if (!stricmp(attributes.Key(), "cellpadding"))
+			else if (!stricmp(attributes.Key(), "cellpadding"))
 			{
 				tableNodeData->cellPadding = attributes.ValueAsInt();
 			}
-			if (!stricmp(attributes.Key(), "cellSpacing"))
+			else if (!stricmp(attributes.Key(), "cellSpacing"))
 			{
 				tableNodeData->cellSpacing = attributes.ValueAsInt();
 			}
-			if (!stricmp(attributes.Key(), "bgcolor"))
+			else if (!stricmp(attributes.Key(), "bgcolor"))
 			{
 				tableNodeData->bgColour = HTMLParser::ParseColourCode(attributes.Value());
+			}
+			else if (!stricmp(attributes.Key(), "width"))
+			{
+				tableNodeData->explicitWidth = ExplicitDimension::Parse(attributes.Value());
 			}
 		}
 
@@ -575,13 +579,17 @@ void TableCellTagHandler::Open(class HTMLParser& parser, char* attributeStr) con
 			{
 				cellData->bgColour = HTMLParser::ParseColourCode(attributes.Value());
 			}
-			if (!stricmp(attributes.Key(), "colspan"))
+			else if (!stricmp(attributes.Key(), "colspan"))
 			{
 				cellData->columnSpan = attributes.ValueAsInt();
 				if (cellData->columnSpan <= 0)
 				{
 					cellData->columnSpan = 1;
 				}
+			}
+			else if (!stricmp(attributes.Key(), "width"))
+			{
+				cellData->explicitWidth = ExplicitDimension::Parse(attributes.Value());
 			}
 		}
 		parser.PushContext(cellNode, this);

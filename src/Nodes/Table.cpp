@@ -168,66 +168,258 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 			}
 		}
 
+		int minCellWidth = 16;
+
 		for (int n = 0; n < data->numColumns; n++)
 		{
-			data->columns[n].preferredWidth = 16;
+			data->columns[n].Clear();
+			data->columns[n].preferredWidth = minCellWidth;
 		}
 
-		for (TableRowNode::Data* row = data->firstRow; row; row = row->nextRow)
+		// Find out preferred column widths in two passes:
+		// - First pass, check with cells of column span = 1
+		// - Second pass for cells of column span > 1
+		for (int pass = 0; pass < 2; pass++)
 		{
-			for (TableCellNode::Data* cell = row->firstCell; cell; cell = cell->nextCell)
+			for (TableRowNode::Data* row = data->firstRow; row; row = row->nextRow)
 			{
-				int preferredWidth = (2 * data->cellPadding + cell->node->size.x) / cell->columnSpan;
-
-				for (int i = 0; i < cell->columnSpan; i++)
+				for (TableCellNode::Data* cell = row->firstCell; cell; cell = cell->nextCell)
 				{
-					if (data->columns[cell->columnIndex + i].preferredWidth < preferredWidth)
+					if (pass == 0 && cell->columnSpan > 1)
+						continue;
+					if (pass == 1 && cell->columnSpan == 1)
+						continue;
+
+					int preferredWidth = (2 * data->cellPadding + cell->node->size.x);
+					int explicitWidth = 0;
+					int explicitWidthPercentage = 0;
+
+					if (cell->explicitWidth.IsSet())
 					{
-						data->columns[cell->columnIndex + i].preferredWidth = preferredWidth;
+						if (cell->explicitWidth.IsPercentage())
+						{
+							explicitWidthPercentage = cell->explicitWidth.Value();
+						}
+						else
+						{
+							explicitWidth = cell->explicitWidth.Value();
+						}
+					}
+
+					if (pass == 0)
+					{
+						if (data->columns[cell->columnIndex].preferredWidth < preferredWidth)
+						{
+							data->columns[cell->columnIndex].preferredWidth = preferredWidth;
+						}
+						if (data->columns[cell->columnIndex].explicitWidthPercentage < explicitWidthPercentage)
+						{
+							data->columns[cell->columnIndex].explicitWidthPercentage = explicitWidthPercentage;
+						}
+						if (data->columns[cell->columnIndex].explicitWidthPixels < explicitWidth)
+						{
+							data->columns[cell->columnIndex].explicitWidthPixels = explicitWidth;
+						}
+					}
+					else
+					{
+						int columnsPreferredWidth = 0;
+						int columnsExplicitWidthPercentage = 0;
+						int columnsExplicitWidthPixels = 0;
+
+						for (int i = 0; i < cell->columnSpan; i++)
+						{
+							columnsPreferredWidth += data->columns[cell->columnIndex + i].preferredWidth;
+							columnsExplicitWidthPercentage += data->columns[cell->columnIndex + i].explicitWidthPercentage;
+							columnsExplicitWidthPixels += data->columns[cell->columnIndex + i].explicitWidthPixels;
+						}
+
+						if (columnsPreferredWidth < preferredWidth)
+						{
+							for (int i = 0; i < cell->columnSpan; i++)
+							{
+								data->columns[cell->columnIndex + i].preferredWidth += (preferredWidth - columnsPreferredWidth) / cell->columnSpan;
+							}
+						}
+						if (columnsExplicitWidthPercentage < explicitWidthPercentage)
+						{
+							for (int i = 0; i < cell->columnSpan; i++)
+							{
+								data->columns[cell->columnIndex + i].explicitWidthPercentage += (explicitWidthPercentage - columnsExplicitWidthPercentage) / cell->columnSpan;
+							}
+						}
+						if (columnsExplicitWidthPixels < explicitWidth)
+						{
+							for (int i = 0; i < cell->columnSpan; i++)
+							{
+								data->columns[cell->columnIndex + i].explicitWidthPixels += (explicitWidth - columnsExplicitWidthPixels) / cell->columnSpan;
+							}
+						}
 					}
 				}
 			}
 		}
 
+		data->totalWidth = 0;
 		int totalCellSpacing = (data->numColumns + 1) * data->cellSpacing;
-		int totalPreferredWidth = 0;
-		for (int i = 0; i < data->numColumns; i++)
-		{
-			totalPreferredWidth += data->columns[i].preferredWidth;
-		}
 
-		int maxAvailableWidthForCells = layout.MaxAvailableWidth() - totalCellSpacing;
-		if (totalPreferredWidth > maxAvailableWidthForCells)
+		if (!data->explicitWidth.IsSet())
 		{
+			// Need to calculate the width of the table as it wasn't specified
+			int totalPreferredWidth = 0;
+			int maxAvailableWidthForCells = layout.MaxAvailableWidth() - totalCellSpacing;
+			int widthRemaining = maxAvailableWidthForCells;
+
 			for (int i = 0; i < data->numColumns; i++)
 			{
-				data->columns[i].preferredWidth = ((long)maxAvailableWidthForCells * data->columns[i].preferredWidth) / totalPreferredWidth;
+				if (data->columns[i].explicitWidthPixels)
+				{
+					data->columns[i].calculatedWidth = data->columns[i].explicitWidthPixels;
+				}
+				else if (data->columns[i].explicitWidthPercentage)
+				{
+					data->columns[i].calculatedWidth = 0;
+				}
+				else
+				{
+					data->columns[i].calculatedWidth = data->columns[i].preferredWidth;
+				}
+				totalPreferredWidth += data->columns[i].calculatedWidth;
+			}
+
+			// Enforce percentage constraints
+			for (int it = 0; it < data->numColumns; it++)
+			{
+				bool changesMade = false;
+
+				for (int i = 0; i < data->numColumns; i++)
+				{
+					if (data->columns[i].explicitWidthPercentage)
+					{
+						int desiredWidth = (data->columns[i].explicitWidthPercentage * totalPreferredWidth) / 100;
+
+						if (desiredWidth != data->columns[i].calculatedWidth)
+						{
+							totalPreferredWidth -= data->columns[i].calculatedWidth;
+							float z = data->columns[i].explicitWidthPercentage / 100.0f;
+							data->columns[i].calculatedWidth = (z * totalPreferredWidth) / (1.0f - z);
+							totalPreferredWidth += data->columns[i].calculatedWidth;
+							changesMade = true;
+						}
+					}
+				}
+
+				if (!changesMade)
+					break;
+			}
+
+			if (totalPreferredWidth <= maxAvailableWidthForCells)
+			{
+				data->totalWidth = totalPreferredWidth + totalCellSpacing;
+				node->size.x = data->totalWidth;
 			}
 		}
 
-		int totalWidth = totalCellSpacing;
-		for (int i = 0; i < data->numColumns; i++)
+		if (data->explicitWidth.IsSet() || !data->totalWidth)
 		{
-			totalWidth += data->columns[i].preferredWidth;
+			// Generate widths for columns based on a given table width
+			if (data->explicitWidth.IsSet())
+			{
+				data->totalWidth = layout.CalculateWidth(data->explicitWidth);
+			}
+			else
+			{
+				data->totalWidth = layout.MaxAvailableWidth();
+			}
+			node->size.x = data->totalWidth;
+
+			int maxAvailableWidthForCells = node->size.x - totalCellSpacing;
+			int widthRemaining = maxAvailableWidthForCells;
+			int totalUnsetWidth = 0;
+			int minUnsetWidth = 0;
+			minCellWidth = data->numColumns ? data->totalWidth / (data->numColumns * 2) : 0;
+
+			// First pass allocate widths to explicit pixels widths
+			for (int i = 0; i < data->numColumns; i++)
+			{
+				if (data->columns[i].explicitWidthPixels)
+				{
+					data->columns[i].calculatedWidth = data->columns[i].explicitWidthPixels;
+				}
+				if (data->columns[i].explicitWidthPercentage)
+				{
+					int calculatedWidth = (long)(data->columns[i].explicitWidthPercentage * maxAvailableWidthForCells) / 100;
+					if (calculatedWidth > data->columns[i].calculatedWidth)
+					{
+						data->columns[i].calculatedWidth = calculatedWidth;
+					}
+				}
+
+				if (data->columns[i].calculatedWidth)
+				{
+					widthRemaining -= data->columns[i].calculatedWidth;
+				}
+				else
+				{
+					totalUnsetWidth += data->columns[i].preferredWidth;
+					minUnsetWidth += minCellWidth;
+				}
+			}
+
+			int totalCellsWidth = 0;
+
+			if (widthRemaining < minUnsetWidth)
+			{
+				int widthForSetCells = maxAvailableWidthForCells - minUnsetWidth;
+				int totalSetWidth = maxAvailableWidthForCells - widthRemaining;
+
+				// Explicit cell widths too large to fit in table, readjust
+				for (int i = 0; i < data->numColumns; i++)
+				{
+					if (!data->columns[i].calculatedWidth)
+					{
+						data->columns[i].calculatedWidth = minCellWidth;
+					}
+					else
+					{
+						data->columns[i].calculatedWidth = ((long)widthForSetCells * data->columns[i].calculatedWidth) / totalSetWidth;
+					}
+					totalCellsWidth += data->columns[i].calculatedWidth;
+				}
+			}
+			else
+			{
+				for (int i = 0; i < data->numColumns; i++)
+				{
+					if (!data->columns[i].calculatedWidth)
+					{
+						data->columns[i].calculatedWidth = ((long)widthRemaining * data->columns[i].preferredWidth) / totalUnsetWidth;
+					}
+					totalCellsWidth += data->columns[i].calculatedWidth;
+				}
+			}
+
+			if (totalCellsWidth < maxAvailableWidthForCells)
+			{
+				data->columns[data->numColumns - 1].calculatedWidth += maxAvailableWidthForCells - totalCellsWidth;
+			}
 		}
-		data->totalWidth = totalWidth;
-		node->size.x = totalWidth;
 
 		layout.PushCursor();
 		layout.PushLayout();
 
 		int available = layout.AvailableWidth();
-		if (totalWidth < available)
+		if (data->totalWidth < available)
 		{
 			int alignmentPadding = 0;
 
 			if (node->style.alignment == ElementAlignment::Center)
 			{
-				alignmentPadding = (available - totalWidth) / 2;
+				alignmentPadding = (available - data->totalWidth) / 2;
 			}
 			else if (node->style.alignment == ElementAlignment::Right)
 			{
-				alignmentPadding = (available - totalWidth);
+				alignmentPadding = (available - data->totalWidth);
 			}
 			if (alignmentPadding)
 			{
@@ -420,10 +612,10 @@ void TableCellNode::BeginLayoutContext(Layout& layout, Node* node)
 		{
 			node->anchor = layout.Cursor();
 
-			node->size.x = tableData->columns[data->columnIndex].preferredWidth;
+			node->size.x = tableData->columns[data->columnIndex].calculatedWidth;
 			for (int n = 1; n < data->columnSpan && n < tableData->numColumns; n++)
 			{
-				node->size.x += tableData->columns[data->columnIndex + n].preferredWidth + tableData->cellSpacing;
+				node->size.x += tableData->columns[data->columnIndex + n].calculatedWidth + tableData->cellSpacing;
 			}
 
 			layout.RestrictHorizontal(node->size.x);
