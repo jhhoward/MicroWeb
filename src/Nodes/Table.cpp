@@ -177,6 +177,12 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 			data->columns[n].preferredWidth = minCellWidth;
 		}
 
+		int maxConstrainedTableWidth = layout.MaxAvailableWidth();
+		if (data->explicitWidth.IsSet())
+		{
+			maxConstrainedTableWidth = layout.CalculateWidth(data->explicitWidth);
+		}
+
 		// Find out preferred column widths in two passes:
 		// - First pass, check with cells of column span = 1
 		// - Second pass for cells of column span > 1
@@ -205,6 +211,15 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 						{
 							explicitWidth = cell->explicitWidth.Value() * Platform::video->GetVideoModeInfo()->zoom;
 						}
+					}
+
+					if (preferredWidth > maxConstrainedTableWidth)
+					{
+						preferredWidth = maxConstrainedTableWidth;
+					}
+					if (explicitWidth > maxConstrainedTableWidth)
+					{
+						explicitWidth = maxConstrainedTableWidth;
 					}
 
 					if (pass == 0)
