@@ -96,7 +96,7 @@ void WindowsVideoDriver::Init(VideoModeInfo* inVideoMode)
 
 	screenWidth = videoMode->screenWidth;
 	screenHeight = videoMode->screenHeight;
-	verticalScale = videoMode->aspectRatio; // ((screenWidth * 3.0f) / 4.0f) / screenHeight;
+	verticalScale = videoMode->aspectRatio / 100.0f; // ((screenWidth * 3.0f) / 4.0f) / screenHeight;
 	//verticalScale = 1.0f;
 	Assets.LoadPreset((DataPack::Preset) videoMode->dataPackIndex);
 

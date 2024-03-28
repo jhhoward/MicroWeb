@@ -317,8 +317,8 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 						if (desiredWidth != data->columns[i].calculatedWidth)
 						{
 							totalPreferredWidth -= data->columns[i].calculatedWidth;
-							float z = data->columns[i].explicitWidthPercentage / 100.0f;
-							data->columns[i].calculatedWidth = (z * totalPreferredWidth) / (1.0f - z);
+							long z = data->columns[i].explicitWidthPercentage;
+							data->columns[i].calculatedWidth = (z * totalPreferredWidth) / (100 - z);
 							totalPreferredWidth += data->columns[i].calculatedWidth;
 							changesMade = true;
 						}

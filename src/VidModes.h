@@ -14,8 +14,8 @@ struct VideoModeInfo
 	int screenWidth;
 	int screenHeight;
 	uint8_t bpp;
-	float aspectRatio;
-	float zoom;
+	int aspectRatio;
+	int zoom;
 	DataPack::Preset dataPackIndex : 8;
 	uint16_t vramPage1;
 	uint16_t vramPage2;

@@ -190,9 +190,17 @@ void ImageDecoder::Begin(Image* image, bool dimensionsOnly)
 
 void ImageDecoder::CalculateImageDimensions(int sourceWidth, int sourceHeight)
 {
-    sourceHeight /= Platform::video->GetVideoModeInfo()->aspectRatio;
-    sourceWidth *= Platform::video->GetVideoModeInfo()->zoom;
-    sourceHeight *= Platform::video->GetVideoModeInfo()->zoom;
+	VideoModeInfo* modeInfo = Platform::video->GetVideoModeInfo();
+
+	if (modeInfo->aspectRatio != 100)
+	{
+		sourceHeight = ((long)sourceHeight * 100) / modeInfo->aspectRatio;
+	}
+	if (modeInfo->zoom != 100)
+	{
+		sourceWidth = ((long)modeInfo->zoom * sourceWidth) / 100;
+		sourceHeight = ((long)modeInfo->zoom * sourceHeight) / 100;
+	}
 
     if (sourceHeight < 1)
         sourceHeight = 1;

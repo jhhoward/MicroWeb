@@ -322,7 +322,15 @@ int Layout::CalculateWidth(ExplicitDimension explicitWidth)
 		}
 		else
 		{
-			return explicitWidth.Value() * Platform::video->GetVideoModeInfo()->zoom;
+			int result = explicitWidth.Value();
+			VideoModeInfo* modeInfo = Platform::video->GetVideoModeInfo();
+
+			if (modeInfo->zoom != 100)
+			{
+				result = ((long)modeInfo->zoom * result) / 100;
+			}
+			return result;
+			//return explicitWidth.Value() * Platform::video->GetVideoModeInfo()->zoom;
 		}
 	}
 	return 0;
@@ -338,7 +346,19 @@ int Layout::CalculateHeight(ExplicitDimension explicitHeight)
 		}
 		else
 		{
-			return (explicitHeight.Value() / Platform::video->GetVideoModeInfo()->aspectRatio) * Platform::video->GetVideoModeInfo()->zoom;
+			int result = explicitHeight.Value();
+			VideoModeInfo* modeInfo = Platform::video->GetVideoModeInfo();
+
+			if (modeInfo->aspectRatio != 100)
+			{
+				result = ((long)result * 100) / modeInfo->aspectRatio;
+			}
+			if (modeInfo->zoom != 100)
+			{
+				result = ((long)modeInfo->zoom * result) / 100;
+			}
+			return result;
+			//return (explicitHeight.Value() / Platform::video->GetVideoModeInfo()->aspectRatio) * Platform::video->GetVideoModeInfo()->zoom;
 		}
 	}
 	return 0;
