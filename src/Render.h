@@ -9,6 +9,47 @@ class Node;
 struct DrawContext;
 struct Rect;
 
+#define MAX_RENDER_QUEUE_SIZE 512
+
+struct RenderQueue
+{
+	struct Item
+	{
+		Node* node;
+		int upperClip, lowerClip;
+	};
+
+	RenderQueue()
+	{
+		Reset();
+	}
+
+	void Reset()
+	{
+		head = tail = 0;
+	}
+	int Size()
+	{
+		return tail - head;
+	}
+	RenderQueue::Item* Dequeue()
+	{
+		if (head < tail)
+		{
+			RenderQueue::Item* result = &items[head++];
+			if (head == tail)
+			{
+				tail = head = 0;
+			}
+			return result;
+		}
+		return nullptr;
+	}
+
+	int head, tail;
+	Item items[MAX_RENDER_QUEUE_SIZE];
+};
+
 class PageRenderer
 {
 public:
@@ -23,7 +64,7 @@ public:
 	
 	void GenerateDrawContext(DrawContext& context, Node* node);
 
-	void AddToQueue(Node* node);
+	void AddToQueue(Node* node, int upperClip, int lowerClip);
 
 	void OnPageScroll(int scrollDelta);
 
@@ -43,22 +84,16 @@ private:
 	void FindOverlappingNodesInScreenRegion(int top, int bottom);
 
 	bool DoesOverlapWithContext(Node* node, DrawContext& context);
-	bool IsRenderableNode(Node::Type type);
+	bool IsRenderableNode(Node* node);
 
 	void AddToQueueIfVisible(Node* node);
+	int GetDrawOffsetY();
 
 	App& app;
 
-	Node* renderQueueHead;
-	Node* renderQueueTail;
-
-	int renderQueueSize;
+	RenderQueue renderQueue;
 
 	Node* lastCompleteNode;
-
-	// Draw contexts for upper and lower parts of the screen to facilitate scrolling
-	DrawContext upperContext;
-	DrawContext lowerContext;
 
 	int visiblePageHeight;
 };

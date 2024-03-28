@@ -130,8 +130,6 @@ public:
 	Node* next;
 	Node* firstChild;
 
-	Node* nextNodeToRender;
-
 	void* data;
 
 protected:
