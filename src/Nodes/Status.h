@@ -19,12 +19,11 @@ public:
 	class Data
 	{
 	public:
-		Data() { }
-
 		struct Message
 		{
 			Message() 
 			{ 
+				message[0] = '\0';
 				message[STATUS_MESSAGE_BUFFER_SIZE - 1] = '\0';
 				message[STATUS_MESSAGE_BUFFER_SIZE - 2] = '.';
 				message[STATUS_MESSAGE_BUFFER_SIZE - 3] = '.';
