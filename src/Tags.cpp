@@ -437,6 +437,10 @@ void ImgTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 				if (!stricmp(attributes.Key(), "alt"))
 				{
 					data->altText = MemoryManager::pageAllocator.AllocString(attributes.Value());
+					if (data->altText)
+					{
+						HTMLParser::ReplaceAmpersandEscapeSequences(data->altText);
+					}
 				}
 				else if (!stricmp(attributes.Key(), "src"))
 				{
