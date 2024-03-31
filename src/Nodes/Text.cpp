@@ -34,9 +34,16 @@ void TextElement::Draw(DrawContext& context, Node* node)
 		uint8_t textColour = node->GetStyle().fontColour;
 		char* text = data->text.Get<char*>();
 
-		if (context.surface->bpp == 1)
+		if (textColour == App::Get().page.colourScheme.pageColour)
 		{
-			textColour = Platform::video->colourScheme.textColour;
+			if (context.surface->bpp == 1)
+			{
+				textColour = !textColour;
+			}
+			else
+			{
+				textColour ^= 0x08;
+			}
 		}
 
 		context.surface->DrawString(context, font, text, node->anchor.x, node->anchor.y, textColour, node->GetStyle().fontStyle);
@@ -252,9 +259,16 @@ void SubTextElement::Draw(DrawContext& context, Node* node)
 		char temp = text[subTextData->length];
 		text[subTextData->length] = 0;
 
-		if (context.surface->bpp == 1)
+		if (textColour == App::Get().page.colourScheme.pageColour)
 		{
-			textColour = Platform::video->colourScheme.textColour;
+			if (context.surface->bpp == 1)
+			{
+				textColour = !textColour;
+			}
+			else
+			{
+				textColour ^= 0x08;
+			}
 		}
 
 		context.surface->DrawString(context, font, text, node->anchor.x, node->anchor.y, textColour, node->GetStyle().fontStyle);

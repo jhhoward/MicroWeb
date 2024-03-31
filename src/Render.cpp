@@ -51,7 +51,7 @@ void PageRenderer::RefreshAll()
 
 	DrawContext clearContext;
 	InitContext(clearContext);
-	clearContext.surface->FillRect(clearContext, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight, Platform::video->colourScheme.pageColour);
+	clearContext.surface->FillRect(clearContext, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight, app.page.colourScheme.pageColour);
 
 	Platform::input->ShowMouse();
 
@@ -124,7 +124,7 @@ void PageRenderer::OnPageScroll(int scrollDelta)
 			clearContext.clipTop = minWinY;
 		}
 		clearContext.clipBottom = maxWinY;
-		clearContext.surface->FillRect(clearContext, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight, Platform::video->colourScheme.pageColour);
+		clearContext.surface->FillRect(clearContext, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight, app.page.colourScheme.pageColour);
 	}
 	else
 	{
@@ -135,7 +135,7 @@ void PageRenderer::OnPageScroll(int scrollDelta)
 		{
 			clearContext.clipBottom = maxWinY;
 		}
-		clearContext.surface->FillRect(clearContext, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight, Platform::video->colourScheme.pageColour);
+		clearContext.surface->FillRect(clearContext, 0, 0, Platform::video->screenWidth, Platform::video->screenHeight, app.page.colourScheme.pageColour);
 	}
 
 	Platform::input->ShowMouse();
@@ -486,7 +486,7 @@ void PageRenderer::MarkNodeDirty(Node* dirtyNode)
 		InitContext(clearContext);
 		clearContext.clipBottom = windowRect.y + windowRect.height;
 		clearContext.drawOffsetY = windowRect.y - app.ui.GetScrollPositionY();
-		clearContext.surface->FillRect(clearContext, dirtyNode->anchor.x, dirtyNode->anchor.y, dirtyNode->size.x, dirtyNode->size.y, Platform::video->colourScheme.pageColour);
+		clearContext.surface->FillRect(clearContext, dirtyNode->anchor.x, dirtyNode->anchor.y, dirtyNode->size.x, dirtyNode->size.y, app.page.colourScheme.pageColour);
 
 		Platform::input->ShowMouse();
 	}

@@ -43,6 +43,7 @@ void Page::Reset()
 	leftMarginPadding = 1;
 	cursorX = leftMarginPadding;
 	cursorY = TOP_MARGIN_PADDING;
+	colourScheme = Platform::video->colourScheme;
 
 	MemoryManager::pageAllocator.Reset();
 	MemoryManager::pageBlockAllocator.Reset();
@@ -52,7 +53,7 @@ void Page::Reset()
 	rootStyle.alignment = ElementAlignment::Left;
 	rootStyle.fontSize = 1;
 	rootStyle.fontStyle = FontStyle::Regular;
-	rootStyle.fontColour = Platform::video->colourScheme.textColour;
+	rootStyle.fontColour = colourScheme.textColour;
 	rootNode->SetStyle(rootStyle);
 
 	layout.Reset();

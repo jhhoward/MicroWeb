@@ -19,6 +19,7 @@
 #include "Parser.h"
 #include "Page.h"
 #include "Platform.h"
+#include "App.h"
 #include "Image/Image.h"
 #include "DataPack.h"
 #include "Memory/Memory.h"
@@ -137,8 +138,8 @@ void HTagHandler::Close(class HTMLParser& parser) const
 {
 	int fontSize = size >= 3 ? 1 : 2;
 	int padding = Assets.GetFont(fontSize, FontStyle::Bold)->glyphHeight / 2;
-	parser.EmitNode(BreakNode::Construct(MemoryManager::pageAllocator, padding));
 	parser.PopContext(this);
+	parser.EmitNode(BreakNode::Construct(MemoryManager::pageAllocator, padding));
 }
 
 void SizeTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
@@ -200,7 +201,36 @@ void BlockTagHandler::Close(class HTMLParser& parser) const
 
 void SectionTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	parser.PushContext(SectionElement::Construct(MemoryManager::pageAllocator, sectionType), this);
+	Node* node = SectionElement::Construct(MemoryManager::pageAllocator, sectionType);
+	parser.PushContext(node, this);
+
+	if (sectionType == SectionElement::Body)
+	{
+		AttributeParser attributes(attributeStr);
+		while (attributes.Parse())
+		{
+			if (!stricmp(attributes.Key(), "link"))
+			{
+				parser.page.colourScheme.linkColour = HTMLParser::ParseColourCode(attributes.Value());
+			}
+			if (!stricmp(attributes.Key(), "text"))
+			{
+				parser.page.colourScheme.textColour = HTMLParser::ParseColourCode(attributes.Value());
+			}
+			if (!stricmp(attributes.Key(), "bgcolor"))
+			{
+				parser.page.colourScheme.pageColour = HTMLParser::ParseColourCode(attributes.Value());
+				App::Get().pageRenderer.RefreshAll();
+			}
+		}
+	}
+
+	if (node)
+	{
+		ElementStyle style = node->GetStyle();
+		style.fontColour = parser.page.colourScheme.textColour;
+		node->SetStyle(style);
+	}
 }
 void SectionTagHandler::Close(class HTMLParser& parser) const
 {
@@ -505,6 +535,10 @@ void PreformattedTagHandler::Open(class HTMLParser& parser, char* attributeStr) 
 	// TODO-refactor
 	parser.PushPreFormatted();
 	parser.EmitNode(BreakNode::Construct(MemoryManager::pageAllocator));
+
+	int lineHeight = Assets.GetFont(1, FontStyle::Regular)->glyphHeight;
+	int padding = lineHeight >> 1;
+	parser.PushContext(BlockNode::Construct(MemoryManager::pageAllocator, padding, padding), this);
 	parser.PushContext(StyleNode::ConstructFontStyle(MemoryManager::pageAllocator, FontStyle::Monospace), this);
 }
 
@@ -513,7 +547,8 @@ void PreformattedTagHandler::Close(class HTMLParser& parser) const
 	// TODO-refactor
 	parser.PopPreFormatted();
 	parser.PopContext(this);
-	parser.EmitNode(BreakNode::Construct(MemoryManager::pageAllocator));
+	parser.PopContext(this);
+//	parser.EmitNode(BreakNode::Construct(MemoryManager::pageAllocator));
 }
 
 void TableTagHandler::Open(class HTMLParser& parser, char* attributeStr) const

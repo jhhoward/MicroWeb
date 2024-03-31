@@ -8,7 +8,7 @@ void LinkNode::ApplyStyle(Node* node)
 {
 	ElementStyle style = node->GetStyle();
 	style.fontStyle = (FontStyle::Type)(style.fontStyle | FontStyle::Underline);
-	style.fontColour = Platform::video->colourScheme.linkColour;
+	style.fontColour = App::Get().page.colourScheme.linkColour;
 	node->SetStyle(style);
 }
 

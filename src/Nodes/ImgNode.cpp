@@ -14,7 +14,7 @@ void ImageNode::Draw(DrawContext& context, Node* node)
 {
 	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
 	//printf("--IMG [%d, %d]\n", node->anchor.x, node->anchor.y);
-	uint8_t outlineColour = Platform::video->colourScheme.textColour;
+	uint8_t outlineColour = App::Get().page.colourScheme.textColour;
 
 	if (data->state == ImageNode::FinishedDownloadingContent && data->image.lines.IsAllocated())
 	{
@@ -42,7 +42,7 @@ void ImageNode::Draw(DrawContext& context, Node* node)
 			if (data->altText)
 			{
 				Font* font = node->GetStyleFont();
-				uint8_t textColour = Platform::video->colourScheme.textColour;
+				uint8_t textColour = App::Get().page.colourScheme.textColour;
 				croppedContext.surface->DrawString(croppedContext, font, data->altText, node->anchor.x + image->width + 4, node->anchor.y + 2, textColour, node->GetStyle().fontStyle);
 			}
 		}

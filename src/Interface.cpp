@@ -228,9 +228,6 @@ void AppInterface::Update()
 		case KEYCODE_F2:
 		{
 			Platform::video->InvertVideoOutput();
-			ElementStyle titleStyle = titleNode->GetStyle();
-			titleStyle.fontColour = Platform::video->colourScheme.textColour;
-			titleNode->SetStyle(titleStyle);
 		}
 			break;
 		case KEYCODE_CTRL_L:

@@ -17,6 +17,7 @@
 
 #include "URL.h"
 #include "Layout.h"
+#include "Colour.h"
 
 #define MAX_PAGE_STYLE_STACK_SIZE 32
 #define MAX_TEXT_BUFFER_SIZE 128
@@ -44,6 +45,8 @@ public:
 	App& GetApp() { return app; }
 
 	Node* ProcessNextLoadTask(Node* lastNode, struct LoadTask& loadTask);
+
+	ColourScheme colourScheme;
 
 private:
 	friend class AppInterface;

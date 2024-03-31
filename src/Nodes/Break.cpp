@@ -2,7 +2,7 @@
 #include "../Layout.h"
 #include "../Memory/LinAlloc.h"
 #include "../Draw/Surface.h"
-
+#include "../App.h"
 #include "Break.h"
 
 Node* BreakNode::Construct(Allocator& allocator, int breakPadding, bool displayBreakLine, bool onlyPadEmptyLines)
@@ -21,7 +21,7 @@ void BreakNode::Draw(DrawContext& context, Node* node)
 
 	if (data->displayBreakLine)
 	{
-		uint8_t outlineColour = Platform::video->colourScheme.textColour;
+		uint8_t outlineColour = App::Get().page.colourScheme.textColour;
 		context.surface->HLine(context, node->anchor.x, node->anchor.y + node->size.y / 2, node->size.x, outlineColour);
 	}
 }

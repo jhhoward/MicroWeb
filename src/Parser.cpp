@@ -958,11 +958,6 @@ NamedColour namedColours[] =
 
 uint8_t HTMLParser::ParseColourCode(const char* colourCode)
 {
-	if (!Platform::video->paletteLUT)
-	{
-		return 0;
-	}
-
 	if (colourCode[0] == '#')
 	{
 		uint8_t red = 0, green = 0, blue = 0;
@@ -979,7 +974,13 @@ uint8_t HTMLParser::ParseColourCode(const char* colourCode)
 			blue += blue * 16;
 		}
 
-		return Platform::video->paletteLUT[RGB332(red, green, blue)];
+		if (Platform::video->paletteLUT)
+		{
+			return Platform::video->paletteLUT[RGB332(red, green, blue)];
+		}
+
+		int grey = red + green + blue;
+		return grey > (127 * 3) ? 1 : 0;
 	}
 	else
 	{
@@ -987,7 +988,15 @@ uint8_t HTMLParser::ParseColourCode(const char* colourCode)
 		{
 			if (!stricmp(namedColours[n].name, colourCode))
 			{
-				return Platform::video->paletteLUT[namedColours[n].colour];
+				uint8_t rgb332 = namedColours[n].colour;
+				if (Platform::video->paletteLUT)
+				{
+					return Platform::video->paletteLUT[rgb332];
+				}
+				else
+				{
+					return (rgb332 & 0xda) != 0;
+				}
 			}
 		}
 	}

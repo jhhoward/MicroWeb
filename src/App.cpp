@@ -52,6 +52,7 @@ void App::Run(int argc, char* argv[])
 
 	config.loadImages = true;
 	config.dumpPage = false;
+	config.invertScreen = false;
 
 	if (argc > 1)
 	{
@@ -69,6 +70,10 @@ void App::Run(int argc, char* argv[])
 			else if (!stricmp(argv[n], "-dumppage"))
 			{
 				config.dumpPage = true;
+			}
+			else if (!stricmp(argv[n], "-i"))
+			{
+				config.invertScreen = true;
 			}
 		}
 	}
@@ -470,14 +475,7 @@ void VideoDriver::InvertVideoOutput()
 {
 	if (drawSurface->bpp == 1)
 	{
-		if (colourScheme.pageColour == 0)
-		{
-			colourScheme = monochromeColourScheme;
-		}
-		else
-		{
-			colourScheme = monochromeInverseColourScheme;
-		}
+		App::Get().config.invertScreen = !App::Get().config.invertScreen;
 
 		DrawContext context(drawSurface, 0, 0, screenWidth, screenHeight);
 		Platform::input->HideMouse();

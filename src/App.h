@@ -62,6 +62,7 @@ struct AppConfig
 {
 	bool loadImages : 1;
 	bool dumpPage : 1;
+	bool invertScreen : 1;
 };
 
 class App

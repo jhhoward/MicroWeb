@@ -21,7 +21,7 @@ void ListNode::BeginLayoutContext(Layout& layout, Node* node)
 	Font* font = node->GetStyleFont();
 
 	layout.BreakNewLine();
-	layout.PadVertical(font->glyphHeight);
+	layout.PadVertical(font->glyphHeight / 2);
 	layout.PushLayout();
 	layout.PadHorizontal(16, 0);
 }
@@ -33,7 +33,7 @@ void ListNode::EndLayoutContext(Layout& layout, Node* node)
 
 	layout.PopLayout();
 	layout.BreakNewLine();
-	layout.PadVertical(font->glyphHeight);
+	layout.PadVertical(font->glyphHeight / 2);
 }
 
 Node* ListItemNode::Construct(Allocator& allocator)
