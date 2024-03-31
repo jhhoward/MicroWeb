@@ -190,12 +190,7 @@ void HTMLParser::AppendTextBuffer(char c)
 
 void HTMLParser::EmitText(const char* text)
 {
-	Node* textElement = TextElement::Construct(MemoryManager::pageAllocator, text);
-	if (textElement)
-	{
-		textElement->style = CurrentContext().node->style;
-		EmitNode(textElement);
-	}
+	EmitNode(TextElement::Construct(MemoryManager::pageAllocator, text));
 }
 
 void HTMLParser::EmitNode(Node* node)
@@ -203,6 +198,36 @@ void HTMLParser::EmitNode(Node* node)
 	if (!node)
 	{
 		return;
+	}
+
+	// Check if this is part of a table - if so, make sure we are in a cell
+	Node* tableContainer = nullptr;
+	for (Node* n = CurrentContext().node; n; n = n->parent)
+	{
+		if (n->type == Node::Table)
+		{
+			tableContainer = n;
+			break;
+		}
+	}
+	if (tableContainer)
+	{
+		bool isInCell = false;
+
+		for (Node* n = CurrentContext().node; n != tableContainer; n = n->parent)
+		{
+			if (n->type == Node::TableCell)
+			{
+				isInCell = true;
+				break;
+			}
+		}
+
+		if (!isInCell)
+		{
+			// Don't emit the node. In other browsers the content gets emitted before the table?
+			return;
+		}
 	}
 
 	Node* parentNode = CurrentContext().node;
@@ -325,18 +350,20 @@ void HTMLParser::FlushTextBuffer()
 						{
 							if (!stricmp(attributes.Key(), "align"))
 							{
+								ElementStyle style = CurrentContext().node->GetStyle();
 								if (!stricmp(attributes.Value(), "center"))
 								{
-									CurrentContext().node->style.alignment = ElementAlignment::Center;
+									style.alignment = ElementAlignment::Center;
 								}
 								else if (!stricmp(attributes.Value(), "left"))
 								{
-									CurrentContext().node->style.alignment = ElementAlignment::Left;
+									style.alignment = ElementAlignment::Left;
 								}
 								else if (!stricmp(attributes.Value(), "right"))
 								{
-									CurrentContext().node->style.alignment = ElementAlignment::Right;
+									style.alignment = ElementAlignment::Right;
 								}
+								CurrentContext().node->SetStyle(style);
 							}
 							if (!stricmp(attributes.Key(), "name"))
 							{

@@ -41,9 +41,9 @@ void ImageNode::Draw(DrawContext& context, Node* node)
 
 			if (data->altText)
 			{
-				Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+				Font* font = node->GetStyleFont();
 				uint8_t textColour = Platform::video->colourScheme.textColour;
-				croppedContext.surface->DrawString(croppedContext, font, data->altText, node->anchor.x + image->width + 4, node->anchor.y + 2, textColour, node->style.fontStyle);
+				croppedContext.surface->DrawString(croppedContext, font, data->altText, node->anchor.x + image->width + 4, node->anchor.y + 2, textColour, node->GetStyle().fontStyle);
 			}
 		}
 	}

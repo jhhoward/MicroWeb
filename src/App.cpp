@@ -37,6 +37,7 @@ App::~App()
 
 void App::ResetPage()
 {
+	StylePool::Get().Reset();
 	page.Reset();
 	parser.Reset();
 	pageRenderer.Reset();
@@ -77,7 +78,9 @@ void App::Run(int argc, char* argv[])
 		ImageDecoder::Allocate();
 	}
 
+	StylePool::Get().Init();
 	ui.Init();
+	page.Reset();
 	pageRenderer.Init();
 
 	if (targetURL)

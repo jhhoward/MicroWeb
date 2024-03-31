@@ -115,12 +115,16 @@ public:
 	}
 	bool IsChildOf(Node* node);
 
+	const ElementStyle& GetStyle();
+	void SetStyle(const ElementStyle& style);
+	Font* GetStyleFont();
+
 	void Redraw();
 
 	Node* GetPreviousInTree();
 	Node* GetNextInTree();
 
-	ElementStyle style;
+	ElementStyleHandle styleHandle;
 	Type type : 8;
 
 	Coord anchor;				// Top left page position

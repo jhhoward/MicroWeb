@@ -174,7 +174,33 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 		for (int n = 0; n < data->numColumns; n++)
 		{
 			data->columns[n].Clear();
-			data->columns[n].preferredWidth = minCellWidth;
+			//data->columns[n].preferredWidth = minCellWidth;
+		}
+
+		// Cull unused columns
+		for (int n = data->numColumns - 1; n >= 0; n--)
+		{
+			bool isUsed = false;
+
+			for (TableRowNode::Data* row = data->firstRow; row && !isUsed; row = row->nextRow)
+			{
+				for (TableCellNode::Data* cell = row->firstCell; cell && !isUsed; cell = cell->nextCell)
+				{
+					if (cell->columnIndex == n)
+					{
+						isUsed = true;
+					}
+				}
+			}
+
+			if (isUsed)
+			{
+				break;
+			}
+			else
+			{
+				data->numColumns--;
+			}
 		}
 
 		int maxConstrainedTableWidth = layout.MaxAvailableWidth();
@@ -209,7 +235,7 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 						}
 						else
 						{
-							explicitWidth = cell->explicitWidth.Value() * Platform::video->GetVideoModeInfo()->zoom;
+							explicitWidth = ((long)cell->explicitWidth.Value() * Platform::video->GetVideoModeInfo()->zoom) / 100;
 						}
 					}
 
@@ -378,7 +404,9 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 				else
 				{
 					totalUnsetWidth += data->columns[i].preferredWidth;
-					minUnsetWidth += minCellWidth;
+
+					if(data->columns[i].preferredWidth)
+						minUnsetWidth += minCellWidth;
 				}
 			}
 
@@ -394,7 +422,8 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 				{
 					if (!data->columns[i].calculatedWidth)
 					{
-						data->columns[i].calculatedWidth = minCellWidth;
+						if(data->columns[i].preferredWidth)
+							data->columns[i].calculatedWidth = minCellWidth;
 					}
 					else
 					{
@@ -407,7 +436,7 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 			{
 				for (int i = 0; i < data->numColumns; i++)
 				{
-					if (!data->columns[i].calculatedWidth)
+					if (!data->columns[i].calculatedWidth && totalUnsetWidth)
 					{
 						data->columns[i].calculatedWidth = ((long)widthRemaining * data->columns[i].preferredWidth) / totalUnsetWidth;
 					}
@@ -415,7 +444,7 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 				}
 			}
 
-			if (totalCellsWidth < maxAvailableWidthForCells)
+			if (totalCellsWidth < maxAvailableWidthForCells && data->numColumns > 0)
 			{
 				data->columns[data->numColumns - 1].calculatedWidth += maxAvailableWidthForCells - totalCellsWidth;
 			}
@@ -429,11 +458,11 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 		{
 			int alignmentPadding = 0;
 
-			if (node->style.alignment == ElementAlignment::Center)
+			if (node->GetStyle().alignment == ElementAlignment::Center)
 			{
 				alignmentPadding = (available - data->totalWidth) / 2;
 			}
-			else if (node->style.alignment == ElementAlignment::Right)
+			else if (node->GetStyle().alignment == ElementAlignment::Right)
 			{
 				alignmentPadding = (available - data->totalWidth);
 			}
@@ -446,7 +475,7 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 
 		data->state = Data::FinalisingLayout;
 		layout.RecalculateLayoutForNode(node);
-		
+
 		layout.PopLayout();
 		layout.PopCursor();
 
@@ -485,6 +514,8 @@ void TableRowNode::BeginLayoutContext(Layout& layout, Node* node)
 {
 	TableRowNode::Data* data = static_cast<TableRowNode::Data*>(node->data);
 
+	layout.BreakNewLine();
+
 	TableNode::Data* tableData = node->FindParentDataOfType<TableNode::Data>(Node::Table);
 	if (tableData)
 	{
@@ -519,7 +550,6 @@ void TableRowNode::BeginLayoutContext(Layout& layout, Node* node)
 	}
 
 	layout.PushCursor();
-	//layout.BreakNewLine();
 	layout.PushLayout();
 }
 
@@ -530,8 +560,8 @@ void TableRowNode::EndLayoutContext(Layout& layout, Node* node)
 
 	if (tableData)
 	{
-		layout.PopLayout();
 		layout.BreakNewLine();
+		layout.PopLayout();
 		layout.PopCursor();
 
 		if (!tableData->IsGeneratingLayout())
@@ -556,7 +586,9 @@ void TableRowNode::EndLayoutContext(Layout& layout, Node* node)
 
 void TableRowNode::ApplyStyle(Node* node)
 {
-	node->style.alignment = ElementAlignment::Left;
+	ElementStyle style = node->GetStyle();
+	style.alignment = ElementAlignment::Left;
+	node->SetStyle(style);
 }
 
 // Table cell node
@@ -576,15 +608,18 @@ Node* TableCellNode::Construct(Allocator& allocator, bool isHeader)
 void TableCellNode::ApplyStyle(Node* node)
 {
 	TableCellNode::Data* data = static_cast<TableCellNode::Data*>(node->data);
+	ElementStyle style = node->GetStyle();
+
 	if (data->isHeader)
 	{
-		node->style.alignment = ElementAlignment::Center;
-		node->style.fontStyle = FontStyle::Bold;
+		style.alignment = ElementAlignment::Center;
+		style.fontStyle = FontStyle::Bold;
 	}
 	else
 	{
-		node->style.alignment = ElementAlignment::Left;
+		style.alignment = ElementAlignment::Left;
 	}
+	node->SetStyle(style);
 }
 
 

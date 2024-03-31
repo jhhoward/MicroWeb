@@ -62,7 +62,7 @@ void PngDecoder::Process(uint8_t* data, size_t dataLength)
 		case ParseImageHeader:
 			if (FillStruct(&data, dataLength, &imageHeader, sizeof(ImageHeader)))
 			{
-				if (outputImage->width == 0 && outputImage->height == 0)
+				if (outputImage->width == 0 || outputImage->height == 0)
 				{
 					CalculateImageDimensions(imageHeader.width, imageHeader.height);
 

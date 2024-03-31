@@ -120,7 +120,7 @@ void HrTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 
 void BrTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	int fontSize = parser.CurrentContext().node->style.fontSize;
+	int fontSize = parser.CurrentContext().node->GetStyle().fontSize;
 	int padding = Assets.GetFont(fontSize, FontStyle::Regular)->glyphHeight;
 	parser.EmitNode(BreakNode::Construct(MemoryManager::pageAllocator, padding, false, true));
 }

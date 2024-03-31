@@ -13,7 +13,7 @@ struct ElementAlignment
 		Left = 0,
 		Center = 1,
 		Right = 2
-	};
+	}; 
 };
 
 struct StyleOverrideMask
@@ -39,9 +39,9 @@ struct StyleOverrideMask
 
 struct ElementStyle
 {
-	FontStyle::Type fontStyle : 4;
-	int fontSize : 4;
-	ElementAlignment::Type alignment : 2;
+	FontStyle::Type fontStyle : 8;
+	int fontSize : 8;
+	ElementAlignment::Type alignment : 8;
 	uint8_t fontColour;
 };
 
@@ -108,6 +108,44 @@ struct ElementStyleOverride
 			style.fontColour = styleSettings.fontColour;
 		}
 	}
+};
+
+#define MAX_STYLE_POOL_CHUNKS 6
+
+#define STYLE_POOL_CHUNK_SHIFT 6
+#define STYLE_POOL_CHUNK_SIZE (1 << STYLE_POOL_CHUNK_SHIFT)
+#define STYLE_POOL_INDEX_MASK (STYLE_POOL_CHUNK_SIZE - 1)
+
+#define MAX_STYLES (MAX_STYLE_POOL_CHUNKS * STYLE_POOL_CHUNK_SIZE)
+
+typedef uint16_t ElementStyleHandle;
+
+class StylePool
+{
+public:
+	StylePool() : numItems(0) 
+	{
+	}
+
+	ElementStyleHandle AddStyle(const ElementStyle& style);
+	const ElementStyle& GetStyle(ElementStyleHandle handle);
+
+	void Init();
+	void MarkInterfaceStylesComplete() { numInterfaceStyles = numItems; }
+
+	void Reset() { numItems = numInterfaceStyles; }
+
+	static StylePool& Get();
+
+private:
+	struct PoolChunk
+	{
+		ElementStyle items[STYLE_POOL_CHUNK_SIZE];
+	};
+
+	PoolChunk* chunks[MAX_STYLE_POOL_CHUNKS];
+	int numItems;
+	int numInterfaceStyles;
 };
 
 #pragma pack(pop)

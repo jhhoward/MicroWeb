@@ -114,12 +114,12 @@ void Layout::BreakNewLine()
 	
 	if (lineStartNode)
 	{
-		if (lineStartNode->style.alignment == ElementAlignment::Center)
+		if (lineStartNode->GetStyle().alignment == ElementAlignment::Center)
 		{
 			int shift = AvailableWidth() / 2;
 			TranslateNodes(lineStartNode, lastNodeContext, shift, 0);
 		}
-		else if (lineStartNode->style.alignment == ElementAlignment::Right)
+		else if (lineStartNode->GetStyle().alignment == ElementAlignment::Right)
 		{
 			int shift = AvailableWidth();
 			TranslateNodes(lineStartNode, lastNodeContext, shift, 0);
@@ -330,7 +330,6 @@ int Layout::CalculateWidth(ExplicitDimension explicitWidth)
 				result = ((long)modeInfo->zoom * result) / 100;
 			}
 			return result;
-			//return explicitWidth.Value() * Platform::video->GetVideoModeInfo()->zoom;
 		}
 	}
 	return 0;
@@ -358,7 +357,6 @@ int Layout::CalculateHeight(ExplicitDimension explicitHeight)
 				result = ((long)modeInfo->zoom * result) / 100;
 			}
 			return result;
-			//return (explicitHeight.Value() / Platform::video->GetVideoModeInfo()->aspectRatio) * Platform::video->GetVideoModeInfo()->zoom;
 		}
 	}
 	return 0;

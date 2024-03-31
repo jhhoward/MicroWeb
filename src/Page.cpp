@@ -32,7 +32,6 @@
 
 Page::Page(App& inApp) : app(inApp), layout(*this)
 {
-	Reset();
 }
 
 void Page::Reset()
@@ -49,10 +48,12 @@ void Page::Reset()
 	MemoryManager::pageBlockAllocator.Reset();
 
 	rootNode = SectionElement::Construct(MemoryManager::pageAllocator, SectionElement::Document);
-	rootNode->style.alignment = ElementAlignment::Left;
-	rootNode->style.fontSize = 1;
-	rootNode->style.fontStyle = FontStyle::Regular;
-	rootNode->style.fontColour = Platform::video->colourScheme.textColour;
+	ElementStyle rootStyle;
+	rootStyle.alignment = ElementAlignment::Left;
+	rootStyle.fontSize = 1;
+	rootStyle.fontStyle = FontStyle::Regular;
+	rootStyle.fontColour = Platform::video->colourScheme.textColour;
+	rootNode->SetStyle(rootStyle);
 
 	layout.Reset();
 }

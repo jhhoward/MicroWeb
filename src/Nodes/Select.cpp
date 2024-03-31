@@ -20,7 +20,7 @@ void SelectNode::Draw(DrawContext& context, Node* node)
 {
 	SelectNode::Data* data = static_cast<SelectNode::Data*>(node->data);
 
-	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+	Font* font = node->GetStyleFont();
 	uint8_t textColour = Platform::video->colourScheme.textColour;
 	uint8_t buttonOutlineColour = Platform::video->colourScheme.textColour;
 	uint8_t clearColour = Platform::video->colourScheme.pageColour;
@@ -32,7 +32,7 @@ void SelectNode::Draw(DrawContext& context, Node* node)
 
 	if (data->selected && data->selected->text)
 	{
-		context.surface->DrawString(context, font, data->selected->text, node->anchor.x + 3, node->anchor.y + 2, textColour, node->style.fontStyle);
+		context.surface->DrawString(context, font, data->selected->text, node->anchor.x + 3, node->anchor.y + 2, textColour, node->GetStyle().fontStyle);
 	}
 }
 
@@ -40,7 +40,7 @@ void SelectNode::EndLayoutContext(Layout& layout, Node* node)
 {
 	SelectNode::Data* data = static_cast<SelectNode::Data*>(node->data);
 
-	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+	Font* font = node->GetStyleFont();
 
 	node->size.y = font->glyphHeight + 4;
 	node->size.x = node->size.y;
@@ -104,11 +104,11 @@ void OptionNode::EndLayoutContext(Layout& layout, Node* node)
 			data->addedToSelectNode = true;
 		}
 
-		Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+		Font* font = node->GetStyleFont();
 
 		if (data->text)
 		{
-			node->size.x = font->CalculateWidth(data->text, node->style.fontStyle);
+			node->size.x = font->CalculateWidth(data->text, node->GetStyle().fontStyle);
 		}
 	}
 }

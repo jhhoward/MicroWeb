@@ -1,6 +1,7 @@
 #include "Page.h"
 #include "App.h"
 #include "Draw/Surface.h"
+#include "DataPack.h"
 #include "Node.h"
 #include "Nodes/Text.h"
 #include "Nodes/Section.h"
@@ -56,7 +57,7 @@ Node::Node(Type inType, void* inData)
 void Node::AddChild(Node* child)
 {
 	child->parent = this;
-	child->style = style;
+	child->styleHandle = styleHandle;
 
 	if(!firstChild)
 	{
@@ -72,7 +73,7 @@ void Node::AddChild(Node* child)
 
 void Node::InsertSibling(Node* sibling)
 {
-	sibling->style = style;
+	sibling->styleHandle = styleHandle;
 	sibling->parent = parent;
 	sibling->next = next;
 	next = sibling;
@@ -328,4 +329,23 @@ ExplicitDimension ExplicitDimension::Parse(const char* str)
 	}
 
 	return result;
+}
+
+const ElementStyle& Node::GetStyle()
+{
+	return StylePool::Get().GetStyle(styleHandle);
+}
+
+void Node::SetStyle(const ElementStyle& style)
+{
+	//if(memcmp(&style, &StylePool::Get().GetStyle(styleHandle), sizeof(ElementStyle)))
+	{
+		styleHandle = StylePool::Get().AddStyle(style);
+	}
+}
+
+Font* Node::GetStyleFont()
+{
+	const ElementStyle& style = GetStyle();
+	return Assets.GetFont(style.fontSize, style.fontStyle);
 }

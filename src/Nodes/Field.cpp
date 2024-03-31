@@ -11,7 +11,7 @@ void TextFieldNode::Draw(DrawContext& context, Node* node)
 {
 	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
 
-	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+	Font* font = node->GetStyleFont();
 	uint8_t textColour = Platform::video->colourScheme.textColour;
 	uint8_t buttonOutlineColour = Platform::video->colourScheme.textColour;
 	uint8_t clearColour = Platform::video->colourScheme.pageColour;
@@ -26,7 +26,7 @@ void TextFieldNode::Draw(DrawContext& context, Node* node)
 
 	if (node == App::Get().ui.GetFocusedNode())
 	{
-		subContext.surface->DrawString(subContext, font, data->buffer + shiftPosition, node->anchor.x + 3, node->anchor.y + 2, textColour, node->style.fontStyle);
+		subContext.surface->DrawString(subContext, font, data->buffer + shiftPosition, node->anchor.x + 3, node->anchor.y + 2, textColour, node->GetStyle().fontStyle);
 
 		if (selectionLength > 0)
 		{
@@ -39,7 +39,7 @@ void TextFieldNode::Draw(DrawContext& context, Node* node)
 	}
 	else
 	{
-		subContext.surface->DrawString(subContext, font, data->buffer, node->anchor.x + 3, node->anchor.y + 2, textColour, node->style.fontStyle);
+		subContext.surface->DrawString(subContext, font, data->buffer, node->anchor.x + 3, node->anchor.y + 2, textColour, node->GetStyle().fontStyle);
 	}
 }
 
@@ -83,7 +83,7 @@ Node* TextFieldNode::Construct(Allocator& allocator, char* buffer, int bufferLen
 void TextFieldNode::GenerateLayout(Layout& layout, Node* node)
 {
 	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
-	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+	Font* font = node->GetStyleFont();
 
 	if (data->explicitWidth.IsSet())
 	{
@@ -331,7 +331,7 @@ bool TextFieldNode::HandleEvent(Node* node, const Event& event)
 int TextFieldNode::GetBufferPixelWidth(Node* node, int start, int end)
 {
 	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
-	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+	Font* font = node->GetStyleFont();
 	int x = 0;
 
 	for (int n = 0; n < end; n++)
@@ -354,7 +354,7 @@ void TextFieldNode::DrawCursor(DrawContext& context, Node* node)
 		return;
 
 	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
-	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+	Font* font = node->GetStyleFont();
 
 	int x = node->anchor.x + 3;
 	int height = font->glyphHeight;
@@ -388,7 +388,7 @@ void TextFieldNode::DrawSelection(DrawContext& context, Node* node)
 {
 	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
 
-	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+	Font* font = node->GetStyleFont();
 	int selectionX1 = GetBufferPixelWidth(node, shiftPosition, selectionStartPosition);
 	int selectionX2 = GetBufferPixelWidth(node, shiftPosition, selectionStartPosition + selectionLength);
 
@@ -400,7 +400,7 @@ void TextFieldNode::DrawSelection(DrawContext& context, Node* node)
 void TextFieldNode::RedrawModified(Node* node, int position)
 {
 	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
-	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+	Font* font = node->GetStyleFont();
 	DrawContext context;
 	uint8_t textColour = Platform::video->colourScheme.textColour;
 	uint8_t clearColour = Platform::video->colourScheme.pageColour;
@@ -414,7 +414,7 @@ void TextFieldNode::RedrawModified(Node* node, int position)
 
 	Platform::input->HideMouse();
 	context.surface->FillRect(context, drawPosition, node->anchor.y + 1, clearWidth, node->size.y - 2, clearColour);
-	context.surface->DrawString(context, font, data->buffer + position, drawPosition, node->anchor.y + 2, textColour, node->style.fontStyle);
+	context.surface->DrawString(context, font, data->buffer + position, drawPosition, node->anchor.y + 2, textColour, node->GetStyle().fontStyle);
 	DrawCursor(context, node);
 	Platform::input->ShowMouse();
 }
@@ -480,7 +480,7 @@ int TextFieldNode::PickPosition(Node* node, int x, int y)
 	int result = shiftPosition;
 
 	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
-	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+	Font* font = node->GetStyleFont();
 
 	while(x > 0)
 	{

@@ -61,18 +61,32 @@ struct URL
 			strcpy(directory, directory + 2);
 		}
 		directory = strstr(url, "/../");
+		char* protocolEnd = strstr(url, "://");
+		if (protocolEnd)
+			protocolEnd += 3;
+
 		while (directory && directory > url)
 		{
 			char* prevSlash = directory - 1;
-			while (prevSlash > url && *prevSlash != '/')
+			while (prevSlash > url && *prevSlash != '/' && prevSlash > protocolEnd)
 			{
 				prevSlash--;
 			}
 			if (*prevSlash == '/' && prevSlash > url)
 			{
 				strcpy(prevSlash, directory + 3);
+				directory = strstr(prevSlash, "/../");
 			}
-			directory = strstr(prevSlash, "/../");
+			else
+			{
+				// At most top level, collapse remaining /../ instances
+				while (directory)
+				{
+					strcpy(directory, directory + 3);
+					directory = strstr(url, "/../");
+				}
+				break;
+			}
 		}
 
 		// Fix &amp escape sequences

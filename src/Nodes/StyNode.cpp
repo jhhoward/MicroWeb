@@ -5,7 +5,9 @@
 void StyleNode::ApplyStyle(Node* node)
 {
 	StyleNode::Data* data = static_cast<StyleNode::Data*>(node->data);
-	data->styleOverride.Apply(node->style);
+	ElementStyle style = node->GetStyle();
+	data->styleOverride.Apply(style);
+	node->SetStyle(style);
 }
 
 void StyleNode::GenerateLayout(Layout& layout, Node* node)

@@ -18,7 +18,7 @@ Node* ListNode::Construct(Allocator& allocator)
 void ListNode::BeginLayoutContext(Layout& layout, Node* node)
 {
 	ListNode::Data* data = static_cast<ListNode::Data*>(node->data);
-	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+	Font* font = node->GetStyleFont();
 
 	layout.BreakNewLine();
 	layout.PadVertical(font->glyphHeight);
@@ -29,7 +29,7 @@ void ListNode::BeginLayoutContext(Layout& layout, Node* node)
 void ListNode::EndLayoutContext(Layout& layout, Node* node)
 {
 	ListNode::Data* data = static_cast<ListNode::Data*>(node->data);
-	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+	Font* font = node->GetStyleFont();
 
 	layout.PopLayout();
 	layout.BreakNewLine();
@@ -61,7 +61,7 @@ void ListItemNode::BeginLayoutContext(Layout& layout, Node* node)
 {
 	ListItemNode::Data* data = static_cast<ListItemNode::Data*>(node->data);
 
-	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+	Font* font = node->GetStyleFont();
 
 	layout.BreakNewLine();
 	node->anchor = layout.GetCursor();

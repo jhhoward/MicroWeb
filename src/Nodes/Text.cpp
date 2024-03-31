@@ -29,9 +29,9 @@ void TextElement::Draw(DrawContext& context, Node* node)
 
 	if (!node->firstChild && data->text.IsAllocated())
 	{
-		Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+		Font* font = node->GetStyleFont();
 
-		uint8_t textColour = node->style.fontColour;
+		uint8_t textColour = node->GetStyle().fontColour;
 		char* text = data->text.Get<char*>();
 
 		if (context.surface->bpp == 1)
@@ -39,7 +39,7 @@ void TextElement::Draw(DrawContext& context, Node* node)
 			textColour = Platform::video->colourScheme.textColour;
 		}
 
-		context.surface->DrawString(context, font, text, node->anchor.x, node->anchor.y, textColour, node->style.fontStyle);
+		context.surface->DrawString(context, font, text, node->anchor.x, node->anchor.y, textColour, node->GetStyle().fontStyle);
 
 		Node* focusedNode = App::Get().ui.GetFocusedNode();
 		if (focusedNode && node->IsChildOf(focusedNode))
@@ -53,7 +53,7 @@ void TextElement::Draw(DrawContext& context, Node* node)
 void TextElement::GenerateLayout(Layout& layout, Node* node)
 {
 	TextElement::Data* data = static_cast<TextElement::Data*>(node->data);
-	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+	Font* font = node->GetStyleFont();
 	int lineHeight = font->glyphHeight;
 
 #if 1
@@ -129,7 +129,7 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 			hasModified = true;
 		}
 
-		int glyphWidth = font->GetGlyphWidth(c, node->style.fontStyle);
+		int glyphWidth = font->GetGlyphWidth(c, node->GetStyle().fontStyle);
 		width += glyphWidth;
 
 		bool cannotFit = width > layout.AvailableWidth();
@@ -246,8 +246,8 @@ void SubTextElement::Draw(DrawContext& context, Node* node)
 
 	if (textData && subTextData && textData->text.IsAllocated())
 	{
-		Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
-		uint8_t textColour = node->style.fontColour;
+		Font* font = node->GetStyleFont();
+		uint8_t textColour = node->GetStyle().fontColour;
 		char* text = textData->text.Get<char*>() + subTextData->startIndex;
 		char temp = text[subTextData->length];
 		text[subTextData->length] = 0;
@@ -257,7 +257,7 @@ void SubTextElement::Draw(DrawContext& context, Node* node)
 			textColour = Platform::video->colourScheme.textColour;
 		}
 
-		context.surface->DrawString(context, font, text, node->anchor.x, node->anchor.y, textColour, node->style.fontStyle);
+		context.surface->DrawString(context, font, text, node->anchor.x, node->anchor.y, textColour, node->GetStyle().fontStyle);
 
 		Node* focusedNode = App::Get().ui.GetFocusedNode();
 		if (focusedNode && node->IsChildOf(focusedNode))

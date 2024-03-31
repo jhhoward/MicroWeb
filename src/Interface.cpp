@@ -228,7 +228,9 @@ void AppInterface::Update()
 		case KEYCODE_F2:
 		{
 			Platform::video->InvertVideoOutput();
-			titleNode->style.fontColour = Platform::video->colourScheme.textColour;
+			ElementStyle titleStyle = titleNode->GetStyle();
+			titleStyle.fontColour = Platform::video->colourScheme.textColour;
+			titleNode->SetStyle(titleStyle);
 		}
 			break;
 		case KEYCODE_CTRL_L:
@@ -391,11 +393,14 @@ void AppInterface::UpdatePageScrollBar()
 void AppInterface::GenerateInterfaceNodes()
 {
 	Allocator& allocator = MemoryManager::interfaceAllocator;
+	ElementStyle rootInterfaceStyle;
+	rootInterfaceStyle.alignment = ElementAlignment::Left;
+	rootInterfaceStyle.fontSize = 1;
+	rootInterfaceStyle.fontStyle = FontStyle::Regular;
+	rootInterfaceStyle.fontColour = Platform::video->colourScheme.textColour;
+
 	rootInterfaceNode = SectionElement::Construct(allocator, SectionElement::Interface);
-	rootInterfaceNode->style.alignment = ElementAlignment::Left;
-	rootInterfaceNode->style.fontSize = 1;
-	rootInterfaceNode->style.fontStyle = FontStyle::Regular;
-	rootInterfaceNode->style.fontColour = Platform::video->colourScheme.textColour;
+	rootInterfaceNode->SetStyle(rootInterfaceStyle);
 
 	Font* interfaceFont = Assets.GetFont(1, FontStyle::Regular);
 	Font* smallInterfaceFont = Assets.GetFont(0, FontStyle::Regular);
@@ -407,26 +412,26 @@ void AppInterface::GenerateInterfaceNodes()
 		titleNode->anchor.Clear();
 		titleNode->size.x = Platform::video->screenWidth;
 		titleNode->size.y = interfaceFont->glyphHeight;
-		titleNode->style = rootInterfaceNode->style;
+		titleNode->styleHandle = rootInterfaceNode->styleHandle;
 		rootInterfaceNode->AddChild(titleNode);
 	}
 
 	backButtonNode = ButtonNode::Construct(allocator, " < ", OnBackButtonPressed);
-	backButtonNode->style = rootInterfaceNode->style;
+	backButtonNode->styleHandle = rootInterfaceNode->styleHandle;
 	backButtonNode->size = ButtonNode::CalculateSize(backButtonNode);
 	backButtonNode->anchor.x = 1;
 	backButtonNode->anchor.y = titleNode->size.y;
 	rootInterfaceNode->AddChild(backButtonNode);
 
 	forwardButtonNode = ButtonNode::Construct(allocator, " > ", OnForwardButtonPressed);
-	forwardButtonNode->style = rootInterfaceNode->style;
+	forwardButtonNode->styleHandle = rootInterfaceNode->styleHandle;
 	forwardButtonNode->size = ButtonNode::CalculateSize(forwardButtonNode);
 	forwardButtonNode->anchor.x = backButtonNode->anchor.x + backButtonNode->size.x + 2;
 	forwardButtonNode->anchor.y = titleNode->size.y;
 	rootInterfaceNode->AddChild(forwardButtonNode);
 
 	addressBarNode = TextFieldNode::Construct(allocator, addressBarURL.url, MAX_URL_LENGTH - 1, OnAddressBarSubmit);
-	addressBarNode->style = rootInterfaceNode->style;
+	addressBarNode->styleHandle = rootInterfaceNode->styleHandle;
 	addressBarNode->anchor.x = forwardButtonNode->anchor.x + forwardButtonNode->size.x + 2;
 	addressBarNode->anchor.y = titleNode->size.y;
 	addressBarNode->size.x = Platform::video->screenWidth - addressBarNode->anchor.x - 1;
@@ -434,16 +439,18 @@ void AppInterface::GenerateInterfaceNodes()
 	rootInterfaceNode->AddChild(addressBarNode);
 
 	statusBarNode = StatusBarNode::Construct(allocator);
-	statusBarNode->style = rootInterfaceNode->style;
 	statusBarNode->size.x = Platform::video->screenWidth;
 	statusBarNode->size.y = smallInterfaceFont->glyphHeight + 2;
 	statusBarNode->anchor.x = 0;
 	statusBarNode->anchor.y = Platform::video->screenHeight - statusBarNode->size.y;
 	rootInterfaceNode->AddChild(statusBarNode);
-	statusBarNode->style.fontSize = 0;
+
+	ElementStyle statusBarStyle = rootInterfaceStyle;
+	statusBarStyle.fontSize = 0;
+	statusBarNode->SetStyle(statusBarStyle);
 
 	scrollBarNode = ScrollBarNode::Construct(allocator, scrollPositionY, app.page.pageHeight, OnScrollBarMoved);
-	scrollBarNode->style = rootInterfaceNode->style;
+	scrollBarNode->styleHandle = rootInterfaceNode->styleHandle;
 	scrollBarNode->anchor.y = backButtonNode->anchor.y + backButtonNode->size.y + 2;
 	scrollBarNode->size.x = 16;
 	scrollBarNode->size.y = Platform::video->screenHeight - scrollBarNode->anchor.y - statusBarNode->size.y;
@@ -456,6 +463,8 @@ void AppInterface::GenerateInterfaceNodes()
 	windowRect.height = Platform::video->screenHeight - windowRect.y - statusBarNode->size.y;
 
 	pageHeightForDimensionScaling = windowRect.height;
+
+	StylePool::Get().MarkInterfaceStylesComplete();
 }
 
 void AppInterface::DrawInterfaceNodes(DrawContext& context)
@@ -472,8 +481,8 @@ void AppInterface::SetTitle(const char* title)
 {
 	strncpy(titleBuffer, title, MAX_TITLE_LENGTH);
 	titleBuffer[MAX_TITLE_LENGTH - 1] = '\0';
-	Font* font = Assets.GetFont(titleNode->style.fontSize, titleNode->style.fontStyle);
-	int titleWidth = font->CalculateWidth(titleBuffer, titleNode->style.fontStyle);
+	Font* font = titleNode->GetStyleFont();
+	int titleWidth = font->CalculateWidth(titleBuffer, titleNode->GetStyle().fontStyle);
 	titleNode->anchor.x = Platform::video->screenWidth / 2 - titleWidth / 2;
 	if (titleNode->anchor.x < 0)
 	{

@@ -14,7 +14,7 @@ void ButtonNode::Draw(DrawContext& context, Node* node)
 
 	if (data->buttonText)
 	{
-		Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+		Font* font = node->GetStyleFont();
 		uint8_t textColour = Platform::video->colourScheme.textColour;
 		uint8_t buttonOutlineColour = Platform::video->colourScheme.textColour;
 		uint8_t buttonColour = Platform::video->colourScheme.buttonColour;
@@ -24,7 +24,7 @@ void ButtonNode::Draw(DrawContext& context, Node* node)
 		context.surface->HLine(context, node->anchor.x + 1, node->anchor.y + node->size.y - 2, node->size.x - 2, buttonOutlineColour);
 		context.surface->VLine(context, node->anchor.x, node->anchor.y + 1, node->size.y - 2, buttonOutlineColour);
 		context.surface->VLine(context, node->anchor.x + node->size.x - 1, node->anchor.y + 1, node->size.y - 2, buttonOutlineColour);
-		context.surface->DrawString(context, font, data->buttonText, node->anchor.x + 8, node->anchor.y + 2, textColour, node->style.fontStyle);
+		context.surface->DrawString(context, font, data->buttonText, node->anchor.x + 8, node->anchor.y + 2, textColour, node->GetStyle().fontStyle);
 
 		if (App::Get().ui.GetFocusedNode() == node)
 		{
@@ -61,13 +61,13 @@ Node* ButtonNode::Construct(Allocator& allocator, const char* inButtonText, Node
 Coord ButtonNode::CalculateSize(Node* node)
 {
 	ButtonNode::Data* data = static_cast<ButtonNode::Data*>(node->data);
-	Font* font = Assets.GetFont(node->style.fontSize, node->style.fontStyle);
+	Font* font = node->GetStyleFont();
 	int labelHeight = font->glyphHeight;
 	int labelWidth = 0;
 
 	if (data->buttonText)
 	{
-		labelWidth = font->CalculateWidth(data->buttonText, node->style.fontStyle);
+		labelWidth = font->CalculateWidth(data->buttonText, node->GetStyle().fontStyle);
 	}
 
 	Coord result;

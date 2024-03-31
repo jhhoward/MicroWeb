@@ -93,7 +93,7 @@ void JpegDecoder::Process(uint8_t* data, size_t dataLength)
 		case ParseStartOfFrame:
 			if (FillStruct(&data, dataLength, &frameHeader, sizeof(FrameHeader)))
 			{
-				if (outputImage->width == 0 && outputImage->height == 0)
+				if (outputImage->width == 0 || outputImage->height == 0)
 				{
 					CalculateImageDimensions(frameHeader.width, frameHeader.height);
 

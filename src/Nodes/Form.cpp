@@ -52,7 +52,10 @@ void FormNode::SubmitForm(Node* node)
 	if (data->method == FormNode::Data::Get)
 	{
 		char* address = app.ui.addressBarURL.url;
-		strcpy(address, data->action);
+		if (data->action)
+		{
+			strcpy(address, data->action);
+		}
 		int numParams = 0;
 
 		// Remove anything after existing ?

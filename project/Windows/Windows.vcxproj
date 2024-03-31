@@ -175,6 +175,7 @@
     <ClCompile Include="..\..\src\Page.cpp" />
     <ClCompile Include="..\..\src\Parser.cpp" />
     <ClCompile Include="..\..\src\Render.cpp" />
+    <ClCompile Include="..\..\src\Style.cpp" />
     <ClCompile Include="..\..\src\Tags.cpp" />
     <ClCompile Include="..\..\src\VidModes.cpp" />
     <ClCompile Include="..\..\src\Windows\Platform.cpp" />
