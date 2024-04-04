@@ -141,9 +141,6 @@ void App::Run(int argc, char* argv[])
 		{
 			if (requestedNewPage)
 			{
-				page.pageURL = pageLoadTask.GetURL();
-				ui.UpdateAddressBar(page.pageURL);
-
 				if (pageLoadTask.type == LoadTask::RemoteFile)
 				{
 					if (!pageLoadTask.request)
@@ -171,6 +168,7 @@ void App::Run(int argc, char* argv[])
 				}
 				else if (pageLoadTask.type == LoadTask::LocalFile)
 				{
+					ui.UpdateAddressBar(pageLoadTask.GetURL());
 					ShowErrorPage("File not found");
 					requestedNewPage = false;
 				}
@@ -434,8 +432,9 @@ void App::ShowErrorPage(const char* message)
 	ResetPage();
 
 	page.SetTitle("Error");
-//	page.pageURL = "about:error";
-//	ui.UpdateAddressBar(page.pageURL);
+
+	page.pageURL = pageLoadTask.GetURL();
+	ui.UpdateAddressBar(page.pageURL);
 
 	parser.Write("<html>");
 	parser.Write("<h1>Error loading page</h1>");

@@ -64,6 +64,7 @@ void AppInterface::Reset()
 	if (hoverNode && !IsInterfaceNode(hoverNode))
 	{
 		hoverNode = nullptr;
+		Platform::input->SetMouseCursor(MouseCursor::Pointer);
 	}
 	jumpTagName = nullptr;
 	jumpNode = nullptr;
