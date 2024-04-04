@@ -19,6 +19,7 @@
 #include "Image/Decoder.h"
 
 App* App::app;
+AppConfig App::config;
 
 App::App() 
 	: page(*this), pageRenderer(*this), parser(page), ui(*this)
@@ -52,7 +53,8 @@ void App::Run(int argc, char* argv[])
 
 	config.loadImages = true;
 	config.dumpPage = false;
-	config.invertScreen = false;
+	config.useSwap = false;
+	config.useEMS = true;
 
 	if (argc > 1)
 	{
@@ -75,8 +77,18 @@ void App::Run(int argc, char* argv[])
 			{
 				config.invertScreen = true;
 			}
+			else if (!stricmp(argv[n], "-useswap"))
+			{
+				config.useSwap = true;
+			}
+			else if (!stricmp(argv[n], "-noems"))
+			{
+				config.useEMS = false;
+			}
 		}
 	}
+
+	MemoryManager::pageBlockAllocator.Init();
 
 	if (config.loadImages)
 	{
@@ -270,7 +282,7 @@ void LoadTask::Load(const char* targetURL)
 	{
 		request = Platform::network->CreateRequest(url.url);
 
-		if (App::Get().config.dumpPage && this == &App::Get().pageLoadTask)
+		if (App::config.dumpPage && this == &App::Get().pageLoadTask)
 		{
 			debugDumpFile = fopen("dump.htm", "wb");
 		}
@@ -475,7 +487,7 @@ void VideoDriver::InvertVideoOutput()
 {
 	if (drawSurface->bpp == 1)
 	{
-		App::Get().config.invertScreen = !App::Get().config.invertScreen;
+		App::config.invertScreen = !App::config.invertScreen;
 
 		DrawContext context(drawSurface, 0, 0, screenWidth, screenHeight);
 		Platform::input->HideMouse();

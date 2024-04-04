@@ -34,7 +34,7 @@ void Layout::Update()
 	{
 		currentNodeToProcess->Handler().BeginLayoutContext(*this, currentNodeToProcess);
 
-		if (currentNodeToProcess->type == Node::Image && App::Get().config.loadImages)
+		if (currentNodeToProcess->type == Node::Image && App::config.loadImages)
 		{
 			ImageNode::Data* imageData = static_cast<ImageNode::Data*>(currentNodeToProcess->data);
 			if (!imageData->HasDimensions())

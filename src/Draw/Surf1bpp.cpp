@@ -41,7 +41,7 @@ void DrawSurface_1BPP::HLine(DrawContext& context, int x, int y, int count, uint
 
 	uint8_t data = *VRAMptr;
 
-	if (App::Get().config.invertScreen)
+	if (App::config.invertScreen)
 		colour = !colour;
 
 	if (colour)
@@ -124,7 +124,7 @@ void DrawSurface_1BPP::VLine(DrawContext& context, int x, int y, int count, uint
 	uint8_t mask = (0x80 >> (x & 7));
 	int index = x >> 3;
 
-	if (App::Get().config.invertScreen)
+	if (App::config.invertScreen)
 		colour = !colour;
 
 	if (colour)
@@ -174,7 +174,7 @@ void DrawSurface_1BPP::FillRect(DrawContext& context, int x, int y, int width, i
 		return;
 	}
 
-	if (App::Get().config.invertScreen)
+	if (App::config.invertScreen)
 		colour = !colour;
 
 	while (height)
@@ -272,7 +272,7 @@ void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* 
 
 	uint8_t bold = (style & FontStyle::Bold) ? 1 : 0;
 
-	if (App::Get().config.invertScreen)
+	if (App::config.invertScreen)
 		colour = !colour;
 
 	while (*text)
@@ -448,7 +448,7 @@ void DrawSurface_1BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 		return; // Nothing to draw if fully outside the clipping region.
 	}
 
-	uint8_t invertMask = App::Get().config.invertScreen ? 0xff : 0;
+	uint8_t invertMask = App::config.invertScreen ? 0xff : 0;
 
 	// Blit the image data line by line
 	for (int j = 0; j < destHeight; j++)
@@ -554,7 +554,7 @@ void DrawSurface_1BPP::InvertRect(DrawContext& context, int x, int y, int width,
 
 void DrawSurface_1BPP::VerticalScrollBar(DrawContext& context, int x, int y, int height, int position, int size)
 {
-	uint16_t inverseMask = App::Get().config.invertScreen ? 0xffff : 0;
+	uint16_t inverseMask = App::config.invertScreen ? 0xffff : 0;
 	const uint16_t widgetEdge = 0x0660 ^ inverseMask;
 	const uint16_t widgetInner = 0xfa5f ^ inverseMask;
 	const uint16_t grab = 0x0a50 ^ inverseMask;
@@ -612,9 +612,11 @@ void DrawSurface_1BPP::VerticalScrollBar(DrawContext& context, int x, int y, int
 void DrawSurface_1BPP::Clear()
 {
 	int widthBytes = width >> 3;
+	uint8_t clear = App::config.invertScreen ? 0 : 0xff;
+
 	for (int y = 0; y < height; y++)
 	{
-		memset(lines[y], 0xff, widthBytes);
+		memset(lines[y], clear, widthBytes);
 	}
 }
 

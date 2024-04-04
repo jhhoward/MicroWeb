@@ -3,8 +3,10 @@
 #include "LinAlloc.h"
 #include "Memory.h"
 #include "../Platform.h"
+#include "../App.h"
 
 #ifdef __DOS__
+#include <dos.h>
 #include "../DOS/EMS.h"
 
 EMSManager ems;
@@ -55,9 +57,11 @@ MemBlockAllocator::MemBlockAllocator()
 
 void MemBlockAllocator::Init()
 {
-	// Disable swap for now
-	//swapFile = fopen("Microweb.swp", "wb+");
-	
+	if (App::config.useSwap)
+	{
+		swapFile = fopen("Microweb.swp", "wb+");
+	}
+
 	if (swapFile)
 	{
 		swapBuffer = malloc(MAX_SWAP_ALLOCATION);
@@ -67,7 +71,10 @@ void MemBlockAllocator::Init()
 	}
 
 #ifdef __DOS__
-	ems.Init();
+	if (App::config.useEMS)
+	{
+		ems.Init();
+	}
 #endif
 }
 
@@ -98,6 +105,7 @@ MemBlockHandle MemBlockAllocator::AllocString(const char* inString)
 MemBlockHandle MemBlockAllocator::Allocate(uint16_t size)
 {
 	MemBlockHandle result;
+	long conventionalMemoryAvailable = 0;
 
 #ifdef __DOS__
 	if (ems.IsAvailable())
@@ -109,9 +117,13 @@ MemBlockHandle MemBlockAllocator::Allocate(uint16_t size)
 			return result;
 		}
 	}
-#endif
 
-	if (swapFile)
+	conventionalMemoryAvailable += _memmax();
+#endif
+	
+	conventionalMemoryAvailable += MemoryManager::pageAllocator.TotalAllocated() - MemoryManager::pageAllocator.TotalUsed();
+
+	if (swapFile && conventionalMemoryAvailable < 16 * 1024)	// If we have less than 16K available, fall back to disk
 	{
 		uint16_t sizeNeededForSwap = size + sizeof(uint16_t);
 
@@ -122,20 +134,17 @@ MemBlockHandle MemBlockAllocator::Allocate(uint16_t size)
 
 			fwrite(&size, sizeof(uint16_t), 1, swapFile);
 
-			char empty[32];
-			size_t toWrite = size;
-			while (toWrite > 0)
+			char empty = 0xaa;
+			size_t bytesLeft = size;
+			while (bytesLeft > 0)
 			{
-				if (toWrite >= 32)
+				if(!fwrite(&empty, 1, 1, swapFile))
 				{
-					fwrite(empty, 1, 32, swapFile);
-					toWrite -= 32;
+					// Out of disk space?
+					result.type = MemBlockHandle::Unallocated;
+					return result;
 				}
-				else
-				{
-					fwrite(empty, 1, toWrite, swapFile);
-					break;
-				}
+				bytesLeft--;
 			}
 
 			swapFileLength += sizeNeededForSwap;

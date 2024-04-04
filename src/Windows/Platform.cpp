@@ -21,6 +21,7 @@
 #include "../Draw/Surface.h"
 #include "../VidModes.h"
 #include "../Memory/Memory.h"
+#include "../App.h"
 
 WindowsVideoDriver winVid;
 WindowsNetworkDriver winNetworkDriver;
@@ -43,10 +44,8 @@ bool Platform::Init(int argc, char* argv[])
 
 	network->Init();
 	video->Init(videoMode);
-	video->drawSurface->Clear();
 	input->Init();
 	input->ShowMouse();
-	MemoryManager::pageBlockAllocator.Init();
 
 	return true;
 }

@@ -466,9 +466,11 @@ void AppInterface::GenerateInterfaceNodes()
 
 void AppInterface::DrawInterfaceNodes(DrawContext& context)
 {
+	Platform::input->HideMouse();
+	Platform::video->drawSurface->Clear();
+
 	app.pageRenderer.DrawAll(context, rootInterfaceNode);
 
-	Platform::input->HideMouse();
 	uint8_t dividerColour = Platform::video->colourScheme.textColour;
 	context.surface->HLine(context, 0, windowRect.y - 1, Platform::video->screenWidth, dividerColour);
 	Platform::input->ShowMouse();

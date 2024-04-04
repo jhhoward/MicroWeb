@@ -26,6 +26,7 @@
 #include "../Font.h"
 #include "../Draw/Surface.h"
 #include "../Memory/Memory.h"
+#include "../App.h"
 
 VideoDriver* Platform::video = nullptr;
 InputDriver* Platform::input = nullptr;
@@ -156,16 +157,6 @@ static int AutoDetectVideoMode()
 
 bool Platform::Init(int argc, char* argv[])
 {
-	bool inverse = false;
-
-	for (int n = 1; n < argc; n++)
-	{
-		if (!stricmp(argv[n], "-i"))
-		{
-			inverse = true;
-		}
-	}
-
 	network = new DOSNetworkDriver();
 	if (network)
 	{
@@ -173,13 +164,16 @@ bool Platform::Init(int argc, char* argv[])
 	}
 	else FatalError("Could not create network driver");
 
-	MemoryManager::pageBlockAllocator.Init();
-
 	int suggestedMode = AutoDetectVideoMode();
 	VideoModeInfo* videoMode = ShowVideoModePicker(suggestedMode);
 	if (!videoMode)
 	{
 		return false;
+	}
+
+	if (videoMode == &VideoModeList[HP95LX] || videoMode == &VideoModeList[CGAPalmtop])
+	{
+		App::config.invertScreen = true;
 	}
 
 	if (videoMode->biosVideoMode == HERCULES_MODE)
@@ -196,18 +190,7 @@ bool Platform::Init(int argc, char* argv[])
 		FatalError("Could not create video driver");
 	}
 
-	if (videoMode->biosVideoMode == HP95LX || videoMode->biosVideoMode == CGAPalmtop)
-	{
-		inverse = true;
-	}
-
 	video->Init(videoMode);
-	video->drawSurface->Clear();
-
-	if (inverse)
-	{
-		video->InvertVideoOutput();
-	}
 
 	input = new DOSInputDriver();
 	if (input)

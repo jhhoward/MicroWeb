@@ -122,7 +122,7 @@ void ImageNode::GenerateLayout(Layout& layout, Node* node)
 
 void ImageNode::LoadContent(Node* node, LoadTask& loadTask)
 {
-	if (!App::Get().config.loadImages)
+	if (!App::config.loadImages)
 	{
 		return;
 	}

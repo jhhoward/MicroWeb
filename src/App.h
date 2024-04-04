@@ -63,6 +63,8 @@ struct AppConfig
 	bool loadImages : 1;
 	bool dumpPage : 1;
 	bool invertScreen : 1;
+	bool useSwap : 1;
+	bool useEMS : 1;
 };
 
 class App
@@ -88,7 +90,7 @@ public:
 	PageRenderer pageRenderer;
 	HTMLParser parser;
 	AppInterface ui;
-	AppConfig config;
+	static AppConfig config;
 
 	LoadTask pageLoadTask;
 	LoadTask pageContentLoadTask;

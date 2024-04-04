@@ -25,4 +25,6 @@ struct VideoModeInfo
 
 VideoModeInfo* ShowVideoModePicker(int defaultSelection);
 
+extern VideoModeInfo VideoModeList[];
+
 #endif
