@@ -22,7 +22,7 @@
 #include "Interface.h"
 #include "Render.h"
 
-#define MAX_PAGE_URL_HISTORY 5
+#define MAX_PAGE_HISTORY_BUFFER_SIZE MAX_URL_LENGTH
 #define APP_LOAD_BUFFER_SIZE 256
 
 class HTTPRequest;
@@ -81,6 +81,7 @@ public:
 	void NextPage();
 
 	void StopLoad();
+	void ReloadPage();
 
 	void ShowErrorPage(const char* message);
 
@@ -107,9 +108,8 @@ private:
 	Node* loadTaskTargetNode;
 	bool running;
 
-	URL pageHistory[MAX_PAGE_URL_HISTORY];
-	int pageHistorySize;
-	int pageHistoryPos;
+	char pageHistoryBuffer[MAX_PAGE_HISTORY_BUFFER_SIZE];
+	char* pageHistoryPtr;
 
 	static App* app;
 

@@ -235,8 +235,7 @@ void AppInterface::Update()
 			FocusNode(addressBarNode);
 			break;
 		case KEYCODE_F5:
-			app.page.layout.RecalculateLayout();
-			//FocusNode(addressBarNode);
+			app.ReloadPage();
 			break;
 		case KEYCODE_F3:
 			ToggleStatusAndTitleBar();

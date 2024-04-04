@@ -26,8 +26,9 @@ App::App()
 {
 	app = this;
 	requestedNewPage = false;
-	pageHistorySize = 0;
-	pageHistoryPos = -1;
+
+	memset(pageHistoryBuffer, 0, MAX_PAGE_HISTORY_BUFFER_SIZE);
+	pageHistoryPtr = pageHistoryBuffer;
 }
 
 App::~App()
@@ -140,6 +141,9 @@ void App::Run(int argc, char* argv[])
 		{
 			if (requestedNewPage)
 			{
+				page.pageURL = pageLoadTask.GetURL();
+				ui.UpdateAddressBar(page.pageURL);
+
 				if (pageLoadTask.type == LoadTask::RemoteFile)
 				{
 					if (!pageLoadTask.request)
@@ -379,6 +383,9 @@ size_t LoadTask::GetContent(char* buffer, size_t count)
 
 void App::RequestNewPage(const char* url)
 {
+	if (!url || !*url)
+		return;
+
 	StopLoad();
 	pageLoadTask.Load(url);
 	requestedNewPage = true;
@@ -395,18 +402,24 @@ void App::OpenURL(const char* url)
 {
 	RequestNewPage(url);
 
-	pageHistoryPos++;
-	if (pageHistoryPos >= MAX_PAGE_URL_HISTORY)
+	size_t urlStringLength = strlen(url) + 1;
+
+	if (*pageHistoryPtr)
 	{
-		for (int n = 0; n < MAX_PAGE_URL_HISTORY - 1; n++)
-		{
-			pageHistory[n] = pageHistory[n + 1];
-		}
-		pageHistoryPos--;
+		pageHistoryPtr += strlen(pageHistoryPtr) + 1;
 	}
 
-	pageHistory[pageHistoryPos] = pageLoadTask.url;
-	pageHistorySize = pageHistoryPos + 1;
+	// If not enough space in the buffer then move to previous space
+	while (pageHistoryPtr + urlStringLength > pageHistoryBuffer + MAX_PAGE_HISTORY_BUFFER_SIZE)
+	{
+		do
+		{
+			pageHistoryPtr--;
+		} while (pageHistoryPtr > pageHistoryBuffer && pageHistoryPtr[-1]);
+	}
+
+	strcpy(pageHistoryPtr, url);
+	memset(pageHistoryPtr + urlStringLength, 0, MAX_PAGE_HISTORY_BUFFER_SIZE - (pageHistoryPtr + urlStringLength - pageHistoryBuffer));
 }
 
 void App::StopLoad()
@@ -461,19 +474,35 @@ void App::ShowNoHTTPSPage()
 
 void App::PreviousPage()
 {
-	if (pageHistoryPos > 0)
+	if (pageHistoryPtr > pageHistoryBuffer)
 	{
-		pageHistoryPos--;
-		RequestNewPage(pageHistory[pageHistoryPos].url);
+		do
+		{
+			pageHistoryPtr--;
+		} while (pageHistoryPtr > pageHistoryBuffer && pageHistoryPtr[-1]);
+
+		RequestNewPage(pageHistoryPtr);
 	}
 }
 
 void App::NextPage()
 {
-	if (pageHistoryPos + 1 < pageHistorySize)
+	if (*pageHistoryPtr)
 	{
-		pageHistoryPos++;
-		RequestNewPage(pageHistory[pageHistoryPos].url);
+		char* next = pageHistoryPtr + strlen(pageHistoryPtr) + 1;
+		if (next < pageHistoryBuffer + MAX_PAGE_HISTORY_BUFFER_SIZE && *next)
+		{
+			pageHistoryPtr = next;
+			RequestNewPage(pageHistoryPtr);
+		}
+	}
+}
+
+void App::ReloadPage()
+{
+	if (*pageHistoryPtr)
+	{
+		RequestNewPage(pageHistoryPtr);
 	}
 }
 
