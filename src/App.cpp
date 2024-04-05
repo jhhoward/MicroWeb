@@ -410,10 +410,17 @@ void App::OpenURL(const char* url)
 	// If not enough space in the buffer then move to previous space
 	while (pageHistoryPtr + urlStringLength > pageHistoryBuffer + MAX_PAGE_HISTORY_BUFFER_SIZE)
 	{
-		do
+		int firstLength = strlen(pageHistoryBuffer);
+
+		if (!firstLength)
 		{
-			pageHistoryPtr--;
-		} while (pageHistoryPtr > pageHistoryBuffer && pageHistoryPtr[-1]);
+			// This shouldn't happen
+			pageHistoryPtr = pageHistoryBuffer;
+			break;
+		}
+
+		memmove(pageHistoryBuffer, pageHistoryBuffer + firstLength + 1, MAX_PAGE_HISTORY_BUFFER_SIZE - firstLength - 1);
+		pageHistoryPtr -= firstLength + 1;
 	}
 
 	strcpy(pageHistoryPtr, url);
