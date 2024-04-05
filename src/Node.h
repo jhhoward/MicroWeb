@@ -125,7 +125,8 @@ public:
 	Node* GetNextInTree();
 
 	ElementStyleHandle styleHandle;
-	Type type : 8;
+	Type type : 7;
+	bool isLayoutComplete : 1;
 
 	Coord anchor;				// Top left page position
 	Coord size;					// Rectangle size that encapsulates node and its children

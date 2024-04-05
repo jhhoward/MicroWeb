@@ -45,6 +45,7 @@ NodeHandler* Node::nodeHandlers[Node::NumNodeTypes] =
 
 Node::Node(Type inType, void* inData)
 	: type(inType)
+	, isLayoutComplete(false)
 	, parent(nullptr)
 	, next(nullptr)
 	, firstChild(nullptr)
@@ -182,7 +183,7 @@ Node* NodeHandler::Pick(Node* node, int x, int y)
 		return nullptr;
 	}
 
-	if (CanPick(node))
+	if (CanPick(node) && node->isLayoutComplete)
 	{
 		// Node is pickable, but it's dimensions could be based on encapsulated children so check 
 		// it is over the child nodes and not just in the bounding box

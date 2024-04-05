@@ -418,6 +418,8 @@ void PageRenderer::MarkNodeLayoutComplete(Node* node)
 
 	for (Node* node = startNode; node; node = node->GetNextInTree())
 	{
+		node->isLayoutComplete = true;
+
 		if (IsRenderableNode(node))
 		{
 			int nodeTop = node->anchor.y + drawOffsetY;

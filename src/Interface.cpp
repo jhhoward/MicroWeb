@@ -142,6 +142,7 @@ void AppInterface::Update()
 						SetStatusMessage(imageData->altText, StatusBarNode::HoverStatus);
 						hasHoverStatusMessage = true;
 					}
+					Platform::input->SetMouseCursor(MouseCursor::Pointer);
 				}
 				break;
 			default:
@@ -462,6 +463,11 @@ void AppInterface::GenerateInterfaceNodes()
 	pageHeightForDimensionScaling = windowRect.height;
 
 	StylePool::Get().MarkInterfaceStylesComplete();
+
+	for (Node* node = rootInterfaceNode; node; node = node->GetNextInTree())
+	{
+		node->isLayoutComplete = true;
+	}
 }
 
 void AppInterface::DrawInterfaceNodes(DrawContext& context)
