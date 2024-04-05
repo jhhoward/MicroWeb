@@ -75,6 +75,7 @@ public:
 	void InvertNode(Node* node);
 
 	int GetVisiblePageHeight() { return visiblePageHeight; }
+	bool IsRendering() { return renderQueue.Size() > 0; }
 
 private:
 	bool IsInRenderQueue(Node* node);

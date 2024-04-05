@@ -74,6 +74,12 @@ void Platform::Update()
 		Shutdown();
 		exit(0);
 	}
+
+	App& app = App::Get();
+	if (!app.pageRenderer.IsRendering() && !app.pageLoadTask.IsBusy() && !app.pageContentLoadTask.IsBusy() && app.page.layout.IsFinished())
+	{
+		Sleep(10);
+	}
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
