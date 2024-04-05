@@ -1,5 +1,6 @@
 # MicroWeb DOS web browser
 MicroWeb is a web browser for DOS that runs as a 16-bit real mode application and is designed to run on minimal hardware.
+
 ![Screenshot](screenshot.gif)
 
 ## Minimum requirements
