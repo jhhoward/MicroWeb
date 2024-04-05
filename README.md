@@ -1,7 +1,6 @@
 # MicroWeb DOS web browser
+MicroWeb is a web browser for DOS that runs as a 16-bit real mode application and is designed to run on minimal hardware.
 ![Screenshot](screenshot.gif)
-
-MicroWeb is a web browser for DOS! It is a 16-bit real mode application, designed to run on minimal hardware.
 
 ## Minimum requirements
 To run you will need:
@@ -9,8 +8,8 @@ To run you will need:
 * CGA, EGA, VGA or Hercules compatible graphics card
 * A network interface (it is possible to use your machine's serial port with the EtherSLIP driver)
 * A mouse is desirable but not 100% required
-* 640k RAM is desirable but can run with as little as 384K
-* EMS can be used if available and is recommended for loading heavier web pages
+* 640K RAM is desirable but can run with less
+* EMS can be used if available and is recommended for loading heavier web pages and images
 
 ## Limitations
 * HTTP only (See HTTPS limitations below)
