@@ -562,7 +562,7 @@ void DrawSurface_4BPP_PC1512::BlitImage(DrawContext& context, Image* image, int 
 
 				int count = destWidth;
 
-				while(count)
+				while(count--)
 				{
 					uint8_t colour = *src++;
 
@@ -643,8 +643,6 @@ void DrawSurface_4BPP_PC1512::BlitImage(DrawContext& context, Image* image, int 
 
 						destMask = 0x80;
 					}
-
-					count--;
 				}
 				*dest = destBuffer;
 			}
