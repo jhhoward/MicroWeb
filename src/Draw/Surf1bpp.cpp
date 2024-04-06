@@ -10,7 +10,7 @@ DrawSurface_1BPP::DrawSurface_1BPP(int inWidth, int inHeight)
 	: DrawSurface(inWidth, inHeight)
 {
 	lines = new uint8_t * [height];
-	bpp = 1;
+	format = DrawSurface::Format_1BPP;
 }
 
 void DrawSurface_1BPP::HLine(DrawContext& context, int x, int y, int count, uint8_t colour)

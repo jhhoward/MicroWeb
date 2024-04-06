@@ -185,7 +185,7 @@ void ImageDecoder::Begin(Image* image, bool dimensionsOnly)
     onlyDownloadDimensions = dimensionsOnly;
     state = ImageDecoder::Decoding;
     outputImage = image;
-    outputImage->bpp = Platform::video->drawSurface->bpp == 1 ? 1 : 8;
+    outputImage->bpp = Platform::video->drawSurface->format == DrawSurface::Format_1BPP ? 1 : 8;
 }
 
 void ImageDecoder::CalculateImageDimensions(int sourceWidth, int sourceHeight)

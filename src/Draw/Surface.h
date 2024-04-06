@@ -39,6 +39,15 @@ struct DrawContext
 class DrawSurface
 {
 public:
+	enum Format
+	{
+		Format_1BPP,
+		Format_2BPP,
+		Format_8BPP,
+		Format_4BPP_EGA,
+		Format_4BPP_PC1512,
+	};
+
 	DrawSurface(int inWidth, int inHeight) : width(inWidth), height(inHeight) {}
 	virtual void Clear() = 0;
 	virtual void HLine(DrawContext& context, int x, int y, int count, uint8_t colour) = 0;
@@ -52,7 +61,7 @@ public:
 
 	uint8_t** lines;
 	int width, height;
-	uint8_t bpp;
+	Format format;
 };
 
 #endif

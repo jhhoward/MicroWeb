@@ -123,7 +123,7 @@ void WindowsVideoDriver::Init(VideoModeInfo* inVideoMode)
 	HDC hDC = GetDC(hWnd);
 	HDC hDCMem = CreateCompatibleDC(hDC);
 
-	bool useColour = videoMode->bpp != 1;
+	bool useColour = videoMode->surfaceFormat != DrawSurface::Format_1BPP;
 	int paletteSize = useColour ? 256 : 2;
 
 	bitmapInfo = (BITMAPINFO*)malloc(sizeof(BITMAPINFO) + sizeof(RGBQUAD) * paletteSize);
@@ -141,7 +141,7 @@ void WindowsVideoDriver::Init(VideoModeInfo* inVideoMode)
 	{
 		memcpy(bitmapInfo->bmiColors, egaPalette, sizeof(RGBQUAD) * 16);
 
-		if (videoMode->bpp == 8)
+		if (videoMode->surfaceFormat == DrawSurface::Format_8BPP)
 		{
 			int index = 16;
 			for (int r = 0; r < 6; r++)
@@ -158,7 +158,7 @@ void WindowsVideoDriver::Init(VideoModeInfo* inVideoMode)
 				}
 			}
 		}
-		else if (videoMode->bpp == 2)
+		else if (videoMode->surfaceFormat == DrawSurface::Format_2BPP)
 		{
 			if (videoMode->biosVideoMode == CGA_COMPOSITE_MODE)
 			{
@@ -203,7 +203,7 @@ void WindowsVideoDriver::Init(VideoModeInfo* inVideoMode)
 		}
 
 
-		if (videoMode->bpp == 8)
+		if (videoMode->surfaceFormat == DrawSurface::Format_8BPP)
 		{
 			colourScheme = colourScheme666;
 			//paletteLUT = cgaPaletteLUT;
@@ -222,7 +222,7 @@ void WindowsVideoDriver::Init(VideoModeInfo* inVideoMode)
 				paletteLUT[n] = RGB666(rgbRed, rgbGreen, rgbBlue);
 			}
 		}
-		else if (videoMode->bpp == 2)
+		else if (videoMode->surfaceFormat == DrawSurface::Format_2BPP)
 		{
 			if (videoMode->biosVideoMode == CGA_COMPOSITE_MODE)
 			{

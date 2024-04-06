@@ -26,6 +26,7 @@
 #include "../Draw/Surf2bpp.h"
 #include "../Draw/Surf4bpp.h"
 #include "../Draw/Surf8bpp.h"
+#include "Surf1512.h"
 #include "../VidModes.h"
 
 BIOSVideoDriver::BIOSVideoDriver()
@@ -60,15 +61,15 @@ void BIOSVideoDriver::Init(VideoModeInfo* inVideoModeInfo)
 
 	int screenPitch = 0;
 
-	if (videoMode->bpp == 1)
+	switch(videoMode->surfaceFormat)
 	{
+	case DrawSurface::Format_1BPP:
 		drawSurface = new DrawSurface_1BPP(screenWidth, screenHeight);
 		screenPitch = screenWidth / 8;
 		colourScheme = monochromeColourScheme;
 		paletteLUT = nullptr;
-	}
-	else if (videoMode->bpp == 2)
-	{
+		break;
+	case DrawSurface::Format_2BPP:
 		drawSurface = new DrawSurface_2BPP(screenWidth, screenHeight);
 		screenPitch = screenWidth / 4;
 
@@ -82,16 +83,14 @@ void BIOSVideoDriver::Init(VideoModeInfo* inVideoModeInfo)
 			paletteLUT = cgaPaletteLUT;
 			colourScheme = cgaColourScheme;
 		}
-	}
-	else if (videoMode->bpp == 4)
-	{
+		break;
+	case DrawSurface::Format_4BPP_EGA:
 		drawSurface = new DrawSurface_4BPP(screenWidth, screenHeight);
 		screenPitch = screenWidth / 8;
 		colourScheme = egaColourScheme;
 		paletteLUT = egaPaletteLUT;
-	}
-	else if (videoMode->bpp == 8)
-	{
+		break;
+	case DrawSurface::Format_8BPP:
 		drawSurface = new DrawSurface_8BPP(screenWidth, screenHeight);
 		screenPitch = screenWidth;
 		colourScheme = colourScheme666;
@@ -130,6 +129,18 @@ void BIOSVideoDriver::Init(VideoModeInfo* inVideoModeInfo)
 				}
 			}
 		}
+		break;
+
+	case DrawSurface::Format_4BPP_PC1512:
+		drawSurface = new DrawSurface_4BPP_PC1512(screenWidth, screenHeight);
+		screenPitch = screenWidth / 8;
+		colourScheme = egaColourScheme;
+		paletteLUT = egaPaletteLUT;
+		break;
+
+	default:
+		Platform::FatalError("Unsupported video format");
+		break;
 	}
 
 	if (!drawSurface || !drawSurface->lines)
@@ -171,20 +182,6 @@ void BIOSVideoDriver::Init(VideoModeInfo* inVideoModeInfo)
 			offset += screenPitch;
 		}
 	}
-
-	//DrawSurface_1BPP* drawSurface1BPP = new DrawSurface_1BPP(screenWidth, screenHeight);
-	//for (int y = 0; y < screenHeight; y += 2)
-	//{
-	//	drawSurface1BPP->lines[y] = (CGA_BASE_VRAM_ADDRESS) + (40 * y);
-	//	drawSurface1BPP->lines[y + 1] = (CGA_PAGE2_VRAM_ADDRESS) + (40 * y);
-	//}
-	//drawSurface = drawSurface1BPP;
-	//
-	//colourScheme.pageColour = 1;
-	//colourScheme.linkColour = 0;
-	//colourScheme.textColour = 0;
-	//colourScheme.buttonColour = 1;
-
 }
 
 void BIOSVideoDriver::Shutdown()

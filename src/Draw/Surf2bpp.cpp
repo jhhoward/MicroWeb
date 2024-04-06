@@ -14,7 +14,7 @@ DrawSurface_2BPP::DrawSurface_2BPP(int inWidth, int inHeight)
 	: DrawSurface(inWidth, inHeight)
 {
 	lines = new uint8_t * [height];
-	bpp = 2;
+	format = DrawSurface::Format_2BPP;
 }
 
 void DrawSurface_2BPP::HLine(DrawContext& context, int x, int y, int count, uint8_t colour)

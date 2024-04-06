@@ -520,7 +520,7 @@ void App::LoadImageNodeContent(Node* node)
 
 void VideoDriver::InvertVideoOutput()
 {
-	if (drawSurface->bpp == 1)
+	if (drawSurface->format == DrawSurface::Format_1BPP)
 	{
 		App::config.invertScreen = !App::config.invertScreen;
 

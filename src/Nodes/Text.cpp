@@ -36,7 +36,7 @@ void TextElement::Draw(DrawContext& context, Node* node)
 
 		if (textColour == App::Get().page.colourScheme.pageColour)
 		{
-			if (context.surface->bpp == 1)
+			if (context.surface->format == DrawSurface::Format_1BPP)
 			{
 				textColour = !textColour;
 			}
@@ -261,7 +261,7 @@ void SubTextElement::Draw(DrawContext& context, Node* node)
 
 		if (textColour == App::Get().page.colourScheme.pageColour)
 		{
-			if (context.surface->bpp == 1)
+			if (context.surface->format == DrawSurface::Format_1BPP)
 			{
 				textColour = !textColour;
 			}

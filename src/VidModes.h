@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "Datapack.h"
+#include "Draw/Surface.h"
 
 #define HERCULES_MODE 0
 #define CGA_COMPOSITE_MODE 4
@@ -13,7 +14,7 @@ struct VideoModeInfo
 	int biosVideoMode;
 	int screenWidth;
 	int screenHeight;
-	uint8_t bpp;
+	DrawSurface::Format surfaceFormat;
 	int aspectRatio;
 	int zoom;
 	DataPack::Preset dataPackIndex : 8;

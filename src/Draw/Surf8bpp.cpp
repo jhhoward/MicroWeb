@@ -10,7 +10,7 @@ DrawSurface_8BPP::DrawSurface_8BPP(int inWidth, int inHeight)
 	: DrawSurface(inWidth, inHeight)
 {
 	lines = new uint8_t * [height];
-	bpp = 8;
+	format = DrawSurface::Format_8BPP;
 }
 
 void DrawSurface_8BPP::HLine(DrawContext& context, int x, int y, int count, uint8_t colour)

@@ -32,7 +32,7 @@ void TableNode::Draw(DrawContext& context, Node* node)
 	int y = node->anchor.y;
 	int w = node->size.x;
 	int h = node->size.y;
-	bool needsFill = data->bgColour != TRANSPARENT_COLOUR_VALUE && context.surface->bpp > 1;
+	bool needsFill = data->bgColour != TRANSPARENT_COLOUR_VALUE && context.surface->format != DrawSurface::Format_1BPP;
 
 	if (data->border)
 	{
@@ -726,7 +726,7 @@ void TableCellNode::Draw(DrawContext& context, Node* node)
 		int w = node->size.x;
 		int h = node->size.y;
 
-		bool needsFill = context.surface->bpp > 1
+		bool needsFill = context.surface->format != DrawSurface::Format_1BPP
 			&& data->bgColour != TRANSPARENT_COLOUR_VALUE
 			&& data->bgColour != tableData->bgColour;
 
@@ -741,7 +741,7 @@ void TableCellNode::Draw(DrawContext& context, Node* node)
 				context.surface->FillRect(context, x + 1, y + 1, w - 2, h - 2, data->bgColour);
 			}
 		}
-		else if (data->bgColour != TRANSPARENT_COLOUR_VALUE && context.surface->bpp > 1)
+		else if (data->bgColour != TRANSPARENT_COLOUR_VALUE && context.surface->format != DrawSurface::Format_1BPP)
 		{
 			if (needsFill)
 			{

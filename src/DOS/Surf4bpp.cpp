@@ -45,7 +45,7 @@ DrawSurface_4BPP::DrawSurface_4BPP(int inWidth, int inHeight)
 	: DrawSurface(inWidth, inHeight)
 {
 	lines = new uint8_t * [height];
-	bpp = 4;
+	format = DrawSurface::Format_4BPP_EGA;
 }
 
 void DrawSurface_4BPP::HLine(DrawContext& context, int x, int y, int count, uint8_t colour)
