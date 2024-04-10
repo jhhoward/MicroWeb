@@ -5,6 +5,9 @@
 #include "../DataPack.h"
 #include "ListItem.h"
 
+#define BULLET_CHARACTER '\x95'
+#define BULLET_CHARACTER_STRING "\x95"
+
 Node* ListNode::Construct(Allocator& allocator)
 {
 	ListNode::Data* data = allocator.Alloc<ListNode::Data>();
@@ -49,10 +52,13 @@ Node* ListItemNode::Construct(Allocator& allocator)
 void ListItemNode::Draw(DrawContext& context, Node* node)
 {
 	ListItemNode::Data* data = static_cast<ListItemNode::Data*>(node->data);
+	Font* font = node->GetStyleFont();
+	ElementStyle style = node->GetStyle();
 
 	if (data)
 	{
-		context.surface->BlitImage(context, Assets.bulletIcon, node->anchor.x, node->anchor.y);
+		context.surface->DrawString(context, font, BULLET_CHARACTER_STRING, node->anchor.x, node->anchor.y, style.fontColour);
+		//context.surface->BlitImage(context, Assets.bulletIcon, node->anchor.x, node->anchor.y);
 	}
 }
 
@@ -65,10 +71,12 @@ void ListItemNode::BeginLayoutContext(Layout& layout, Node* node)
 
 	layout.BreakNewLine();
 	node->anchor = layout.GetCursor();
-	node->anchor.y += (font->glyphHeight - Assets.bulletIcon->height) / 2;
+	//node->anchor.y += (font->glyphHeight - Assets.bulletIcon->height) / 2;
 	node->size.x = layout.AvailableWidth();
 	layout.PushLayout();
-	layout.PadHorizontal(Assets.bulletIcon->width * 2, 0);
+
+	int margin = font->GetGlyphWidth(BULLET_CHARACTER) * 2;
+	layout.PadHorizontal(margin, 0);
 }
 
 void ListItemNode::EndLayoutContext(Layout& layout, Node* node)

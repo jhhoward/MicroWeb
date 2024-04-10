@@ -7,6 +7,9 @@
 #include "../KeyCodes.h"
 #include "../App.h"
 
+#define PASSWORD_CHARACTER '\x95'
+#define PASSWORD_CHARACTER_STRING "\x95"
+
 void TextFieldNode::Draw(DrawContext& context, Node* node)
 {
 	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
@@ -26,7 +29,14 @@ void TextFieldNode::Draw(DrawContext& context, Node* node)
 
 	if (node == App::Get().ui.GetFocusedNode())
 	{
-		subContext.surface->DrawString(subContext, font, data->buffer + shiftPosition, node->anchor.x + 3, node->anchor.y + 2, textColour, node->GetStyle().fontStyle);
+		if (data->isPassword)
+		{
+			DrawPasswordString(subContext, font, data->buffer + shiftPosition, node->anchor.x + 3, node->anchor.y + 2, textColour);
+		}
+		else
+		{
+			subContext.surface->DrawString(subContext, font, data->buffer + shiftPosition, node->anchor.x + 3, node->anchor.y + 2, textColour, node->GetStyle().fontStyle);
+		}
 
 		if (selectionLength > 0)
 		{
@@ -39,7 +49,25 @@ void TextFieldNode::Draw(DrawContext& context, Node* node)
 	}
 	else
 	{
-		subContext.surface->DrawString(subContext, font, data->buffer, node->anchor.x + 3, node->anchor.y + 2, textColour, node->GetStyle().fontStyle);
+		if (data->isPassword)
+		{
+			DrawPasswordString(subContext, font, data->buffer, node->anchor.x + 3, node->anchor.y + 2, textColour);
+		}
+		else
+		{
+			subContext.surface->DrawString(subContext, font, data->buffer, node->anchor.x + 3, node->anchor.y + 2, textColour, node->GetStyle().fontStyle);
+		}
+	}
+}
+
+void TextFieldNode::DrawPasswordString(DrawContext& context, Font* font, const char* str, int x, int y, uint8_t colour)
+{
+	int length = strlen(str);
+	int glyphWidth = font->GetGlyphWidth(PASSWORD_CHARACTER);
+	while (length--)
+	{
+		context.surface->DrawString(context, font, PASSWORD_CHARACTER_STRING, x, y, colour);
+		x += glyphWidth;
 	}
 }
 
@@ -341,7 +369,14 @@ int TextFieldNode::GetBufferPixelWidth(Node* node, int start, int end)
 
 		if (n >= start)
 		{
-			x += font->GetGlyphWidth(data->buffer[n]);
+			if (data->isPassword)
+			{
+				x += font->GetGlyphWidth(PASSWORD_CHARACTER);
+			}
+			else
+			{
+				x += font->GetGlyphWidth(data->buffer[n]);
+			}
 		}
 	}
 
@@ -414,7 +449,14 @@ void TextFieldNode::RedrawModified(Node* node, int position)
 
 	Platform::input->HideMouse();
 	context.surface->FillRect(context, drawPosition, node->anchor.y + 1, clearWidth, node->size.y - 2, clearColour);
-	context.surface->DrawString(context, font, data->buffer + position, drawPosition, node->anchor.y + 2, textColour, node->GetStyle().fontStyle);
+	if (data->isPassword)
+	{
+		DrawPasswordString(context, font, data->buffer + position, drawPosition, node->anchor.y + 2, textColour);
+	}
+	else
+	{
+		context.surface->DrawString(context, font, data->buffer + position, drawPosition, node->anchor.y + 2, textColour, node->GetStyle().fontStyle);
+	}
 	DrawCursor(context, node);
 	Platform::input->ShowMouse();
 }
@@ -489,7 +531,14 @@ int TextFieldNode::PickPosition(Node* node, int x, int y)
 			break;
 		}
 
-		x -= font->GetGlyphWidth(data->buffer[result]);
+		if (data->isPassword)
+		{
+			x -= font->GetGlyphWidth(PASSWORD_CHARACTER);
+		}
+		else
+		{
+			x -= font->GetGlyphWidth(data->buffer[result]);
+		}
 		result++;
 	}
 

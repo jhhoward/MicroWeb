@@ -21,10 +21,11 @@ public:
 	class Data
 	{
 	public:
-		Data(char* inBuffer, int inBufferSize, NodeCallbackFunction inOnSubmit) : buffer(inBuffer), bufferSize(inBufferSize), name(NULL), onSubmit(inOnSubmit) {}
+		Data(char* inBuffer, int inBufferSize, NodeCallbackFunction inOnSubmit) : buffer(inBuffer), bufferSize(inBufferSize), name(NULL), isPassword(false), onSubmit(inOnSubmit) {}
 		char* buffer;
 		int bufferSize;
 		char* name;
+		bool isPassword;
 		NodeCallbackFunction onSubmit;
 		ExplicitDimension explicitWidth;
 	};
@@ -52,6 +53,7 @@ private:
 	void DeleteSelectionContents(Node* node);
 	void ClearSelection(Node* node);
 	int PickPosition(Node* node, int x, int y);
+	void DrawPasswordString(DrawContext& context, Font* font, const char* str, int x, int y, uint8_t colour);
 };
 
 #endif

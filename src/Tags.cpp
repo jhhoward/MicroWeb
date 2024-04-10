@@ -335,7 +335,9 @@ struct HTMLInputTag
 	{
 		Unknown,
 		Submit,
-		Text
+		Text,
+		Check,
+		Password
 	};
 };
 
@@ -375,6 +377,10 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 			{
 				type = HTMLInputTag::Text;
 			}
+			else if (!stricmp(attributes.Value(), "password"))
+			{
+				type = HTMLInputTag::Password;
+			}
 			else
 			{
 				type = HTMLInputTag::Unknown;
@@ -403,6 +409,7 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 		}
 		break;
 	case HTMLInputTag::Text:
+	case HTMLInputTag::Password:
 		{
 			Node* fieldNode = TextFieldNode::Construct(MemoryManager::pageAllocator, value, FormNode::OnSubmitButtonPressed);
 			if (fieldNode && fieldNode->data)
@@ -410,6 +417,7 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 				TextFieldNode::Data* fieldData = static_cast<TextFieldNode::Data*>(fieldNode->data);
 				fieldData->name = name;
 				fieldData->explicitWidth = width;
+				fieldData->isPassword = type == HTMLInputTag::Password;
 				parser.EmitNode(fieldNode);
 			}
 		}

@@ -304,7 +304,7 @@ TextEncodingPage ISO_8859_2_Encoding =
 		"'",						//	’	RIGHT SINGLE QUOTATION MARK (U+2019)
 		"\"",						//	“	LEFT DOUBLE QUOTATION MARK (U+201C)
 		"\"",						//	”	RIGHT DOUBLE QUOTATION MARK (U+201D)
-		"*",						//	•	BULLET (U+2022)
+		"\x95",						//	•	BULLET (U+2022)
 		"-",						//	–	EN DASH (U+2013)
 		"-",						//	—	EM DASH (U+2014)
 		"",							//		UNUSED
@@ -334,7 +334,7 @@ TextEncodingPage ISO_8859_2_Encoding =
 		"\xB0",						//	°	DEGREE SIGN (U+00B0)
 		"\xB1",						//	±	PLUS-MINUS SIGN (U+00B1)
 		",",						//	˛	OGONEK (U+02DB)
-		"L",						//	ł	LATIN SMALL LETTER L WITH STROKE (U+0142)
+		"l",						//	ł	LATIN SMALL LETTER L WITH STROKE (U+0142)
 		"\xB4",						//	´	ACUTE ACCENT (U+00B4)
 		"\xB5",						//	µ	MICRO SIGN (U+00B5)
 		"\xB6",						//	¶	PILCROW SIGN (U+00B6)
@@ -439,7 +439,7 @@ TextEncodingPage ISO_8859_1_Encoding =
 		"'",					//	’	146	&rsquo;	right single quotation mark
 		"\"",					//	“	147	&ldquo;	left double quotation mark
 		"\"",					//	”	148	&rdquo;	right double quotation mark
-		"*",					//	•	149	&bull;	bullet
+		"\x95",					//	•	149	&bull;	bullet
 		"-",					//	–	150	&ndash;	en dash
 		"-",					//	—	151	&mdash;	em dash
 		"~",					//	˜	152	&tilde;	small tilde
