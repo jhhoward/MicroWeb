@@ -131,7 +131,7 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 		if (parseContext.tag == tag)
 		{
 			// If the stack is emptied then we have finished parsing the document
-			if (contextStackSize == 0)
+			if (contextStackSize == 0 && parseContext.parseSection == SectionElement::HTML)
 			{
 #ifdef WIN32
 				page.DebugDumpNodeGraph();
