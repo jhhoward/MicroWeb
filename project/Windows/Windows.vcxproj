@@ -157,6 +157,7 @@
     <ClCompile Include="..\..\src\Nodes\Block.cpp" />
     <ClCompile Include="..\..\src\Nodes\Break.cpp" />
     <ClCompile Include="..\..\src\Nodes\Button.cpp" />
+    <ClCompile Include="..\..\src\Nodes\CheckBox.cpp" />
     <ClCompile Include="..\..\src\Nodes\Field.cpp" />
     <ClCompile Include="..\..\src\Nodes\Form.cpp" />
     <ClCompile Include="..\..\src\Nodes\ImgNode.cpp" />
@@ -206,6 +207,7 @@
     <ClInclude Include="..\..\src\Nodes\Block.h" />
     <ClInclude Include="..\..\src\Nodes\Break.h" />
     <ClInclude Include="..\..\src\Nodes\Button.h" />
+    <ClInclude Include="..\..\src\Nodes\CheckBox.h" />
     <ClInclude Include="..\..\src\Nodes\Field.h" />
     <ClInclude Include="..\..\src\Nodes\Form.h" />
     <ClInclude Include="..\..\src\Nodes\ImgNode.h" />

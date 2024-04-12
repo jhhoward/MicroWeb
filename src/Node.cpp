@@ -18,6 +18,7 @@
 #include "Nodes/Table.h"
 #include "Nodes/Select.h"
 #include "Nodes/ListItem.h"
+#include "Nodes/CheckBox.h"
 
 NodeHandler* Node::nodeHandlers[Node::NumNodeTypes] =
 {
@@ -40,7 +41,8 @@ NodeHandler* Node::nodeHandlers[Node::NumNodeTypes] =
 	new SelectNode(),
 	new OptionNode(),
 	new ListNode(),
-	new ListItemNode()
+	new ListItemNode(),
+	new CheckBoxNode()
 };
 
 Node::Node(Type inType, void* inData)

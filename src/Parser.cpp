@@ -836,7 +836,9 @@ bool AttributeParser::Parse()
 		{
 			if(*attributeString == '\0')
 			{
-				return false;
+				// Key but no value
+				value = attributeString;
+				return true;
 			}
 			if(*attributeString == '=')
 			{
@@ -854,7 +856,9 @@ bool AttributeParser::Parse()
 	{
 		if(*attributeString == '\0')
 		{
-			return false;
+			// Key but no value
+			value = attributeString;
+			return true;
 		}
 		if(*attributeString == '=')
 		{
@@ -862,7 +866,9 @@ bool AttributeParser::Parse()
 		}
 		if(!IsWhiteSpace(*attributeString))
 		{
-			return false;
+			// Key but no value
+			value = key + strlen(key);
+			return true;
 		}
 		attributeString++;
 	}

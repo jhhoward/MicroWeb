@@ -6,9 +6,9 @@
 
 #include "Select.h"
 
-Node* SelectNode::Construct(Allocator& allocator)
+Node* SelectNode::Construct(Allocator& allocator, const char* name)
 {
-	SelectNode::Data* data = allocator.Alloc<SelectNode::Data>();
+	SelectNode::Data* data = allocator.Alloc<SelectNode::Data>(allocator.AllocString(name));
 	if (data)
 	{
 		return allocator.Alloc<Node>(Node::Select, data);
@@ -76,7 +76,7 @@ Node* OptionNode::Construct(Allocator& allocator)
 	return nullptr;
 }
 
-void OptionNode::EndLayoutContext(Layout& layout, Node* node)
+void OptionNode::GenerateLayout(Layout& layout, Node* node)
 {
 	OptionNode::Data* data = static_cast<OptionNode::Data*>(node->data);
 	if (!data->addedToSelectNode)
@@ -87,7 +87,6 @@ void OptionNode::EndLayoutContext(Layout& layout, Node* node)
 			if (!select->firstOption)
 			{
 				select->firstOption = data;
-				select->selected = data;
 			}
 			else
 			{
@@ -99,6 +98,11 @@ void OptionNode::EndLayoutContext(Layout& layout, Node* node)
 						break;
 					}
 				}
+			}
+
+			if(!select->selected)
+			{
+				select->selected = data;			
 			}
 
 			data->addedToSelectNode = true;

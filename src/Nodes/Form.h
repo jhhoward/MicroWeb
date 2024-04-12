@@ -31,6 +31,7 @@ public:
 
 private:
 	static void BuildAddressParameterList(Node* node, char* address, int& numParams);
+	static void AppendParameter(char* address, const char* name, const char* value, int& numParams);
 };
 
 #endif

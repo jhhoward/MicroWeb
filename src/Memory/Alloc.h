@@ -77,6 +77,17 @@ public:
 		}
 		return nullptr;
 	}
+
+	template <typename T, typename A, typename B, typename C, typename D>
+	T* Alloc(A a, B b, C c, D d)
+	{
+		void* mem = Allocate(sizeof(T));
+		if (mem)
+		{
+			return new (mem) T(a, b, c, d);
+		}
+		return nullptr;
+	}
 };
 
 class MallocWrapper : public Allocator

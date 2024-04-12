@@ -77,6 +77,11 @@ void Layout::Update()
 					{
 						currentNodeToProcess->Handler().EndLayoutContext(*this, currentNodeToProcess);
 
+						if (!tableDepth && !lineStartNode)
+						{
+							page.GetApp().pageRenderer.MarkNodeLayoutComplete(currentNodeToProcess);
+						}
+
 						if (currentNodeToProcess->next)
 						{
 							currentNodeToProcess = currentNodeToProcess->next;

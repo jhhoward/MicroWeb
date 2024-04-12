@@ -3,6 +3,8 @@
 #include "../App.h"
 #include "../Interface.h"
 #include "Field.h"
+#include "CheckBox.h"
+#include "Select.h"
 
 Node* FormNode::Construct(Allocator& allocator)
 {
@@ -15,27 +17,63 @@ Node* FormNode::Construct(Allocator& allocator)
 	return nullptr;
 }
 
+void FormNode::AppendParameter(char* address, const char* name, const char* value, int& numParams)
+{
+	if (!name)
+		return;
+
+	if (numParams == 0)
+	{
+		strcat(address, "?");
+	}
+	else
+	{
+		strcat(address, "&");
+	}
+	strcat(address, name);
+	strcat(address, "=");
+	if (value)
+	{
+		strcat(address, value);
+	}
+	numParams++;
+
+}
+
 void FormNode::BuildAddressParameterList(Node* node, char* address, int& numParams)
 {
-	if (node->type == Node::TextField)
+	switch(node->type)
 	{
-		TextFieldNode::Data* fieldData = static_cast<TextFieldNode::Data*>(node->data);
-
-		if (fieldData->name && fieldData->buffer)
+		case Node::TextField:
 		{
-			if (numParams == 0)
+			TextFieldNode::Data* fieldData = static_cast<TextFieldNode::Data*>(node->data);
+
+			if (fieldData->name && fieldData->buffer)
 			{
-				strcat(address, "?");
+				AppendParameter(address, fieldData->name, fieldData->buffer, numParams);
 			}
-			else
-			{
-				strcat(address, "&");
-			}
-			strcat(address, fieldData->name);
-			strcat(address, "=");
-			strcat(address, fieldData->buffer);
-			numParams++;
 		}
+		break;
+		case Node::CheckBox:
+		{
+			CheckBoxNode::Data* checkboxData = static_cast<CheckBoxNode::Data*>(node->data);
+
+			if (checkboxData && checkboxData->isChecked && checkboxData->name && checkboxData->value)
+			{
+				AppendParameter(address, checkboxData->name, checkboxData->value, numParams);
+			}
+		}
+		break;
+		case Node::Select:
+		{
+			SelectNode::Data* selectData = static_cast<SelectNode::Data*>(node->data);
+
+			if (selectData && selectData->selected)
+			{
+				AppendParameter(address, selectData->name, selectData->selected->text, numParams);
+			}
+		}
+		break;
 	}
 
 	for (node = node->firstChild; node; node = node->next)

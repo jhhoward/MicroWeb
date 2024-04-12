@@ -88,6 +88,7 @@ public:
 		Option,
 		List,
 		ListItem,
+		CheckBox,
 		NumNodeTypes
 	};
 

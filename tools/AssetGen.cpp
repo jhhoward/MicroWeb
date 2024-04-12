@@ -88,8 +88,14 @@ void GenerateAssetPack(const char* name)
 	EncodeImage(basePath, "image-icon.png", data);
 	AddEntryHeader("IBROKEN", entries, data);
 	EncodeImage(basePath, "broken-image-icon.png", data);
-	AddEntryHeader("IBULLET", entries, data);
-	EncodeImage(basePath, "bullet.png", data);
+	AddEntryHeader("ICHECK1", entries, data);
+	EncodeImage(basePath, "checkbox.png", data);
+	AddEntryHeader("ICHECK2", entries, data);
+	EncodeImage(basePath, "checkbox-ticked.png", data);
+	AddEntryHeader("IRADIO1", entries, data);
+	EncodeImage(basePath, "radio.png", data);
+	AddEntryHeader("IRADIO2", entries, data);
+	EncodeImage(basePath, "radio-selected.png", data);
 
 	AddEntryHeader("END", entries, data);
 

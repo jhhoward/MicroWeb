@@ -37,6 +37,7 @@
 #include "Nodes/Select.h"
 #include "Nodes/ListItem.h"
 #include "Nodes/Text.h"
+#include "Nodes/CheckBox.h"
 
 static const HTMLTagHandler* tagHandlers[] =
 {
@@ -336,7 +337,8 @@ struct HTMLInputTag
 		Unknown,
 		Submit,
 		Text,
-		Check,
+		CheckBox,
+		Radio,
 		Password
 	};
 };
@@ -360,6 +362,7 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
 	char* value = NULL;
 	char* name = NULL;
+	bool checked = false;
 	HTMLInputTag::Type type = HTMLInputTag::Text;
 	int bufferLength = 80;
 	ExplicitDimension width;
@@ -381,6 +384,14 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 			{
 				type = HTMLInputTag::Password;
 			}
+			else if (!stricmp(attributes.Value(), "checkbox"))
+			{
+				type = HTMLInputTag::CheckBox;
+			}
+			else if (!stricmp(attributes.Value(), "radio"))
+			{
+				type = HTMLInputTag::Radio;
+			}
 			else
 			{
 				type = HTMLInputTag::Unknown;
@@ -397,6 +408,10 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 		if (!stricmp(attributes.Key(), "width"))
 		{
 			width = ExplicitDimension::Parse(attributes.Value());
+		}
+		if (!stricmp(attributes.Key(), "checked"))
+		{
+			checked = true;
 		}
 	}
 
@@ -422,6 +437,16 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 			}
 		}
 		break;
+	case HTMLInputTag::CheckBox:
+	case HTMLInputTag::Radio:
+	{
+		Node* fieldNode = CheckBoxNode::Construct(MemoryManager::pageAllocator, name, value, type == HTMLInputTag::Radio, checked);
+		if (fieldNode)
+		{
+			parser.EmitNode(fieldNode);
+		}
+	}
+	break;
 	}
 }
 
@@ -650,7 +675,18 @@ void TableCellTagHandler::Close(class HTMLParser& parser) const
 
 void SelectTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	parser.PushContext(SelectNode::Construct(MemoryManager::pageAllocator), this);
+	const char* name = nullptr;
+	AttributeParser attributes(attributeStr);
+
+	while (attributes.Parse())
+	{
+		if (!stricmp(attributes.Key(), "name"))
+		{
+			name = attributes.Value();
+		}
+	}
+
+	parser.PushContext(SelectNode::Construct(MemoryManager::pageAllocator, name), this);
 }
 
 void SelectTagHandler::Close(class HTMLParser& parser) const
@@ -660,7 +696,27 @@ void SelectTagHandler::Close(class HTMLParser& parser) const
 
 void OptionTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	parser.PushContext(OptionNode::Construct(MemoryManager::pageAllocator), this);
+	Node* optionNode = OptionNode::Construct(MemoryManager::pageAllocator);
+
+	if (optionNode)
+	{
+		parser.PushContext(optionNode, this);
+
+		AttributeParser attributes(attributeStr);
+
+		while (attributes.Parse())
+		{
+			if (!stricmp(attributes.Key(), "selected"))
+			{
+				SelectNode::Data* selectData = optionNode->FindParentDataOfType<SelectNode::Data>(Node::Select);
+				OptionNode::Data* optionData = static_cast<OptionNode::Data*>(optionNode->data);
+				if (selectData && optionData)
+				{
+					selectData->selected = optionData;
+				}
+			}
+		}
+	}
 }
 
 void OptionTagHandler::Close(class HTMLParser& parser) const

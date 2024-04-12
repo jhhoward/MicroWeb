@@ -52,7 +52,10 @@ bool DataPack::Load(const char* path)
 
 	imageIcon = LoadImageAsset(fs, header, "IIMG");
 	brokenImageIcon = LoadImageAsset(fs, header, "IBROKEN");
-	bulletIcon = LoadImageAsset(fs, header, "IBULLET");
+	checkbox = LoadImageAsset(fs, header, "ICHECK1");
+	checkboxTicked = LoadImageAsset(fs, header, "ICHECK2");
+	radio = LoadImageAsset(fs, header, "IRADIO1");
+	radioSelected = LoadImageAsset(fs, header, "IRADIO2");
 
 	fonts[0] = (Font*)LoadAsset(fs, header, "FHELV1");
 	fonts[1] = (Font*)LoadAsset(fs, header, "FHELV2");

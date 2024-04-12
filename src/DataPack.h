@@ -65,7 +65,11 @@ struct DataPack
 	MouseCursorData* textSelectCursor;
 	Image* imageIcon;
 	Image* brokenImageIcon;
-	Image* bulletIcon;
+
+	Image* checkbox;
+	Image* checkboxTicked;
+	Image* radio;
+	Image* radioSelected;
 
 	Font* fonts[NUM_FONT_SIZES];
 	Font* monoFonts[NUM_FONT_SIZES];
