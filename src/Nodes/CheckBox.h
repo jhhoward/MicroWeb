@@ -23,6 +23,12 @@ public:
 	virtual void GenerateLayout(Layout& layout, Node* node) override;
 	virtual bool CanPick(Node* node) { return true; }
 	virtual bool HandleEvent(Node* node, const Event& event);
+
+	void DrawHighlight(Node* node, uint8_t colour);
+	Node* FindNextRadioNode(Node* node);
+	Node* FindPreviousRadioNode(Node* node);
+	bool IsPartOfRadioSet(Node* context, Node* node);
+
 };
 
 #endif

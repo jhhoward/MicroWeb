@@ -54,6 +54,7 @@ private:
 	void ClearSelection(Node* node);
 	int PickPosition(Node* node, int x, int y);
 	void DrawPasswordString(DrawContext& context, Font* font, const char* str, int x, int y, uint8_t colour);
+	void DrawHighlight(Node* node, uint8_t colour);
 };
 
 #endif

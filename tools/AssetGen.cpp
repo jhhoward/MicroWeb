@@ -96,6 +96,8 @@ void GenerateAssetPack(const char* name)
 	EncodeImage(basePath, "radio.png", data);
 	AddEntryHeader("IRADIO2", entries, data);
 	EncodeImage(basePath, "radio-selected.png", data);
+	AddEntryHeader("IDOWN", entries, data);
+	EncodeImage(basePath, "down-icon.png", data);
 
 	AddEntryHeader("END", entries, data);
 

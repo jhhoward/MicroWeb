@@ -44,7 +44,7 @@ public:
 
 	void SetTitle(const char* title);
 
-	void FocusNode(Node* node);
+	bool FocusNode(Node* node);
 	Node* GetFocusedNode() { return focusedNode; }
 	Node* GetHoverNode() { return hoverNode; }
 	Node* GetRootInterfaceNode() { return rootInterfaceNode; }

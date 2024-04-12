@@ -507,7 +507,7 @@ bool AppInterface::IsInterfaceNode(Node* node)
 	return node == rootInterfaceNode || (node && node->parent == rootInterfaceNode);
 }
 
-void AppInterface::FocusNode(Node* node)
+bool AppInterface::FocusNode(Node* node)
 {
 	if (node != focusedNode)
 	{
@@ -520,9 +520,15 @@ void AppInterface::FocusNode(Node* node)
 
 		if (focusedNode)
 		{
-			focusedNode->Handler().HandleEvent(focusedNode, Event(app, Event::Focus));
+			if (!focusedNode->Handler().HandleEvent(focusedNode, Event(app, Event::Focus)))
+			{
+				focusedNode = nullptr;
+				return false;
+			}
 		}
 	}
+
+	return true;
 }
 
 void AppInterface::OnBackButtonPressed(Node* node)
@@ -644,12 +650,15 @@ void AppInterface::CycleNodes(int direction)
 					{
 						ScrollAbsolute(nodeRect.y + nodeRect.height - windowRect.height);
 					}
-					FocusNode(node);
-					return;
+					
+					if(FocusNode(node))
+						return;
 				}
 			}
 		}
 	}
+
+	FocusNode(nullptr);
 }
 
 void AppInterface::OnScrollBarMoved(Node* node)

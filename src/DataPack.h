@@ -70,6 +70,7 @@ struct DataPack
 	Image* checkboxTicked;
 	Image* radio;
 	Image* radioSelected;
+	Image* downIcon;
 
 	Font* fonts[NUM_FONT_SIZES];
 	Font* monoFonts[NUM_FONT_SIZES];

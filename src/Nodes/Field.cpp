@@ -10,6 +10,8 @@
 #define PASSWORD_CHARACTER '\x95'
 #define PASSWORD_CHARACTER_STRING "\x95"
 
+#define LEFT_PADDING 4
+
 void TextFieldNode::Draw(DrawContext& context, Node* node)
 {
 	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
@@ -31,11 +33,11 @@ void TextFieldNode::Draw(DrawContext& context, Node* node)
 	{
 		if (data->isPassword)
 		{
-			DrawPasswordString(subContext, font, data->buffer + shiftPosition, node->anchor.x + 3, node->anchor.y + 2, textColour);
+			DrawPasswordString(subContext, font, data->buffer + shiftPosition, node->anchor.x + LEFT_PADDING, node->anchor.y + 2, textColour);
 		}
 		else
 		{
-			subContext.surface->DrawString(subContext, font, data->buffer + shiftPosition, node->anchor.x + 3, node->anchor.y + 2, textColour, node->GetStyle().fontStyle);
+			subContext.surface->DrawString(subContext, font, data->buffer + shiftPosition, node->anchor.x + LEFT_PADDING, node->anchor.y + 2, textColour, node->GetStyle().fontStyle);
 		}
 
 		if (selectionLength > 0)
@@ -46,18 +48,36 @@ void TextFieldNode::Draw(DrawContext& context, Node* node)
 		{
 			DrawCursor(context, node);
 		}
+
+		context.surface->HLine(context, node->anchor.x + 1, node->anchor.y + 1, node->size.x - 2, buttonOutlineColour);
+		context.surface->HLine(context, node->anchor.x + 1, node->anchor.y + node->size.y - 2, node->size.x - 2, buttonOutlineColour);
+		context.surface->VLine(context, node->anchor.x + 1, node->anchor.y + 1, node->size.y - 2, buttonOutlineColour);
+		context.surface->VLine(context, node->anchor.x + node->size.x - 2, node->anchor.y + 1, node->size.y - 2, buttonOutlineColour);
 	}
 	else
 	{
 		if (data->isPassword)
 		{
-			DrawPasswordString(subContext, font, data->buffer, node->anchor.x + 3, node->anchor.y + 2, textColour);
+			DrawPasswordString(subContext, font, data->buffer, node->anchor.x + LEFT_PADDING, node->anchor.y + 2, textColour);
 		}
 		else
 		{
-			subContext.surface->DrawString(subContext, font, data->buffer, node->anchor.x + 3, node->anchor.y + 2, textColour, node->GetStyle().fontStyle);
+			subContext.surface->DrawString(subContext, font, data->buffer, node->anchor.x + LEFT_PADDING, node->anchor.y + 2, textColour, node->GetStyle().fontStyle);
 		}
 	}
+}
+
+void TextFieldNode::DrawHighlight(Node* node, uint8_t colour)
+{
+	DrawContext context;
+	App::Get().pageRenderer.GenerateDrawContext(context, node);
+
+	Platform::input->HideMouse();
+	context.surface->HLine(context, node->anchor.x + 1, node->anchor.y + 1, node->size.x - 2, colour);
+	context.surface->HLine(context, node->anchor.x + 1, node->anchor.y + node->size.y - 2, node->size.x - 2, colour);
+	context.surface->VLine(context, node->anchor.x + 1, node->anchor.y + 1, node->size.y - 2, colour);
+	context.surface->VLine(context, node->anchor.x + node->size.x - 2, node->anchor.y + 1, node->size.y - 2, colour);
+	Platform::input->ShowMouse();
 }
 
 void TextFieldNode::DrawPasswordString(DrawContext& context, Font* font, const char* str, int x, int y, uint8_t colour)
@@ -163,7 +183,8 @@ bool TextFieldNode::HandleEvent(Node* node, const Event& event)
 			cursorPosition = pickedPosition != -1 ? pickedPosition : strlen(data->buffer);
 			DrawCursor(context, node);
 		}
-		break;
+		DrawHighlight(node, Platform::video->colourScheme.textColour);
+		return true;
 	case Event::Unfocus:
 		pickedPosition = -1;
 		if (shiftPosition > 0)
@@ -184,7 +205,8 @@ bool TextFieldNode::HandleEvent(Node* node, const Event& event)
 				DrawCursor(context, node);
 			}
 		}
-		break;
+		DrawHighlight(node, Platform::video->colourScheme.pageColour);
+		return true;
 	case Event::MouseClick:
 		pickedPosition = PickPosition(node, event.x, event.y);
 		if (App::Get().ui.GetFocusedNode() != node)
@@ -391,7 +413,7 @@ void TextFieldNode::DrawCursor(DrawContext& context, Node* node)
 	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
 	Font* font = node->GetStyleFont();
 
-	int x = node->anchor.x + 3;
+	int x = node->anchor.x + LEFT_PADDING;
 	int height = font->glyphHeight;
 
 	x += GetBufferPixelWidth(node, shiftPosition, cursorPosition);
@@ -428,7 +450,7 @@ void TextFieldNode::DrawSelection(DrawContext& context, Node* node)
 	int selectionX2 = GetBufferPixelWidth(node, shiftPosition, selectionStartPosition + selectionLength);
 
 	Platform::input->HideMouse();
-	context.surface->InvertRect(context, selectionX1 + node->anchor.x + 3, node->anchor.y + 2, selectionX2 - selectionX1, font->glyphHeight);
+	context.surface->InvertRect(context, selectionX1 + node->anchor.x + LEFT_PADDING, node->anchor.y + 2, selectionX2 - selectionX1, font->glyphHeight);
 	Platform::input->ShowMouse();
 }
 
@@ -441,14 +463,14 @@ void TextFieldNode::RedrawModified(Node* node, int position)
 	uint8_t clearColour = Platform::video->colourScheme.pageColour;
 	context.clipRight = node->anchor.x + node->size.x - 2;
 
-	int drawPosition = GetBufferPixelWidth(node, shiftPosition, position) + 3;
-	int clearWidth = node->size.x - 1 - drawPosition;
+	int drawPosition = GetBufferPixelWidth(node, shiftPosition, position) + LEFT_PADDING;
+	int clearWidth = node->size.x - 2 - drawPosition;
 	drawPosition += node->anchor.x;
 
 	App::Get().pageRenderer.GenerateDrawContext(context, node);
 
 	Platform::input->HideMouse();
-	context.surface->FillRect(context, drawPosition, node->anchor.y + 1, clearWidth, node->size.y - 2, clearColour);
+	context.surface->FillRect(context, drawPosition, node->anchor.y + 2, clearWidth, node->size.y - 4, clearColour);
 	if (data->isPassword)
 	{
 		DrawPasswordString(context, font, data->buffer + position, drawPosition, node->anchor.y + 2, textColour);
@@ -518,7 +540,7 @@ void TextFieldNode::ClearSelection(Node* node)
 
 int TextFieldNode::PickPosition(Node* node, int x, int y)
 {
-	x -= node->anchor.x + 3;
+	x -= node->anchor.x + LEFT_PADDING;
 	int result = shiftPosition;
 
 	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);

@@ -35,6 +35,13 @@ public:
 	static Node* Construct(Allocator& allocator, const char* inName);
 	virtual void Draw(DrawContext& context, Node* element) override;
 	virtual void EndLayoutContext(Layout& layout, Node* node) override;
+
+	virtual bool CanPick(Node* node) { return true; }
+	virtual bool HandleEvent(Node* node, const Event& event);
+	virtual Node* Pick(Node* node, int x, int y) override;
+
+	void DrawHighlight(Node* node, uint8_t colour);
+
 };
 
 #endif

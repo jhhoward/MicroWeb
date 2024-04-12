@@ -3,7 +3,8 @@
 #include "../Memory/LinAlloc.h"
 #include "../Draw/Surface.h"
 #include "../DataPack.h"
-
+#include "../App.h"
+#include "../KeyCodes.h"
 #include "Select.h"
 
 Node* SelectNode::Construct(Allocator& allocator, const char* name)
@@ -34,7 +35,30 @@ void SelectNode::Draw(DrawContext& context, Node* node)
 	{
 		context.surface->DrawString(context, font, data->selected->text, node->anchor.x + 3, node->anchor.y + 2, textColour, node->GetStyle().fontStyle);
 	}
+	context.surface->BlitImage(context, Assets.downIcon, node->anchor.x + node->size.x - Assets.downIcon->width - 2, node->anchor.y + (node->size.y - Assets.downIcon->height) / 2);
+
+	if (App::Get().ui.GetFocusedNode() == node)
+	{
+		context.surface->HLine(context, node->anchor.x + 1, node->anchor.y + 1, node->size.x - 2, buttonOutlineColour);
+		context.surface->HLine(context, node->anchor.x + 1, node->anchor.y + node->size.y - 2, node->size.x - 2, buttonOutlineColour);
+		context.surface->VLine(context, node->anchor.x + 1, node->anchor.y + 1, node->size.y - 2, buttonOutlineColour);
+		context.surface->VLine(context, node->anchor.x + node->size.x - 2, node->anchor.y + 1, node->size.y - 2, buttonOutlineColour);
+	}
 }
+
+void SelectNode::DrawHighlight(Node* node, uint8_t colour)
+{
+	DrawContext context;
+	App::Get().pageRenderer.GenerateDrawContext(context, node);
+
+	Platform::input->HideMouse();
+	context.surface->HLine(context, node->anchor.x + 1, node->anchor.y + 1, node->size.x - 2, colour);
+	context.surface->HLine(context, node->anchor.x + 1, node->anchor.y + node->size.y - 2, node->size.x - 2, colour);
+	context.surface->VLine(context, node->anchor.x + 1, node->anchor.y + 1, node->size.y - 2, colour);
+	context.surface->VLine(context, node->anchor.x + node->size.x - 2, node->anchor.y + 1, node->size.y - 2, colour);
+	Platform::input->ShowMouse();
+}
+
 
 void SelectNode::EndLayoutContext(Layout& layout, Node* node)
 {
@@ -53,7 +77,7 @@ void SelectNode::EndLayoutContext(Layout& layout, Node* node)
 		}
 	}
 
-	node->size.x += 6;
+	node->size.x += 8 + Assets.downIcon->width;
 
 	if (layout.AvailableWidth() < node->size.x)
 	{
@@ -115,4 +139,89 @@ void OptionNode::GenerateLayout(Layout& layout, Node* node)
 			node->size.x = font->CalculateWidth(data->text, node->GetStyle().fontStyle);
 		}
 	}
+}
+
+bool SelectNode::HandleEvent(Node* node, const Event& event)
+{
+	AppInterface& ui = App::Get().ui;
+	SelectNode::Data* data = static_cast<SelectNode::Data*>(node->data);
+
+	switch (event.type)
+	{
+		case Event::MouseClick:
+		{
+			if (data->selected)
+			{
+				data->selected = data->selected->next;
+				if (!data->selected)
+				{
+					data->selected = data->firstOption;
+				}
+				node->Redraw();
+			}
+		}
+		return true;
+		case Event::Focus:
+			DrawHighlight(node, Platform::video->colourScheme.textColour);
+			return true;
+		case Event::Unfocus:
+			DrawHighlight(node, Platform::video->colourScheme.pageColour);
+			return true;
+
+		case Event::KeyPress:
+			switch (event.key)
+			{
+			case KEYCODE_ARROW_UP:
+			case KEYCODE_ARROW_LEFT:
+				if (data->selected)
+				{
+					if (data->selected == data->firstOption)
+					{
+						while (data->selected->next)
+						{
+							data->selected = data->selected->next;
+						}
+					}
+					else
+					{
+						for (OptionNode::Data* option = data->firstOption; option; option = option->next)
+						{
+							if (option->next == data->selected)
+							{
+								data->selected = option;
+								break;
+							}
+						}
+					}
+					node->Redraw();
+				}
+				return true;
+			case KEYCODE_ARROW_DOWN:
+			case KEYCODE_ARROW_RIGHT:
+				if (data->selected)
+				{
+					data->selected = data->selected->next;
+					if (!data->selected)
+					{
+						data->selected = data->firstOption;
+					}
+					node->Redraw();
+				}
+				return true;
+			}
+			break;
+
+	}
+
+	return false;
+}
+
+Node* SelectNode::Pick(Node* node, int x, int y)
+{
+	if (node && (!node->size.IsZero() && node->IsPointInsideNode(x, y)))
+	{
+		return node;
+	}
+
+	return nullptr;
 }
