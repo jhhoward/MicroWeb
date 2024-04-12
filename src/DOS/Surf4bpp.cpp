@@ -468,16 +468,15 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 	}
 	else
 	{
-		// Set write mode 3
+		// Set write mode
 		outp(GC_INDEX, GC_MODE);
-		outp(GC_DATA, 0x3);
+		outp(GC_DATA, 0x0);
 
 		outp(GC_INDEX, GC_ROTATE);
 		outp(GC_DATA, 0);
 
-		// colour 0 for black
 		outp(GC_INDEX, GC_SET_RESET);
-		outp(GC_DATA, 0);
+		outp(GC_DATA, 0x0);
 
 		// Set bit mask
 		outp(GC_INDEX, GC_BITMASK);
@@ -485,6 +484,8 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 		// Blit the image data line by line
 		for (int j = 0; j < destHeight; j++)
 		{
+			outp(GC_DATA, 0xff);
+
 			MemBlockHandle* imageLines = image->lines.Get<MemBlockHandle*>();
 			MemBlockHandle imageLine = imageLines[j + srcY];
 			uint8_t* src = imageLine.Get<uint8_t*>() + (srcX >> 3);
@@ -492,13 +493,21 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 			uint8_t srcMask = 0x80 >> (srcX & 7);
 			uint8_t destMask = 0x80 >> (x & 7);
 			uint8_t srcBuffer = *src++;
-			uint8_t destBuffer = 0x0; // *dest;
+			uint8_t writeBitMask = 0;
+			uint8_t destBuffer = *dest;
+
+			outp(GC_DATA, writeBitMask);
 
 			for (int i = 0; i < destWidth; i++)
 			{
-				if (!(srcBuffer & srcMask))
+				writeBitMask |= destMask;
+				if ((srcBuffer & srcMask))
 				{
 					destBuffer |= destMask;
+				}
+				else
+				{
+					destBuffer &= ~destMask;
 				}
 				srcMask >>= 1;
 				if (!srcMask)
@@ -509,14 +518,19 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 				destMask >>= 1;
 				if (!destMask)
 				{
-					outp(GC_DATA, destBuffer);
-					*dest++ |= 0xff;
-					destBuffer = 0;
+					outp(GC_DATA, writeBitMask);
+					*dest++ = destBuffer;
+					destBuffer = *dest;
 					destMask = 0x80;
+					writeBitMask = 0;
 				}
 			}
-			outp(GC_DATA, destBuffer);
-			*dest++ |= 0xff;
+
+			if (writeBitMask)
+			{
+				outp(GC_DATA, writeBitMask);
+				*dest++ = destBuffer;
+			}
 		}
 	}
 }

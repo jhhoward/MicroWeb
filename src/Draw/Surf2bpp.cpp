@@ -366,6 +366,47 @@ void DrawSurface_2BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 			*dest = destBuffer;
 		}
 	}
+	else if (image->bpp == 1)
+	{
+		for (int j = 0; j < destHeight; j++)
+		{
+			MemBlockHandle* imageLines = image->lines.Get<MemBlockHandle*>();
+			MemBlockHandle imageLine = imageLines[j + srcY];
+			uint8_t* src = imageLine.Get<uint8_t*>() + (srcX >> 3);
+			uint8_t* dest = lines[y + j] + (x >> 2);
+			uint8_t srcMask = 0x80 >> (srcX & 7);
+			uint8_t destMask = bitmaskTable[x & 3];
+			uint8_t destBuffer = *dest;
+			uint8_t srcBuffer = *src++;
+
+			for (int i = 0; i < destWidth; i++)
+			{
+				if ((srcBuffer & srcMask))
+				{
+					destBuffer |= destMask;
+				}
+				else
+				{
+					destBuffer &= ~destMask;
+				}
+				srcMask >>= 1;
+				if (!srcMask)
+				{
+					srcMask = 0x80;
+					srcBuffer = *src++;
+				}
+
+				destMask >>= 2;
+				if (!destMask)
+				{
+					*dest++ = destBuffer;
+					destBuffer = *dest;
+					destMask = 0xc0;
+				}
+			}
+			*dest = destBuffer;
+		}
+	}
 }
 
 
