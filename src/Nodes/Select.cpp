@@ -39,10 +39,17 @@ void SelectNode::Draw(DrawContext& context, Node* node)
 
 	if (App::Get().ui.GetFocusedNode() == node)
 	{
-		context.surface->HLine(context, node->anchor.x + 1, node->anchor.y + 1, node->size.x - 2, buttonOutlineColour);
-		context.surface->HLine(context, node->anchor.x + 1, node->anchor.y + node->size.y - 2, node->size.x - 2, buttonOutlineColour);
-		context.surface->VLine(context, node->anchor.x + 1, node->anchor.y + 1, node->size.y - 2, buttonOutlineColour);
-		context.surface->VLine(context, node->anchor.x + node->size.x - 2, node->anchor.y + 1, node->size.y - 2, buttonOutlineColour);
+		if (node == dropDownMenu.activeNode)
+		{
+//			DrawDropDownMenu();
+		}
+		else
+		{
+			context.surface->HLine(context, node->anchor.x + 1, node->anchor.y + 1, node->size.x - 2, buttonOutlineColour);
+			context.surface->HLine(context, node->anchor.x + 1, node->anchor.y + node->size.y - 2, node->size.x - 2, buttonOutlineColour);
+			context.surface->VLine(context, node->anchor.x + 1, node->anchor.y + 1, node->size.y - 2, buttonOutlineColour);
+			context.surface->VLine(context, node->anchor.x + node->size.x - 2, node->anchor.y + 1, node->size.y - 2, buttonOutlineColour);
+		}
 	}
 }
 
@@ -150,22 +157,72 @@ bool SelectNode::HandleEvent(Node* node, const Event& event)
 	{
 		case Event::MouseClick:
 		{
-			if (data->selected)
+			if (node == dropDownMenu.activeNode)
 			{
-				data->selected = data->selected->next;
-				if (!data->selected)
+				int clickX = event.x;
+				int clickY = event.y + ui.GetScrollPositionY() - ui.windowRect.y;
+				if (node->IsPointInsideNode(clickX, clickY))
 				{
-					data->selected = data->firstOption;
+					ui.FocusNode(nullptr);
 				}
-				node->Redraw();
+				else
+				{
+					if (clickX >= dropDownMenu.rect.x && clickX < dropDownMenu.rect.x + dropDownMenu.rect.width
+						&& clickY >= dropDownMenu.rect.y && clickY < dropDownMenu.rect.y + dropDownMenu.rect.height)
+					{
+						Font* font = Assets.GetFont(1, FontStyle::Regular);
+						int index = (clickY - dropDownMenu.rect.y + 1) / font->glyphHeight;
+
+						for (OptionNode::Data* option = data->firstOption; option; option = option->next)
+						{
+							if (!index)
+							{
+								data->selected = option;
+								break;
+							}
+							index--;
+						}
+
+						ui.FocusNode(nullptr);
+						node->Redraw();
+					}
+				}
 			}
+			else
+			{
+				ShowDropDownMenu(node);
+				ui.FocusNode(node);
+			}
+			//if (data->selected)
+			//{
+			//	data->selected = data->selected->next;
+			//	if (!data->selected)
+			//	{
+			//		data->selected = data->firstOption;
+			//	}
+			//	node->Redraw();
+			//}
 		}
 		return true;
 		case Event::Focus:
-			DrawHighlight(node, Platform::video->colourScheme.textColour);
+			if (dropDownMenu.activeNode == node)
+			{
+				DrawDropDownMenu();
+			}
+			else
+			{
+				DrawHighlight(node, Platform::video->colourScheme.textColour);
+			}
 			return true;
 		case Event::Unfocus:
-			DrawHighlight(node, Platform::video->colourScheme.pageColour);
+			if (dropDownMenu.activeNode == node)
+			{
+				CloseDropDownMenu();
+			}
+			else
+			{
+				DrawHighlight(node, Platform::video->colourScheme.pageColour);
+			}
 			return true;
 
 		case Event::KeyPress:
@@ -208,6 +265,12 @@ bool SelectNode::HandleEvent(Node* node, const Event& event)
 					node->Redraw();
 				}
 				return true;
+
+			case KEYCODE_PAGE_UP:
+			case KEYCODE_PAGE_DOWN:
+			case KEYCODE_HOME:
+			case KEYCODE_END:
+				return node == dropDownMenu.activeNode;
 			}
 			break;
 
@@ -218,10 +281,86 @@ bool SelectNode::HandleEvent(Node* node, const Event& event)
 
 Node* SelectNode::Pick(Node* node, int x, int y)
 {
+	if (node && node == dropDownMenu.activeNode)
+	{
+		if (x >= dropDownMenu.rect.x && y >= dropDownMenu.rect.y && x < dropDownMenu.rect.x + dropDownMenu.rect.width && y < dropDownMenu.rect.y + dropDownMenu.rect.height)
+		{
+			return node;
+		}
+	}
+
 	if (node && (!node->size.IsZero() && node->IsPointInsideNode(x, y)))
 	{
 		return node;
 	}
 
 	return nullptr;
+}
+
+void SelectNode::DrawDropDownMenu()
+{
+	Font* font = Assets.GetFont(1, FontStyle::Regular);
+	SelectNode::Data* data = static_cast<SelectNode::Data*>(dropDownMenu.activeNode->data);
+
+	DrawContext context;
+	App::Get().pageRenderer.GenerateDrawContext(context, dropDownMenu.activeNode);
+
+	Platform::input->HideMouse();
+	uint8_t clearColour = Platform::video->colourScheme.pageColour;
+	uint8_t textColour = Platform::video->colourScheme.textColour;
+
+	context.surface->FillRect(context, dropDownMenu.rect.x, dropDownMenu.rect.y, dropDownMenu.rect.width, dropDownMenu.rect.height, clearColour);
+	context.surface->HLine(context, dropDownMenu.rect.x, dropDownMenu.rect.y, dropDownMenu.rect.width, textColour);
+	context.surface->HLine(context, dropDownMenu.rect.x, dropDownMenu.rect.y + dropDownMenu.rect.height - 1, dropDownMenu.rect.width, textColour);
+	context.surface->VLine(context, dropDownMenu.rect.x, dropDownMenu.rect.y + 1, dropDownMenu.rect.height - 2, textColour);
+	context.surface->VLine(context, dropDownMenu.rect.x + dropDownMenu.rect.width - 1, dropDownMenu.rect.y + 1, dropDownMenu.rect.height - 2, textColour);
+
+	int optionY = dropDownMenu.rect.y + 1;
+	for (OptionNode::Data* option = data->firstOption; option; option = option->next)
+	{
+		if (option == data->selected)
+		{
+			context.surface->FillRect(context, dropDownMenu.rect.x + 1, optionY, dropDownMenu.rect.width - 2, font->glyphHeight, textColour);
+			context.surface->DrawString(context, font, option->text, dropDownMenu.rect.x + 2, optionY, clearColour);
+		}
+		else
+		{
+			context.surface->DrawString(context, font, option->text, dropDownMenu.rect.x + 2, optionY, textColour);
+		}
+		optionY += font->glyphHeight;
+	}
+
+	Platform::input->ShowMouse();
+}
+
+void SelectNode::ShowDropDownMenu(Node *node)
+{
+	dropDownMenu.activeNode = node;
+	dropDownMenu.numOptions = 0;
+
+	SelectNode::Data* data = static_cast<SelectNode::Data*>(dropDownMenu.activeNode->data);
+
+	for (OptionNode::Data* option = data->firstOption; option; option = option->next)
+	{
+		dropDownMenu.numOptions++;
+	}
+
+	Font* font = Assets.GetFont(1, FontStyle::Regular);
+	dropDownMenu.rect.height = font->glyphHeight * dropDownMenu.numOptions + 2;
+	dropDownMenu.rect.width = dropDownMenu.activeNode->size.x;
+	dropDownMenu.rect.x = dropDownMenu.activeNode->anchor.x;
+	dropDownMenu.rect.y = dropDownMenu.activeNode->anchor.y + dropDownMenu.activeNode->size.y - 1;
+
+	App::Get().pageRenderer.SetPaused(true);
+}
+
+void SelectNode::CloseDropDownMenu()
+{
+	if (dropDownMenu.activeNode)
+	{
+		int offsetY = App::Get().ui.windowRect.y - App::Get().ui.GetScrollPositionY();
+		App::Get().pageRenderer.MarkScreenRegionDirty(dropDownMenu.rect.x, dropDownMenu.rect.y + offsetY, dropDownMenu.rect.x + dropDownMenu.rect.width, dropDownMenu.rect.y + dropDownMenu.rect.height + offsetY);
+		dropDownMenu.activeNode = nullptr;
+		App::Get().pageRenderer.SetPaused(false);
+	}
 }

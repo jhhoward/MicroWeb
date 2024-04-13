@@ -77,12 +77,16 @@ public:
 	int GetVisiblePageHeight() { return visiblePageHeight; }
 	bool IsRendering() { return renderQueue.Size() > 0; }
 
+	void MarkScreenRegionDirty(int left, int top, int right, int bottom);
+
+	void SetPaused(bool paused) { isPaused = paused; }
+
 private:
 	bool IsInRenderQueue(Node* node);
 
 	void InitContext(DrawContext& context);
 	void ClampContextToRect(DrawContext& context, Rect& rect);
-	void FindOverlappingNodesInScreenRegion(int top, int bottom);
+	void FindOverlappingNodesInScreenRegion(int left, int top, int right, int bottom);
 
 	bool DoesOverlapWithContext(Node* node, DrawContext& context);
 	bool IsRenderableNode(Node* node);
@@ -97,6 +101,7 @@ private:
 	Node* lastCompleteNode;
 
 	int visiblePageHeight;
+	bool isPaused;
 };
 
 #endif

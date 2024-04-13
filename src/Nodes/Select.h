@@ -42,6 +42,18 @@ public:
 
 	void DrawHighlight(Node* node, uint8_t colour);
 
+	void DrawDropDownMenu();
+	void ShowDropDownMenu(Node *node);
+	void CloseDropDownMenu();
+
+	struct DropDownMenu
+	{
+		Node* activeNode;
+		int numOptions;
+		Rect rect;
+	};
+
+	DropDownMenu dropDownMenu;
 };
 
 #endif

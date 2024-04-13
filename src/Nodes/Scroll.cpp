@@ -70,6 +70,9 @@ bool ScrollBarNode::HandleEvent(Node* node, const Event& event)
 
 	switch (event.type)
 	{
+		case Event::Focus:
+		case Event::Unfocus:
+			return true;
 		case Event::MouseClick:
 		{
 			if (event.y < widgetPosition + node->anchor.y)

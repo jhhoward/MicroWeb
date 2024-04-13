@@ -57,8 +57,32 @@ void PageRenderer::RefreshAll()
 
 	renderQueue.Reset();
 
-	FindOverlappingNodesInScreenRegion(windowRect.y, windowRect.y + windowRect.height);
+	FindOverlappingNodesInScreenRegion(windowRect.x, windowRect.y, windowRect.x + windowRect.width, windowRect.y + windowRect.height);
 }
+
+void PageRenderer::MarkScreenRegionDirty(int left, int top, int right, int bottom)
+{
+	Rect& windowRect = app.ui.windowRect;
+	if (top < windowRect.y)
+		top = windowRect.y;
+	if (bottom > windowRect.y + windowRect.height)
+		bottom = windowRect.y + windowRect.height;
+	if (left < windowRect.x)
+		left = windowRect.x;
+	if (right > windowRect.x + windowRect.width)
+		right = windowRect.x + windowRect.width;
+
+	DrawContext clearContext;
+	InitContext(clearContext);
+	clearContext.drawOffsetY = 0;
+
+	Platform::input->HideMouse();
+	clearContext.surface->FillRect(clearContext, left, top, right - left, bottom - top, app.page.colourScheme.pageColour);
+	Platform::input->ShowMouse();
+
+	FindOverlappingNodesInScreenRegion(left, top, right, bottom);
+}
+
 
 void PageRenderer::OnPageScroll(int scrollDelta)
 {
@@ -71,6 +95,8 @@ void PageRenderer::OnPageScroll(int scrollDelta)
 
 	int minWinY = windowRect.y;
 	int maxWinY = windowRect.y + windowRect.height;
+	int minWinX = windowRect.x;
+	int maxWinX = windowRect.x + windowRect.width;
 
 	for (int i = renderQueue.head; i < renderQueue.tail; i++)
 	{
@@ -100,14 +126,14 @@ void PageRenderer::OnPageScroll(int scrollDelta)
 		int top = maxWinY - scrollDelta;
 		if (top < minWinY)
 			top = minWinY;
-		FindOverlappingNodesInScreenRegion(top, maxWinY);
+		FindOverlappingNodesInScreenRegion(minWinX, top, maxWinX, maxWinY);
 	}
 	else if (scrollDelta < 0)
 	{
 		int bottom = minWinY - scrollDelta;
 		if (bottom > maxWinY)
 			bottom = maxWinY;
-		FindOverlappingNodesInScreenRegion(minWinY, bottom);
+		FindOverlappingNodesInScreenRegion(minWinX, minWinY, maxWinX, bottom);
 	}
 
 	Platform::input->HideMouse();
@@ -164,9 +190,15 @@ int PageRenderer::GetDrawOffsetY()
 	return windowRect.y - app.ui.GetScrollPositionY();
 }
 
-void PageRenderer::FindOverlappingNodesInScreenRegion(int top, int bottom)
+void PageRenderer::FindOverlappingNodesInScreenRegion(int left, int top, int right, int bottom)
 {
+	Rect& windowRect = app.ui.windowRect;
 	int drawOffsetY = GetDrawOffsetY();
+
+	if (top < windowRect.y)
+		top = windowRect.y;
+	if (bottom > windowRect.y + windowRect.height)
+		bottom = windowRect.y + windowRect.height;
 
 	if (!lastCompleteNode)
 		return;
@@ -185,7 +217,14 @@ void PageRenderer::FindOverlappingNodesInScreenRegion(int top, int bottom)
 
 			if(nodeBottom - nodeTop > 0)
 			{
-				AddToQueue(node, nodeTop, nodeBottom);
+				int nodeLeft = node->anchor.x;
+				int nodeRight = nodeLeft + node->size.x;
+				bool outsideOfRegionX = nodeRight < left || nodeLeft >= right;
+				
+				if (!outsideOfRegionX)
+				{
+					AddToQueue(node, nodeTop, nodeBottom);
+				}
 			}
 		}
 
@@ -199,6 +238,7 @@ void PageRenderer::Reset()
 	renderQueue.Reset();
 	lastCompleteNode = nullptr;
 	visiblePageHeight = 0;
+	isPaused = false;
 }
 
 bool PageRenderer::DoesOverlapWithContext(Node* node, DrawContext& context)
@@ -227,6 +267,8 @@ void PageRenderer::Update()
 	//if (rand() % 256)
 	//	return;
 #endif
+	if (isPaused)
+		return;
 
 	int itemsToRender = 5;
 
