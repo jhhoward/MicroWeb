@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <math.h>
 
 const RGBQUAD egaPalette[] =
 {
@@ -50,20 +51,103 @@ const RGBQUAD cgaCompositePalette[] =
 	{ 0xff, 0xff, 0xff },
 };
 
+// Function to convert sRGB to linear RGB
+double sRGBtoLinear(double value) {
+	if (value <= 0.04045)
+		return value / 12.92;
+	else
+		return pow((value + 0.055) / 1.055, 2.4);
+}
+
+// Function to convert linear RGB to XYZ
+double linearRGBtoXYZ(double value) {
+	if (value > 0.04045)
+		return pow((value + 0.055) / 1.055, 2.4);
+	else
+		return value / 12.92;
+}
+
+// Function to convert RGB to XYZ
+void RGBtoXYZ(double R, double G, double B, double& X, double& Y, double& Z) {
+	R = sRGBtoLinear(R / 255.0);
+	G = sRGBtoLinear(G / 255.0);
+	B = sRGBtoLinear(B / 255.0);
+
+	X = 0.4124564 * R + 0.3575761 * G + 0.1804375 * B;
+	Y = 0.2126729 * R + 0.7151522 * G + 0.0721750 * B;
+	Z = 0.0193339 * R + 0.1191920 * G + 0.9503041 * B;
+}
+
+// Function to convert XYZ to CIELAB
+void XYZtoLAB(double X, double Y, double Z, double& L, double& a, double& b) {
+	X /= 0.95047;
+	Y /= 1.0;
+	Z /= 1.08883;
+
+	if (X > 0.008856)
+		X = pow(X, 1.0 / 3.0);
+	else
+		X = 7.787 * X + 16.0 / 116.0;
+	if (Y > 0.008856)
+		Y = pow(Y, 1.0 / 3.0);
+	else
+		Y = 7.787 * Y + 16.0 / 116.0;
+	if (Z > 0.008856)
+		Z = pow(Z, 1.0 / 3.0);
+	else
+		Z = 7.787 * Z + 16.0 / 116.0;
+
+	L = 116.0 * Y - 16.0;
+	a = 500.0 * (X - Y);
+	b = 200.0 * (Y - Z);
+}
+
+// Function to compute distance between two CIELAB colors
+double labDistance(double L1, double a1, double b1, double L2, double a2, double b2) {
+	double deltaL = L1 - L2;
+	double deltaA = a1 - a2;
+	double deltaB = b1 - b2;
+	return sqrt(deltaL * deltaL + deltaA * deltaA + deltaB * deltaB);
+}
+
+// Function to compute distance between two RGB colors using CIELAB
+double rgbDistance(int R1, int G1, int B1, int R2, int G2, int B2) {
+	double X1, Y1, Z1, X2, Y2, Z2;
+	RGBtoXYZ(R1, G1, B1, X1, Y1, Z1);
+	RGBtoXYZ(R2, G2, B2, X2, Y2, Z2);
+
+	double L1, a1, b1, L2, a2, b2;
+	XYZtoLAB(X1, Y1, Z1, L1, a1, b1);
+	XYZtoLAB(X2, Y2, Z2, L2, a2, b2);
+
+	return labDistance(L1, a1, b1, L2, a2, b2);
+}
+
 int GetClosestPaletteIndex(const RGBQUAD colour, const RGBQUAD* palette, int paletteSize)
 {
 	int closest = -1;
-	int closestDistance = 0;
+	double closestDistance = 0;
+	bool useLABDistance = paletteSize < 16;
 
 	for (int n = 0; n < paletteSize; n++)
 	{
-		int distance = 0;
-		distance += (palette[n].rgbRed - colour.rgbRed) * (palette[n].rgbRed - colour.rgbRed);
-		distance += (palette[n].rgbGreen - colour.rgbGreen) * (palette[n].rgbGreen - colour.rgbGreen);
-		distance += (palette[n].rgbBlue - colour.rgbBlue) * (palette[n].rgbBlue - colour.rgbBlue);
+		double distance = 0;
+		
+		if (useLABDistance)
+		{
+			// LAB colour distance
+			distance = rgbDistance(colour.rgbRed, colour.rgbGreen, colour.rgbBlue, palette[n].rgbRed, palette[n].rgbGreen, palette[n].rgbBlue);
+		}
+		else
+		{
+			// RGB Euclidean distance
+			distance += (palette[n].rgbRed - colour.rgbRed) * (palette[n].rgbRed - colour.rgbRed);
+			distance += (palette[n].rgbGreen - colour.rgbGreen) * (palette[n].rgbGreen - colour.rgbGreen);
+			distance += (palette[n].rgbBlue - colour.rgbBlue) * (palette[n].rgbBlue - colour.rgbBlue);
+		}
 
 		if (closest == -1 || distance < closestDistance)
-		{
+		{ 
 			closest = n;
 			closestDistance = distance;
 		}
