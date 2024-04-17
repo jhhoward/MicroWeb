@@ -57,7 +57,7 @@ void PageRenderer::RefreshAll()
 
 	renderQueue.Reset();
 
-	FindOverlappingNodesInScreenRegion(windowRect.x, windowRect.y, windowRect.x + windowRect.width, windowRect.y + windowRect.height);
+	FindOverlappingNodesInScreenRegion(windowRect.y, windowRect.y + windowRect.height);
 }
 
 void PageRenderer::MarkScreenRegionDirty(int left, int top, int right, int bottom)
@@ -80,7 +80,7 @@ void PageRenderer::MarkScreenRegionDirty(int left, int top, int right, int botto
 	clearContext.surface->FillRect(clearContext, left, top, right - left, bottom - top, app.page.colourScheme.pageColour);
 	Platform::input->ShowMouse();
 
-	FindOverlappingNodesInScreenRegion(left, top, right, bottom);
+	FindOverlappingNodesInScreenRegion(top, bottom);
 }
 
 
@@ -126,14 +126,14 @@ void PageRenderer::OnPageScroll(int scrollDelta)
 		int top = maxWinY - scrollDelta;
 		if (top < minWinY)
 			top = minWinY;
-		FindOverlappingNodesInScreenRegion(minWinX, top, maxWinX, maxWinY);
+		FindOverlappingNodesInScreenRegion(top, maxWinY);
 	}
 	else if (scrollDelta < 0)
 	{
 		int bottom = minWinY - scrollDelta;
 		if (bottom > maxWinY)
 			bottom = maxWinY;
-		FindOverlappingNodesInScreenRegion(minWinX, minWinY, maxWinX, bottom);
+		FindOverlappingNodesInScreenRegion(minWinY, bottom);
 	}
 
 	Platform::input->HideMouse();
@@ -190,7 +190,7 @@ int PageRenderer::GetDrawOffsetY()
 	return windowRect.y - app.ui.GetScrollPositionY();
 }
 
-void PageRenderer::FindOverlappingNodesInScreenRegion(int left, int top, int right, int bottom)
+void PageRenderer::FindOverlappingNodesInScreenRegion(int top, int bottom)
 {
 	Rect& windowRect = app.ui.windowRect;
 	int drawOffsetY = GetDrawOffsetY();
@@ -217,14 +217,7 @@ void PageRenderer::FindOverlappingNodesInScreenRegion(int left, int top, int rig
 
 			if(nodeBottom - nodeTop > 0)
 			{
-				int nodeLeft = node->anchor.x;
-				int nodeRight = nodeLeft + node->size.x;
-				bool outsideOfRegionX = nodeRight < left || nodeLeft >= right;
-				
-				if (!outsideOfRegionX)
-				{
-					AddToQueue(node, nodeTop, nodeBottom);
-				}
+				AddToQueue(node, nodeTop, nodeBottom);
 			}
 		}
 

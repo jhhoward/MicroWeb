@@ -86,12 +86,11 @@ private:
 
 	void InitContext(DrawContext& context);
 	void ClampContextToRect(DrawContext& context, Rect& rect);
-	void FindOverlappingNodesInScreenRegion(int left, int top, int right, int bottom);
+	void FindOverlappingNodesInScreenRegion(int top, int bottom);
 
 	bool DoesOverlapWithContext(Node* node, DrawContext& context);
 	bool IsRenderableNode(Node* node);
 
-	void AddToQueueIfVisible(Node* node);
 	int GetDrawOffsetY();
 
 	App& app;

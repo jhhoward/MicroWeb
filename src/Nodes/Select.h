@@ -32,6 +32,7 @@ public:
 		OptionNode::Data* selected;
 	};
 
+	virtual void ApplyStyle(Node* node) override;
 	static Node* Construct(Allocator& allocator, const char* inName);
 	virtual void Draw(DrawContext& context, Node* element) override;
 	virtual void EndLayoutContext(Layout& layout, Node* node) override;

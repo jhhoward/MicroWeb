@@ -17,6 +17,15 @@ Node* SelectNode::Construct(Allocator& allocator, const char* name)
 	return nullptr;
 }
 
+void SelectNode::ApplyStyle(Node* node)
+{
+	ElementStyle style = node->GetStyle();
+	style.fontStyle = FontStyle::Regular;
+	style.fontSize = 1;
+	node->SetStyle(style);
+}
+
+
 void SelectNode::Draw(DrawContext& context, Node* node)
 {
 	SelectNode::Data* data = static_cast<SelectNode::Data*>(node->data);
@@ -41,7 +50,7 @@ void SelectNode::Draw(DrawContext& context, Node* node)
 	{
 		if (node == dropDownMenu.activeNode)
 		{
-//			DrawDropDownMenu();
+			DrawDropDownMenu();
 		}
 		else
 		{
@@ -170,7 +179,7 @@ bool SelectNode::HandleEvent(Node* node, const Event& event)
 					if (clickX >= dropDownMenu.rect.x && clickX < dropDownMenu.rect.x + dropDownMenu.rect.width
 						&& clickY >= dropDownMenu.rect.y && clickY < dropDownMenu.rect.y + dropDownMenu.rect.height)
 					{
-						Font* font = Assets.GetFont(1, FontStyle::Regular);
+						Font* font = node->GetStyleFont();
 						int index = (clickY - dropDownMenu.rect.y + 1) / font->glyphHeight;
 
 						for (OptionNode::Data* option = data->firstOption; option; option = option->next)
@@ -299,7 +308,7 @@ Node* SelectNode::Pick(Node* node, int x, int y)
 
 void SelectNode::DrawDropDownMenu()
 {
-	Font* font = Assets.GetFont(1, FontStyle::Regular);
+	Font* font = dropDownMenu.activeNode->GetStyleFont();
 	SelectNode::Data* data = static_cast<SelectNode::Data*>(dropDownMenu.activeNode->data);
 
 	DrawContext context;
@@ -345,11 +354,41 @@ void SelectNode::ShowDropDownMenu(Node *node)
 		dropDownMenu.numOptions++;
 	}
 
-	Font* font = Assets.GetFont(1, FontStyle::Regular);
+	AppInterface& ui = App::Get().ui;
+	Rect& windowRect = ui.windowRect;
+	Font* font = node->GetStyleFont();
 	dropDownMenu.rect.height = font->glyphHeight * dropDownMenu.numOptions + 2;
 	dropDownMenu.rect.width = dropDownMenu.activeNode->size.x;
 	dropDownMenu.rect.x = dropDownMenu.activeNode->anchor.x;
 	dropDownMenu.rect.y = dropDownMenu.activeNode->anchor.y + dropDownMenu.activeNode->size.y - 1;
+
+	int offsetY = windowRect.y - ui.GetScrollPositionY();
+	if (dropDownMenu.rect.y + dropDownMenu.rect.height + offsetY > windowRect.y + windowRect.height)
+	{
+		// Cut off the bottom of the screen
+
+		int topPosition = dropDownMenu.activeNode->anchor.y - dropDownMenu.rect.height + 1;
+		if (topPosition + offsetY < windowRect.y)
+		{
+			// Still cut off
+			int topCutoff = windowRect.y - (topPosition + offsetY);
+			int bottomCutoff = (dropDownMenu.rect.y + dropDownMenu.rect.height + offsetY) - (windowRect.y + windowRect.height);
+
+			// TODO: add scroll bars and fit to window
+			if (topCutoff < bottomCutoff)
+			{
+				dropDownMenu.rect.y = topPosition;
+			}
+			else
+			{
+
+			}
+		}
+		else
+		{
+			dropDownMenu.rect.y = topPosition;
+		}
+	}
 
 	App::Get().pageRenderer.SetPaused(true);
 }
