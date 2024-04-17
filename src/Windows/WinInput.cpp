@@ -70,6 +70,26 @@ void WindowsInputDriver::SetMousePosition(int x, int y)
 	}
 }
 
+bool WindowsInputDriver::GetMouseButtonPress(int& x, int& y)
+{
+	static int oldButtons = 0;
+	int buttons;
+	GetMouseStatus(buttons, x, y);
+	bool pressed = (buttons & 1) && !(oldButtons & 1);
+	oldButtons = buttons;
+	return pressed;
+}
+
+bool WindowsInputDriver::GetMouseButtonRelease(int& x, int& y)
+{
+	static int oldButtons = 0;
+	int buttons;
+	GetMouseStatus(buttons, x, y);
+	bool released = !(buttons & 1) && (oldButtons & 1);
+	oldButtons = buttons;
+	return released;
+}
+
 void WindowsInputDriver::GetMouseStatus(int& buttons, int& x, int& y)
 {
 	x = y = 0;
@@ -79,8 +99,18 @@ void WindowsInputDriver::GetMouseStatus(int& buttons, int& x, int& y)
 	{
 		if (ScreenToClient(hWnd, &p))
 		{
-			x = p.x;
-			y = p.y / static_cast<WindowsVideoDriver*>(Platform::video)->verticalScale;
+			// Calculate the destination rectangle to stretch the bitmap to fit the window
+			RECT windowRect;
+			GetClientRect(hWnd, &windowRect);
+
+			int width = windowRect.right - windowRect.left;
+			int height = windowRect.bottom - windowRect.top;
+
+			if (width > 0 && height > 0)
+			{
+				x = p.x * Platform::video->screenWidth / width;
+				y = p.y * Platform::video->screenHeight / height;
+			}
 		}
 	}
 
@@ -132,16 +162,20 @@ InputButtonCode WindowsInputDriver::TranslateCode(WPARAM code)
 {
 	switch (code)
 	{
-	case VK_LBUTTON:
-		return KEYCODE_MOUSE_LEFT;
-	case VK_RBUTTON:
-		return KEYCODE_MOUSE_RIGHT;
+	//case VK_LBUTTON:
+	//	return KEYCODE_MOUSE_LEFT;
+	//case VK_RBUTTON:
+	//	return KEYCODE_MOUSE_RIGHT;
 	case VK_ESCAPE:
 		return KEYCODE_ESCAPE;
 	case VK_UP:
 		return KEYCODE_ARROW_UP;
 	case VK_DOWN:
 		return KEYCODE_ARROW_DOWN;
+	case VK_LEFT:
+		return KEYCODE_ARROW_LEFT;
+	case VK_RIGHT:
+		return KEYCODE_ARROW_RIGHT;
 	case VK_HOME:
 		return KEYCODE_HOME;
 	case VK_END:
@@ -152,6 +186,35 @@ InputButtonCode WindowsInputDriver::TranslateCode(WPARAM code)
 		return KEYCODE_PAGE_DOWN;
 	case VK_RETURN:
 		return KEYCODE_ENTER;
+	case VK_DELETE:
+		return KEYCODE_DELETE;
+	case VK_BACK:
+		return KEYCODE_BACKSPACE;
+	case VK_TAB:
+		if (GetKeyState(VK_SHIFT) & 0x8000)
+			return KEYCODE_SHIFT_TAB;
+		else
+			return KEYCODE_TAB;
+	case VK_F1:
+		return KEYCODE_F1;
+	case VK_F2:
+		return KEYCODE_F2;
+	case VK_F3:
+		return KEYCODE_F3;
+	case VK_F4:
+		return KEYCODE_F4;
+	case VK_F5:
+		return KEYCODE_F5;
+	case VK_F6:
+		return KEYCODE_F6;
+	case VK_F7:
+		return KEYCODE_F7;
+	case VK_F8:
+		return KEYCODE_F8;
+	case VK_F9:
+		return KEYCODE_F9;
+	case VK_F10:
+		return KEYCODE_F10;
 	default:
 		return 0;
 	}

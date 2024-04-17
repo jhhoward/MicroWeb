@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _URL_H_
+#define _URL_H_
 
 #include <string.h>
 #include <stdio.h>
@@ -44,16 +45,53 @@ struct URL
 		return *this;
 	}
 
-	static void ProcessEscapeCodes(URL& url)
+	void CleanUp()
 	{
-		char* match;
-
-		while (match = strstr(url.url, "/./"))
+		// Replace back slashes with forward ones
+		for (char* ptr = url; *ptr; ptr++)
 		{
-			memmove(match, match + 2, strlen(match) - 1);
+			if (*ptr == '\\')
+				*ptr = '/';
 		}
 
-		while (match = strstr(url.url, "&amp;"))
+		// Collapse /./ and /../ 
+		char* directory;
+		while (directory = strstr(url, "/./"))
+		{
+			strcpy(directory, directory + 2);
+		}
+		directory = strstr(url, "/../");
+		char* protocolEnd = strstr(url, "://");
+		if (protocolEnd)
+			protocolEnd += 3;
+
+		while (directory && directory > url)
+		{
+			char* prevSlash = directory - 1;
+			while (prevSlash > url && *prevSlash != '/' && prevSlash > protocolEnd)
+			{
+				prevSlash--;
+			}
+			if (*prevSlash == '/' && prevSlash > url)
+			{
+				strcpy(prevSlash, directory + 3);
+				directory = strstr(prevSlash, "/../");
+			}
+			else
+			{
+				// At most top level, collapse remaining /../ instances
+				while (directory)
+				{
+					strcpy(directory, directory + 3);
+					directory = strstr(url, "/../");
+				}
+				break;
+			}
+		}
+
+		// Fix &amp escape sequences
+		char* match;
+		while (match = strstr(url, "&amp;"))
 		{
 			memmove(match + 1, match + 5, strlen(match + 1) - 3);
 		}
@@ -74,6 +112,14 @@ struct URL
 				result = relativeURL;
 				return result;
 			}
+		}
+
+		// Starting with // should be treated as an absolte URL but we will prepend with http://
+		if (strstr(relativeURL, "//") == relativeURL)
+		{
+			strcpy(result.url, "http:");
+			strcpy(result.url + 5, relativeURL);
+			return result;
 		}
 
 		// Check if this is a hash link
@@ -133,9 +179,24 @@ struct URL
 
 			
 		// Skip leading '/' on relative URL
-		while (*relativeURL == '/')
+		if (*relativeURL == '/')
 		{
-			relativeURL++;
+			while (*relativeURL == '/')
+			{
+				relativeURL++;
+			}
+
+			// Move lastSlashPos to the first slash position
+			const char* domainPos = strstr(baseURL, "://");
+			if (domainPos)
+			{
+				domainPos += 3;
+				const char* firstSlashPos = strchr(domainPos, '/');
+				if (firstSlashPos)
+				{
+					lastSlashPos = firstSlashPos;
+				}
+			}
 		}
 
 		if (lastSlashPos)
@@ -159,10 +220,12 @@ struct URL
 			strcpy(result.url + 7, relativeURL);
 		}
 
-		ProcessEscapeCodes(result);
+		result.CleanUp();
 
 		return result;
 	}
 
 	char url[MAX_URL_LENGTH];
 };
+
+#endif

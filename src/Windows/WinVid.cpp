@@ -15,77 +15,258 @@
 #include <stdio.h>
 #include <windows.h>
 #include "WinVid.h"
-#include "../Image.h"
-#include "../DOS/CGAData.inc"
+#include "../Image/Image.h"
 #include "../Interface.h"
+#include "../DataPack.h"
+#include "../Draw/Surf1bpp.h"
+#include "../Draw/Surf8bpp.h"
+#include "../VidModes.h"
 
-#define WINDOW_TOP 24
-#define WINDOW_HEIGHT 168
-#define WINDOW_BOTTOM (WINDOW_TOP + WINDOW_HEIGHT)
-
+//#define SCREEN_WIDTH 800
+//#define SCREEN_HEIGHT 600
 #define SCREEN_WIDTH 640
-#define SCREEN_HEIGHT 200
-
-#define NAVIGATION_BUTTON_WIDTH 24
-#define NAVIGATION_BUTTON_HEIGHT 12
-
-#define BACK_BUTTON_X 4
-#define FORWARD_BUTTON_X 32
-
-#define ADDRESS_BAR_X 60
-#define ADDRESS_BAR_Y 10
-#define ADDRESS_BAR_WIDTH 576
-#define ADDRESS_BAR_HEIGHT 12
-
-#define TITLE_BAR_HEIGHT 8
-#define STATUS_BAR_HEIGHT 8
-#define STATUS_BAR_Y (SCREEN_HEIGHT - STATUS_BAR_HEIGHT)
-
-#define SCROLL_BAR_WIDTH 16
+#define SCREEN_HEIGHT 480
+#define USE_COLOUR 0
 
 extern HWND hWnd;
+LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
 WindowsVideoDriver::WindowsVideoDriver()
 {
-	screenWidth = 640;
-	screenHeight = 200;
-	windowWidth = screenWidth - 16;
-	windowHeight = WINDOW_HEIGHT;
-	windowX = 0;
-	windowY = WINDOW_TOP;
-
-	foregroundColour = RGB(0, 0, 0);
-	backgroundColour = RGB(255, 255, 255);
-	verticalScale = 2;
-
-	scissorX1 = 0;
-	scissorY1 = 0;
-	scissorX2 = screenWidth;
-	scissorY2 = screenHeight;
-
-	imageIcon = &CGA_ImageIcon;
-	bulletImage = &CGA_Bullet;
-	isTextMode = false;
 }
 
-void WindowsVideoDriver::Init()
+const RGBQUAD monoPalette[] =
 {
+	{ 0, 0, 0, 0 },
+	{ 0xff, 0xff, 0xff, 0 }
+};
+
+const RGBQUAD cgaPalette[] =
+{
+	{ 0x00, 0x00, 0x00 }, // Entry 0 - Black
+	{ 0xFF, 0xFF, 0x55 }, // Entry 11 - Light Cyan
+	{ 0x55, 0x55, 0xFF }, // Entry 12 - Light Red
+	{ 0xFF, 0xFF, 0xFF }, // Entry 15 - White
+};
+
+const RGBQUAD cgaCompositePalette[] =
+{
+	{ 0x00, 0x00, 0x00 },
+	{ 0x31, 0x6e, 0x00 },
+	{ 0xff, 0x09, 0x31 },
+	{ 0xff, 0x8a, 0x00 },
+	{ 0x31, 0x00, 0xa7 },
+	{ 0x76, 0x76, 0x76 },
+	{ 0xff, 0x11, 0xec },
+	{ 0xff, 0x92, 0xbb },
+	{ 0x00, 0x5a, 0x31 },
+	{ 0x00, 0xdb, 0x00 },
+	{ 0x76, 0x76, 0x76 },
+	{ 0xbb, 0xf7, 0x45 },
+	{ 0x00, 0x63, 0xec },
+	{ 0x00, 0xe4, 0xbb },
+	{ 0xbb, 0x7f, 0xff },
+	{ 0xff, 0xff, 0xff },
+};
+
+
+const RGBQUAD egaPalette[] =
+{
+	{ 0x00, 0x00, 0x00 }, // Entry 0 - Black
+	{ 0xAA, 0x00, 0x00 }, // Entry 1 - Blue
+	{ 0x00, 0xAA, 0x00 }, // Entry 2 - Green
+	{ 0xAA, 0xAA, 0x00 }, // Entry 3 - Cyan
+	{ 0x00, 0x00, 0xAA }, // Entry 4 - Red
+	{ 0xAA, 0x00, 0xAA }, // Entry 5 - Magenta
+	{ 0x00, 0x55, 0xAA }, // Entry 6 - Brown
+	{ 0xAA, 0xAA, 0xAA }, // Entry 7 - Light Gray
+	{ 0x55, 0x55, 0x55 }, // Entry 8 - Dark Gray
+	{ 0xFF, 0x55, 0x55 }, // Entry 9 - Light Blue
+	{ 0x55, 0xFF, 0x55 }, // Entry 10 - Light Green
+	{ 0xFF, 0xFF, 0x55 }, // Entry 11 - Light Cyan
+	{ 0x55, 0x55, 0xFF }, // Entry 12 - Light Red
+	{ 0xFF, 0x55, 0xFF }, // Entry 13 - Light Magenta
+	{ 0x55, 0xFF, 0xFF }, // Entry 14 - Yellow
+	{ 0xFF, 0xFF, 0xFF }, // Entry 15 - White
+};
+
+void WindowsVideoDriver::Init(VideoModeInfo* inVideoMode)
+{
+	videoMode = inVideoMode;
+
+	screenWidth = videoMode->screenWidth;
+	screenHeight = videoMode->screenHeight;
+	verticalScale = videoMode->aspectRatio / 100.0f; // ((screenWidth * 3.0f) / 4.0f) / screenHeight;
+	//verticalScale = 1.0f;
+	Assets.LoadPreset((DataPack::Preset) videoMode->dataPackIndex);
+
+	// Create window
+	WNDCLASSW wc = { 0 };
+	HINSTANCE hInstance = GetModuleHandle(NULL);
+
+	wc.style = CS_HREDRAW | CS_VREDRAW;
+	wc.lpszClassName = L"Pixels";
+	wc.hInstance = hInstance;
+	wc.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
+	wc.lpfnWndProc = WndProc;
+	wc.hCursor = LoadCursor(0, IDC_ARROW);
+
+	RECT wr = { 0, 0, screenWidth, (int)(screenHeight * verticalScale) };
+	AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);
+
+	RegisterClassW(&wc);
+	hWnd = CreateWindowW(wc.lpszClassName, L"MicroWeb",
+		WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+		100, 100, wr.right - wr.left, wr.bottom - wr.top, NULL, NULL, hInstance, NULL);
+
+	// Create bitmap for window contents
 	HDC hDC = GetDC(hWnd);
 	HDC hDCMem = CreateCompatibleDC(hDC);
 
-	BITMAPINFO bi;
-	ZeroMemory(&bi, sizeof(BITMAPINFO));
-	bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-	bi.bmiHeader.biWidth = screenWidth;
-	bi.bmiHeader.biHeight = screenHeight * verticalScale;
-	bi.bmiHeader.biPlanes = 1;
-	bi.bmiHeader.biBitCount = 32;
+	bool useColour = videoMode->surfaceFormat != DrawSurface::Format_1BPP;
+	int paletteSize = useColour ? 256 : 2;
 
-	screenBitmap = CreateDIBSection(hDCMem, &bi, DIB_RGB_COLORS, (VOID**)&lpBitmapBits, NULL, 0);
+	bitmapInfo = (BITMAPINFO*)malloc(sizeof(BITMAPINFO) + sizeof(RGBQUAD) * paletteSize);
+	ZeroMemory(bitmapInfo, sizeof(BITMAPINFO) + sizeof(RGBQUAD) * paletteSize);
+	bitmapInfo->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	bitmapInfo->bmiHeader.biWidth = screenWidth;
+	bitmapInfo->bmiHeader.biHeight = screenHeight;
+	bitmapInfo->bmiHeader.biPlanes = 1;
+//	bitmapInfo->bmiHeader.biBitCount = 32;
+	bitmapInfo->bmiHeader.biBitCount = useColour ? 8 : 1;
+	bitmapInfo->bmiHeader.biCompression = BI_RGB;
+	bitmapInfo->bmiHeader.biClrUsed = 0;
 
-	for (int n = 0; n < screenWidth * screenHeight * verticalScale; n++)
+	if (useColour)
 	{
-		lpBitmapBits[n] = backgroundColour;
+		memcpy(bitmapInfo->bmiColors, egaPalette, sizeof(RGBQUAD) * 16);
+
+		if (videoMode->surfaceFormat == DrawSurface::Format_8BPP)
+		{
+			int index = 16;
+			for (int r = 0; r < 6; r++)
+			{
+				for (int g = 0; g < 6; g++)
+				{
+					for (int b = 0; b < 6; b++)
+					{
+						bitmapInfo->bmiColors[index].rgbRed = (r * 255) / 5;
+						bitmapInfo->bmiColors[index].rgbGreen = (g * 255) / 5;
+						bitmapInfo->bmiColors[index].rgbBlue = (b * 255) / 5;
+						index++;
+					}
+				}
+			}
+		}
+		else if (videoMode->surfaceFormat == DrawSurface::Format_2BPP)
+		{
+			if (videoMode->biosVideoMode == CGA_COMPOSITE_MODE)
+			{
+				for (int n = 0; n < 256; n += 16)
+				{
+					memcpy(bitmapInfo->bmiColors + n, cgaCompositePalette, sizeof(RGBQUAD) * 16);
+				}
+			}
+			else
+			{
+				for (int n = 0; n < 256; n += 4)
+				{
+					memcpy(bitmapInfo->bmiColors + n, cgaPalette, sizeof(RGBQUAD) * 4);
+				}
+			}
+		}
+	}
+	else
+	{
+		memcpy(bitmapInfo->bmiColors, monoPalette, sizeof(RGBQUAD) * 2);
+	}
+
+	screenBitmap = CreateDIBSection(hDCMem, bitmapInfo, DIB_RGB_COLORS, (VOID**)&lpBitmapBits, NULL, 0);
+
+	if (useColour)
+	{
+		DrawSurface_8BPP* surface = new DrawSurface_8BPP(screenWidth, screenHeight);
+		uint8_t* buffer = (uint8_t*)(lpBitmapBits);
+
+		int pitch = screenWidth;
+
+		for (int y = 0; y < screenHeight; y++)
+		{
+			int bufferY = (screenHeight - 1 - y);
+			surface->lines[y] = &buffer[bufferY * pitch];
+		}
+		drawSurface = surface;
+
+		for (int n = 0; n < screenWidth * screenHeight; n++)
+		{
+			buffer[n] = 0xf;
+		}
+
+
+		if (videoMode->surfaceFormat == DrawSurface::Format_8BPP)
+		{
+			colourScheme = colourScheme666;
+			//paletteLUT = cgaPaletteLUT;
+
+			paletteLUT = new uint8_t[256];
+			for (int n = 0; n < 256; n++)
+			{
+				int r = (n & 0xe0);
+				int g = (n & 0x1c) << 3;
+				int b = (n & 3) << 6;
+
+				int rgbBlue = (b * 255) / 0xc0;
+				int rgbGreen = (g * 255) / 0xe0;
+				int rgbRed = (r * 255) / 0xe0;
+
+				paletteLUT[n] = RGB666(rgbRed, rgbGreen, rgbBlue);
+			}
+		}
+		else if (videoMode->surfaceFormat == DrawSurface::Format_2BPP)
+		{
+			if (videoMode->biosVideoMode == CGA_COMPOSITE_MODE)
+			{
+				colourScheme = compositeCgaColourScheme;
+				paletteLUT = compositeCgaPaletteLUT;
+			}
+			else
+			{
+				colourScheme = cgaColourScheme;
+				paletteLUT = cgaPaletteLUT;
+			}
+		}
+		else
+		{
+			colourScheme = egaColourScheme;
+			paletteLUT = egaPaletteLUT;
+		}
+	}
+	else
+	{
+		DrawSurface_1BPP* surface = new DrawSurface_1BPP(screenWidth, screenHeight);
+		uint8_t* buffer = (uint8_t*)(lpBitmapBits);
+		
+		int pitch = (screenWidth + 7) / 8;		// How many bytes needed for 1bpp
+		if (pitch & 3)							// Round to nearest 32-bit 
+		{
+			pitch += 4 - (pitch & 3);
+		}
+
+		for (int y = 0; y < screenHeight; y++)
+		{
+			int bufferY = (screenHeight - 1 - y);
+			surface->lines[y] = &buffer[bufferY * pitch];
+		}
+		drawSurface = surface;
+
+		for (int n = 0; n < screenWidth * screenHeight / 8; n++)
+		{
+			buffer[n] = 0xff;
+		}
+
+		colourScheme = monochromeColourScheme;
+
+		paletteLUT = nullptr;
 	}
 }
 
@@ -95,29 +276,30 @@ void WindowsVideoDriver::Shutdown()
 
 void WindowsVideoDriver::ClearScreen()
 {
-	FillRect(0, 0, screenWidth, TITLE_BAR_HEIGHT, foregroundColour);
-	FillRect(0, TITLE_BAR_HEIGHT, screenWidth, screenHeight - STATUS_BAR_HEIGHT - TITLE_BAR_HEIGHT, backgroundColour);
-	FillRect(0, screenHeight - STATUS_BAR_HEIGHT, screenWidth, STATUS_BAR_HEIGHT, foregroundColour);
-}
-
-void WindowsVideoDriver::FillRect(int x, int y, int width, int height)
-{
-	FillRect(x, y, width, height, foregroundColour);
-}
-
-void WindowsVideoDriver::FillRect(int x, int y, int width, int height, uint32_t colour)
-{
-	for (int j = 0; j < height; j++)
-	{
-		for (int i = 0; i < width; i++)
-		{
-			SetPixel(x + i, y + j, colour);
-		}
-	}
+	//FillRect(0, 0, screenWidth, TITLE_BAR_HEIGHT, foregroundColour);
+	//FillRect(0, TITLE_BAR_HEIGHT, screenWidth, screenHeight - STATUS_BAR_HEIGHT - TITLE_BAR_HEIGHT, backgroundColour);
+	//FillRect(0, screenHeight - STATUS_BAR_HEIGHT, screenWidth, STATUS_BAR_HEIGHT, foregroundColour);
 }
 
 void WindowsVideoDriver::SetPixel(int x, int y, uint32_t colour)
 {
+	if (x >= 0 && y >= 0 && x < screenWidth && y < screenHeight)
+	{
+		int outY = screenHeight - y - 1;
+		uint8_t mask = 0x80 >> ((uint8_t)(x & 7));
+		uint8_t* ptr = (uint8_t*)(lpBitmapBits);
+		int index = (outY * (screenWidth / 8) + (x / 8));
+
+		if (colour)
+		{
+			ptr[index] |= mask;
+		}
+		else
+		{
+			ptr[index] &= ~mask;
+		}
+	}
+	/*
 	if (x >= 0 && y >= 0 && x < screenWidth && y < screenHeight)
 	{
 		int line = ((screenHeight - y - 1) * verticalScale);
@@ -126,213 +308,29 @@ void WindowsVideoDriver::SetPixel(int x, int y, uint32_t colour)
 			lpBitmapBits[(line + j) * screenWidth + x] = colour;
 		}
 	}
+	*/
 }
 
 void WindowsVideoDriver::InvertPixel(int x, int y, uint32_t colour)
 {
 	if (x >= 0 && y >= 0 && x < screenWidth && y < screenHeight)
 	{
+		int outY = screenHeight - y - 1;
+		uint8_t mask = 0x80 >> ((uint8_t)(x & 7));
+		uint8_t* ptr = (uint8_t*)(lpBitmapBits);
+		int index = (outY * (screenWidth / 8) + (x / 8));
+
+		ptr[index] ^= mask;
+	}
+
+	/*if (x >= 0 && y >= 0 && x < screenWidth && y < screenHeight)
+	{
 		int line = ((screenHeight - y - 1) * verticalScale);
 		for (int j = 0; j < verticalScale; j++)
 		{
 			lpBitmapBits[(line + j) * screenWidth + x] ^= colour;
 		}
-	}
-}
-
-void WindowsVideoDriver::ClearWindow()
-{
-	FillRect(0, WINDOW_TOP, SCREEN_WIDTH - SCROLL_BAR_WIDTH, WINDOW_HEIGHT, backgroundColour);
-}
-
-void WindowsVideoDriver::ClearRect(int x, int y, int width, int height)
-{
-	FillRect(x, y, width, height, backgroundColour);
-}
-
-void WindowsVideoDriver::ScrollWindow(int delta)
-{
-
-}
-void WindowsVideoDriver::SetScissorRegion(int y1, int y2)
-{
-	scissorY1 = y1;
-	scissorY2 = y2;
-}
-
-void WindowsVideoDriver::ClearScissorRegion()
-{
-	scissorY1 = 0;
-	scissorY2 = screenHeight;
-}
-
-void WindowsVideoDriver::DrawString(const char* text, int x, int y, int size, FontStyle::Type style)
-{
-//	printf("%s\n", text);
-	Font* font = GetFont(size, style);
-
-	int startX = x;
-	uint8_t glyphHeight = font->glyphHeight;
-	if (x >= scissorX2)
-	{
-		return;
-	}
-	if (y >= scissorY2)
-	{
-		return;
-	}
-	if (y + glyphHeight > scissorY2)
-	{
-		glyphHeight = (uint8_t)(scissorY2 - y);
-	}
-	if (y + glyphHeight < scissorY1)
-	{
-		return;
-	}
-
-	uint8_t firstLine = 0;
-	if (y < scissorY1)
-	{
-		firstLine += scissorY1 - y;
-		y += firstLine;
-	}
-
-	while (*text)
-	{
-		char c = *text++;
-		if (c < 32 || c >= 128)
-		{
-			continue;
-		}
-
-		char index = c - 32;
-		uint8_t glyphWidth = font->glyphWidth[index];
-
-		if (glyphWidth == 0)
-		{
-			continue;
-		}
-
-		uint8_t* glyphData = font->glyphData + (font->glyphDataStride * index);
-
-		glyphData += (firstLine * font->glyphWidthBytes);
-
-		for (uint8_t j = firstLine; j < glyphHeight; j++)
-		{
-			uint8_t writeOffset = (uint8_t)(x) & 0x7;
-
-			if ((style & FontStyle::Italic) && j < (glyphHeight >> 1))
-			{
-				writeOffset++;
-			}
-
-			for (uint8_t i = 0; i < font->glyphWidthBytes; i++)
-			{
-				uint8_t glyphPixels = *glyphData++;
-
-				if (style & FontStyle::Bold)
-				{
-					glyphPixels |= (glyphPixels >> 1);
-				}
-
-				for (int k = 0; k < 8; k++)
-				{
-					if (glyphPixels & (0x80 >> k))
-					{
-						InvertPixel(x + k + i * 8, y + j, 0xffffff);
-					}
-				}
-			}
-		}
-
-		x += glyphWidth;
-		if (style & FontStyle::Bold)
-		{
-			x++;
-		}
-
-		if (x >= scissorX2)
-		{
-			break;
-		}
-	}
-
-	if ((style & FontStyle::Underline) && y - firstLine + font->glyphHeight - 1 < scissorY2)
-	{
-		HLine(startX, y - firstLine + font->glyphHeight - 1, x - startX);
-	}
-}
-
-void WindowsVideoDriver::HLine(int x, int y, int count)
-{
-	for (int n = 0; n < count; n++)
-	{
-		SetPixel(x + n, y, foregroundColour);
-	}
-}
-
-void WindowsVideoDriver::VLine(int x, int y, int count)
-{
-	for (int n = 0; n < count; n++)
-	{
-		SetPixel(x, y + n, foregroundColour);
-	}
-}
-
-void WindowsVideoDriver::DrawScrollBar(int position, int size)
-{
-}
-
-MouseCursorData* WindowsVideoDriver::GetCursorGraphic(MouseCursor::Type type)
-{
-	return NULL;
-}
-
-Font* WindowsVideoDriver::GetFont(int fontSize, FontStyle::Type style)
-{
-	if (style & FontStyle::Monospace)
-	{
-		switch (fontSize)
-		{
-		case 0:
-			return &CGA_SmallFont_Monospace;
-		case 2:
-		case 3:
-		case 4:
-			return &CGA_LargeFont_Monospace;
-		default:
-			return &CGA_RegularFont_Monospace;
-		}
-	}
-
-	switch (fontSize)
-	{
-	case 0:
-		return &CGA_SmallFont;
-	case 2:
-		return &CGA_LargeFont;
-	default:
-		return &CGA_RegularFont;
-	}
-
-}
-int WindowsVideoDriver::GetGlyphWidth(char c, int fontSize, FontStyle::Type style)
-{
-	Font* font = GetFont(fontSize, style);
-	if (c >= 32 && c < 128)
-	{
-		int width = font->glyphWidth[c - 32];
-		if (style & FontStyle::Bold)
-		{
-			width++;
-		}
-		return width;
-	}
-	return 0;
-}
-int WindowsVideoDriver::GetLineHeight(int fontSize, FontStyle::Type style)
-{
-	return GetFont(fontSize, style)->glyphHeight + 1;
+	}*/
 }
 
 void WindowsVideoDriver::Paint(HWND hwnd)
@@ -344,95 +342,18 @@ void WindowsVideoDriver::Paint(HWND hwnd)
 	BITMAP bitmap;
 
 	GetObject(screenBitmap, sizeof(BITMAP), &bitmap);
-	BitBlt(hdc, 0, 0, bitmap.bmWidth, bitmap.bmHeight,
-		hdcMem, 0, 0, SRCCOPY);
+
+	// Calculate the destination rectangle to stretch the bitmap to fit the window
+	RECT destRect;
+	GetClientRect(hwnd, &destRect);
+
+	// Stretch the bitmap to fit the window size
+	StretchBlt(hdc, 0, 0, destRect.right - destRect.left, destRect.bottom - destRect.top,
+		hdcMem, 0, 0, bitmap.bmWidth, bitmap.bmHeight, SRCCOPY);
 
 	SelectObject(hdcMem, oldBitmap);
 	DeleteDC(hdcMem);
 
 	EndPaint(hwnd, &ps);
-
-/*	PAINTSTRUCT ps;
-	RECT r;
-
-	GetClientRect(hwnd, &r);
-
-	if (r.bottom == 0) {
-
-		return;
-	}
-
-	HDC hdc = BeginPaint(hwnd, &ps);
-
-	for (int y = 0; y < screenHeight; y++)
-	{
-		for (int x = 0; x < screenWidth; x++)
-		{
-			uint8_t value = screenPixels[y * screenWidth + x];
-			SetPixel(hdc, x, y * 2, value ? RGB(255, 255, 255) : RGB(0, 0, 0));
-			SetPixel(hdc, x, y * 2 + 1, value ? RGB(255, 255, 255) : RGB(0, 0, 0));
-		}
-	}
-
-	EndPaint(hwnd, &ps);*/
-
-
 }
 
-void WindowsVideoDriver::ArrangeAppInterfaceWidgets(AppInterface& app)
-{
-	app.addressBar.x = ADDRESS_BAR_X;
-	app.addressBar.y = ADDRESS_BAR_Y;
-	app.addressBar.width = ADDRESS_BAR_WIDTH;
-	app.addressBar.height = ADDRESS_BAR_HEIGHT;
-
-	app.scrollBar.x = SCREEN_WIDTH - SCROLL_BAR_WIDTH;
-	app.scrollBar.y = WINDOW_TOP;
-	app.scrollBar.width = SCROLL_BAR_WIDTH;
-	app.scrollBar.height = WINDOW_HEIGHT;
-
-	app.backButton.x = BACK_BUTTON_X;
-	app.backButton.y = ADDRESS_BAR_Y;
-	app.backButton.width = NAVIGATION_BUTTON_WIDTH;
-	app.backButton.height = NAVIGATION_BUTTON_HEIGHT;
-
-	app.forwardButton.x = FORWARD_BUTTON_X;
-	app.forwardButton.y = ADDRESS_BAR_Y;
-	app.forwardButton.width = NAVIGATION_BUTTON_WIDTH;
-	app.forwardButton.height = NAVIGATION_BUTTON_HEIGHT;
-
-	app.statusBar.x = 0;
-	app.statusBar.y = SCREEN_HEIGHT - STATUS_BAR_HEIGHT;
-	app.statusBar.width = SCREEN_WIDTH;
-	app.statusBar.height = STATUS_BAR_HEIGHT;
-
-	app.titleBar.x = 0;
-	app.titleBar.y = 0;
-	app.titleBar.width = SCREEN_WIDTH;
-	app.titleBar.height = TITLE_BAR_HEIGHT;
-}
-
-void WindowsVideoDriver::InvertRect(int x, int y, int width, int height)
-{
-	if (y + height < scissorY1)
-		return;
-	if (y >= scissorY2)
-		return;
-	if (y < scissorY1)
-	{
-		height -= (scissorY1 - y);
-		y = scissorY1;
-	}
-	if (y + height >= scissorY2)
-	{
-		height = scissorY2 - y - 1;
-	}
-
-	for (int j = 0; j < height; j++)
-	{
-		for (int i = 0; i < width; i++)
-		{
-			InvertPixel(x + i, y + j, 0xffffffff);
-		}
-	}
-}

@@ -23,7 +23,7 @@
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{05554dc2-eb0d-4107-856c-c5be0836f410}</ProjectGuid>
     <RootNamespace>Windows</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -42,8 +42,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -114,7 +114,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);WIN32_LEAN_AND_MEAN </PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -128,7 +128,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);WIN32_LEAN_AND_MEAN </PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -140,32 +140,99 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\App.cpp" />
+    <ClCompile Include="..\..\src\Colour.cpp" />
+    <ClCompile Include="..\..\src\DataPack.cpp" />
+    <ClCompile Include="..\..\src\Draw\Surf1bpp.cpp" />
+    <ClCompile Include="..\..\src\Draw\Surf2bpp.cpp" />
+    <ClCompile Include="..\..\src\Draw\Surf8bpp.cpp" />
+    <ClCompile Include="..\..\src\HTTP.cpp" />
+    <ClCompile Include="..\..\src\Image\Decoder.cpp" />
+    <ClCompile Include="..\..\src\Image\Gif.cpp" />
+    <ClCompile Include="..\..\src\Image\Jpeg.cpp" />
+    <ClCompile Include="..\..\src\Image\Png.cpp" />
+    <ClCompile Include="..\..\src\Layout.cpp" />
+    <ClCompile Include="..\..\src\Memory\MemBlock.cpp" />
+    <ClCompile Include="..\..\src\Memory\Memory.cpp" />
+    <ClCompile Include="..\..\src\Node.cpp" />
+    <ClCompile Include="..\..\src\Nodes\Block.cpp" />
+    <ClCompile Include="..\..\src\Nodes\Break.cpp" />
+    <ClCompile Include="..\..\src\Nodes\Button.cpp" />
+    <ClCompile Include="..\..\src\Nodes\CheckBox.cpp" />
+    <ClCompile Include="..\..\src\Nodes\Field.cpp" />
+    <ClCompile Include="..\..\src\Nodes\Form.cpp" />
+    <ClCompile Include="..\..\src\Nodes\ImgNode.cpp" />
+    <ClCompile Include="..\..\src\Nodes\LinkNode.cpp" />
+    <ClCompile Include="..\..\src\Nodes\ListItem.cpp" />
+    <ClCompile Include="..\..\src\Nodes\Scroll.cpp" />
+    <ClCompile Include="..\..\src\Nodes\Section.cpp" />
+    <ClCompile Include="..\..\src\Nodes\Select.cpp" />
+    <ClCompile Include="..\..\src\Nodes\Status.cpp" />
+    <ClCompile Include="..\..\src\Nodes\StyNode.cpp" />
+    <ClCompile Include="..\..\src\Nodes\Table.cpp" />
+    <ClCompile Include="..\..\src\Nodes\Text.cpp" />
     <ClCompile Include="..\..\src\Font.cpp" />
     <ClCompile Include="..\..\src\Interface.cpp" />
     <ClCompile Include="..\..\src\Microweb.cpp" />
     <ClCompile Include="..\..\src\Page.cpp" />
     <ClCompile Include="..\..\src\Parser.cpp" />
-    <ClCompile Include="..\..\src\Renderer.cpp" />
+    <ClCompile Include="..\..\src\Render.cpp" />
+    <ClCompile Include="..\..\src\Style.cpp" />
     <ClCompile Include="..\..\src\Tags.cpp" />
+    <ClCompile Include="..\..\src\VidModes.cpp" />
     <ClCompile Include="..\..\src\Windows\Platform.cpp" />
     <ClCompile Include="..\..\src\Windows\WinInput.cpp" />
+    <ClCompile Include="..\..\src\Windows\WinNet.cpp" />
     <ClCompile Include="..\..\src\Windows\WinVid.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\App.h" />
+    <ClInclude Include="..\..\src\Colour.h" />
     <ClInclude Include="..\..\src\Cursor.h" />
+    <ClInclude Include="..\..\src\Defines.h" />
+    <ClInclude Include="..\..\src\Draw\Surf1bpp.h" />
+    <ClInclude Include="..\..\src\Draw\Surf2bpp.h" />
+    <ClInclude Include="..\..\src\Draw\Surf8bpp.h" />
+    <ClInclude Include="..\..\src\Draw\Surface.h" />
+    <ClInclude Include="..\..\src\HTTP.h" />
+    <ClInclude Include="..\..\src\Image\Decoder.h" />
+    <ClInclude Include="..\..\src\Image\Gif.h" />
+    <ClInclude Include="..\..\src\Image\Image.h" />
+    <ClInclude Include="..\..\src\Image\Jpeg.h" />
+    <ClInclude Include="..\..\src\Image\Png.h" />
+    <ClInclude Include="..\..\src\Layout.h" />
+    <ClInclude Include="..\..\src\Memory\LinAlloc.h" />
+    <ClInclude Include="..\..\src\Memory\MemBlock.h" />
+    <ClInclude Include="..\..\src\Memory\Memory.h" />
+    <ClInclude Include="..\..\src\Node.h" />
+    <ClInclude Include="..\..\src\Nodes\Block.h" />
+    <ClInclude Include="..\..\src\Nodes\Break.h" />
+    <ClInclude Include="..\..\src\Nodes\Button.h" />
+    <ClInclude Include="..\..\src\Nodes\CheckBox.h" />
+    <ClInclude Include="..\..\src\Nodes\Field.h" />
+    <ClInclude Include="..\..\src\Nodes\Form.h" />
+    <ClInclude Include="..\..\src\Nodes\ImgNode.h" />
+    <ClInclude Include="..\..\src\Nodes\LinkNode.h" />
+    <ClInclude Include="..\..\src\Nodes\ListItem.h" />
+    <ClInclude Include="..\..\src\Nodes\Scroll.h" />
+    <ClInclude Include="..\..\src\Nodes\Section.h" />
+    <ClInclude Include="..\..\src\Nodes\Select.h" />
+    <ClInclude Include="..\..\src\Nodes\Status.h" />
+    <ClInclude Include="..\..\src\Nodes\StyNode.h" />
+    <ClInclude Include="..\..\src\Nodes\Table.h" />
+    <ClInclude Include="..\..\src\Nodes\Text.h" />
     <ClInclude Include="..\..\src\Font.h" />
     <ClInclude Include="..\..\src\Interface.h" />
-    <ClInclude Include="..\..\src\LinAlloc.h" />
     <ClInclude Include="..\..\src\Page.h" />
     <ClInclude Include="..\..\src\Parser.h" />
     <ClInclude Include="..\..\src\Platform.h" />
-    <ClInclude Include="..\..\src\Renderer.h" />
+    <ClInclude Include="..\..\src\Render.h" />
+    <ClInclude Include="..\..\src\Stack.h" />
     <ClInclude Include="..\..\src\Style.h" />
     <ClInclude Include="..\..\src\Tags.h" />
     <ClInclude Include="..\..\src\URL.h" />
-    <ClInclude Include="..\..\src\Widget.h" />
+    <ClInclude Include="..\..\src\VidModes.h" />
     <ClInclude Include="..\..\src\Windows\WinInput.h" />
+    <ClInclude Include="..\..\src\Windows\WinNet.h" />
     <ClInclude Include="..\..\src\Windows\WinVid.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

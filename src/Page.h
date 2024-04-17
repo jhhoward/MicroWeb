@@ -12,46 +12,18 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _PAGE_H_
+#define _PAGE_H_
 
-#include "Widget.h"
-#include "LinAlloc.h"
 #include "URL.h"
+#include "Layout.h"
+#include "Colour.h"
 
-#define MAX_PAGE_WIDGETS 2000
 #define MAX_PAGE_STYLE_STACK_SIZE 32
 #define MAX_TEXT_BUFFER_SIZE 128
 
-#define MAX_WIDGET_CHUNKS 256
-#define WIDGETS_PER_CHUNK 64
-#define WIDGET_INDEX_TO_CHUNK_INDEX(index) ((index) >> 6)
-#define WIDGET_INDEX_TO_INDEX_IN_CHUNK(index) ((index) & 0x3f)
-
 class App;
-
-class WidgetContainer
-{
-public:
-	WidgetContainer(LinearAllocator& inAllocator);
-
-	bool Allocate();
-	void Clear();
-
-	int Count() const { return numAllocated; }
-
-	Widget& operator[](int index);
-
-private:
-	LinearAllocator& allocator;
-	int numAllocated;
-
-	struct Chunk
-	{
-		Widget widgets[WIDGETS_PER_CHUNK];
-	};
-
-	Chunk* chunks[MAX_WIDGET_CHUNKS];
-};
+class Node;
 
 class Page
 {
@@ -60,51 +32,30 @@ public:
 
 	void Reset();
 
-	void AddHorizontalRule();
-	void AddButton(char* text);
-	void AddTextField(char* text, int bufferLength, char* name);
-	void AppendText(const char* text);
-	void AddImage(char* altText, int width, int height);
-	void AddBulletPoint();
-	void BreakLine(int padding = 0);
-	void BreakTextLine();
-	void FlagLeadingWhiteSpace() { needLeadingWhiteSpace = true; }
 	void SetTitle(const char* text);
-	void FinishSection();
-	void SetFormData(WidgetFormData* formData);
-	void AdjustLeftMargin(int delta);
 
-	void SetWidgetURL(const char* url);
-	void ClearWidgetURL();
+	Node* GetRootNode() { return rootNode; }
 
-	Widget* GetWidget(int x, int y);
+	Layout layout;
 
-	WidgetStyle& GetStyleStackTop();
-	void PushStyle(const WidgetStyle& style);
-	void PopStyle();
-
-	LinearAllocator allocator;
-
-	int GetPageHeight() { return pageHeight; }
+	void DebugDumpNodeGraph();
 
 	URL pageURL;
 
+	App& GetApp() { return app; }
+
+	Node* ProcessNextLoadTask(Node* lastNode, struct LoadTask& loadTask);
+
+	ColourScheme colourScheme;
+
 private:
-	friend class Renderer;
 	friend class AppInterface;
 
-	Widget* CreateWidget(Widget::Type type);
-	Widget* CreateTextWidget();
-	void FinishCurrentWidget();
-	void FinishCurrentLine(bool includeCurrentWidget = true);
+	void DebugDumpNodeGraph(Node* node, int depth = 0);
 
 	App& app;
 
 	char* title;
-
-	int currentLineStartWidgetIndex;
-	int currentWidgetIndex;
-	int numFinishedWidgets;
 
 	int pageWidth, pageHeight;
 	int cursorX, cursorY;
@@ -112,16 +63,10 @@ private:
 
 	int leftMarginPadding;
 
-	bool needLeadingWhiteSpace;
-
-	WidgetContainer widgets;
-
-	WidgetStyle styleStack[MAX_PAGE_STYLE_STACK_SIZE];
-	uint8_t styleStackSize;
-	WidgetFormData* formData;
+	Node* rootNode;
 
 	char textBuffer[MAX_TEXT_BUFFER_SIZE];
 	int textBufferSize;
-
-	char* widgetURL;
 };
+
+#endif

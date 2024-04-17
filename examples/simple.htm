@@ -1,0 +1,90 @@
+<html>
+	<!--<head>
+		<script>
+			function logTest(obj, indent)
+			{
+				if((typeof obj.localName) != 'undefined')
+				{
+					console.log(indent + obj.localName);
+				}
+				else
+				{
+					console.log(indent + obj.nodeName);
+				}
+
+				if((typeof obj.childNodes) != 'undefined' && obj.childNodes.length > 0)
+				{
+					for(x in obj.childNodes)
+					{
+						logTest(obj.childNodes[x], indent + " ");
+					}
+				}
+			}
+			
+			logTest(document, "");	
+		</script>
+	</head>
+	-->
+
+	<body>
+		<small><h1>H1 small header?</h1></small>
+		<h1>H1 header?</h1>
+		Test text
+		<strong>Strong text</strong>
+		<img width="50" height="50"/>
+		Hello <b>world</b>! <br>
+		The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog.
+		<!--<img width="50" height="50"/>-->
+	</body>
+</html>
+
+<!--
+
+Root element (document)
+	HTML element
+		Body element
+			Text element "Hello"
+			Text element "world" (Bold)
+			Text element "!"
+
+Pre parse:
+root element = Construct document element
+Push context (root element, null tag)
+
+Parse:
+Parse Open tag <html>
+	Construct HTML element
+	Context.element.addChild(new element)
+	Push context (new element, html tag)
+	
+Parse body tag
+	Construct Body element
+	Context.element.addChild(new element)
+	Push context (new element, body tag)
+	
+Parse text "Hello"
+	Construct text element
+	Context.element.addChild(new element)
+	
+Parse <b> tag
+	Push context (Context.element, b tag)
+	Add context style +bold
+	
+Parse text "world"
+	Construct text element
+	Context.element.addChild(new element)
+
+Parse </b> tag
+	Pop context (b tag)
+
+Parse text "!"
+	Construct text element
+	Context.element.addChild(new element)
+	
+Parse </body> tag
+	Pop context (body tag)
+	
+Parse </html> tag
+	Pop context (html tag)
+
+-->

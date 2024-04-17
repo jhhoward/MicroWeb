@@ -12,68 +12,96 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
-#include "Widget.h"
+#ifndef _INTERFACE_H_
+#define _INTERFACE_H_
 #include "Platform.h"
 #include "URL.h"
+#include "Node.h"
+#include "Nodes/Status.h"
 
-#define NUM_APP_INTERFACE_WIDGETS 4
+#define MAX_TITLE_LENGTH 80
 
 class App;
+class Node;
+struct DrawContext;
 
 class AppInterface
 {
 public:
 	AppInterface(App& inApp);
 
+	void Init();
 	void Reset();
 	void Update();
 
-	void DrawInterfaceWidgets();
+	void DrawInterfaceNodes(DrawContext& context);
 	void UpdateAddressBar(const URL& url);
 
+	void SetStatusMessage(const char* message, StatusBarNode::StatusType type);
+	void ClearStatusMessage(StatusBarNode::StatusType type);
+
 	void UpdatePageScrollBar();
-	Widget* GetActiveWidget() { return activeWidget; }
-	int GetTextFieldCursorPosition() {	return textFieldCursorPosition;	}
 
-	Widget scrollBar;
-	Widget addressBar;
-	Widget backButton;
-	Widget forwardButton;
+	void SetTitle(const char* title);
 
-	Widget titleBar;
-	Widget statusBar;
+	bool FocusNode(Node* node);
+	Node* GetFocusedNode() { return focusedNode; }
+	Node* GetHoverNode() { return hoverNode; }
+	Node* GetRootInterfaceNode() { return rootInterfaceNode; }
+	bool IsInterfaceNode(Node* node);
+	bool IsOverNode(Node* node, int x, int y);
+
+	int GetScrollPositionY() { return scrollPositionY; }
+	void ScrollRelative(int delta);
+	void ScrollAbsolute(int position);
+	int GetPageHeightForDimensionScaling() { return pageHeightForDimensionScaling; }
+
+	Node* addressBarNode;
+	URL addressBarURL;
+
+	Rect windowRect;
+
+	// For jumping to #name in the page
+	const char* jumpTagName;
+	Node* jumpNode;
 
 private:
-	void GenerateWidgets();
-	Widget* PickWidget(int x, int y);
+	void GenerateInterfaceNodes();
+
+	Node* PickNode(int x, int y);
+
 	void HandleClick(int mouseX, int mouseY);
-	void HandleRelease();
-	bool HandleActiveWidget(InputButtonCode keyPress);
-	void SubmitForm(WidgetFormData* form);
-	void CycleWidgets(int direction);
-	void InvertWidgetsWithLinkURL(const char* url);
-	void HandleButtonClicked(Widget* widget);
+	void HandleRelease(int mouseX, int mouseY);
+	void HandleDrag(int mouseX, int mouseY);
 
-	void ActivateWidget(Widget* widget);
-	void DeactivateWidget();
+	void CycleNodes(int direction);
 
-	Widget* appInterfaceWidgets[NUM_APP_INTERFACE_WIDGETS];
+	void ToggleStatusAndTitleBar();
+
+	static void OnBackButtonPressed(Node* node);
+	static void OnForwardButtonPressed(Node* node);
+	static void OnAddressBarSubmit(Node* node);
+	static void OnScrollBarMoved(Node* node);
+
 	App& app;
 
-	Widget* activeWidget;
-	Widget* hoverWidget;
+	Node* focusedNode;
+	Node* hoverNode;
 	int oldButtons;
 	int oldMouseX, oldMouseY;
-	URL addressBarURL;
-	int scrollBarRelativeClickPositionX;
-	int scrollBarRelativeClickPositionY;
 	int oldPageHeight;
-	int textFieldCursorPosition;
-	bool clickingButton;
 
-	ButtonWidgetData backButtonData;
-	ButtonWidgetData forwardButtonData;
-	TextFieldWidgetData addressBarData;
-	ScrollBarData scrollBarData;
+	Node* rootInterfaceNode;
+	Node* titleNode;
+	Node* backButtonNode;
+	Node* forwardButtonNode;
+	Node* statusBarNode;
+	Node* scrollBarNode;
+
+	int scrollPositionY;
+	int pageHeightForDimensionScaling;
+
+	char titleBuffer[MAX_TITLE_LENGTH];
 };
+
+#endif

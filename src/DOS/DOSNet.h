@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _DOSNET_H_
+#define _DOSNET_H_
 
 #include <stdint.h>
 #include "../Platform.h"
@@ -23,85 +24,32 @@
 #define MAX_CONCURRENT_HTTP_REQUESTS 1
 #else
 #define TCP_RECV_BUFFER_SIZE  (16384)
-#define MAX_CONCURRENT_HTTP_REQUESTS 3
+#define MAX_CONCURRENT_HTTP_REQUESTS 2
 #endif
-#define HOSTNAME_LEN        (80)
-#define PATH_LEN           (MAX_URL_LENGTH)
-#define LINE_BUFFER_SIZE 512
 
-#define RESPONSE_MOVED_PERMANENTLY 301
-#define RESPONSE_MOVED_TEMPORARILY 302
-#define RESPONSE_TEMPORARY_REDIRECTION 307
-#define RESPONSE_PERMANENT_REDIRECT 308
-
-typedef uint8_t  IpAddr_t[4];   // An IPv4 address is 4 bytes
 struct TcpSocket;
 
-class DOSHTTPRequest : public HTTPRequest
+class DOSTCPSocket : public NetworkTCPSocket
 {
 public:
-	DOSHTTPRequest();
+	DOSTCPSocket();
+	TcpSocket* GetSock() { return sock; }
+	void SetSock(TcpSocket* sock);
 
-	void Open(char* url);
-
-	virtual HTTPRequest::Status GetStatus() { return status; }
-	virtual size_t ReadData(char* buffer, size_t count);
-	virtual void Stop();
-	void Update();
-	virtual const char* GetStatusString();
-	virtual const char* GetURL() { return url.url; }
+	virtual int Send(uint8_t* data, int length) override;
+	virtual int Receive(uint8_t* buffer, int length) override;
+	virtual int Connect(NetworkAddress address, int port) override;
+	virtual bool IsConnectComplete() override;
+	virtual bool IsClosed() override;
+	virtual void Close() override;
 
 private:
-	enum InternalStatus
-	{
-		// Errors
-		InvalidPort,
-		InvalidProtocol,
-		SocketCreationError,
-		SocketConnectionError,
-		HeaderSendError,
-		ContentReceiveError,
-		UnsupportedHTTPError,
-		MalformedHTTPVersionLineError,
-		WriteLineError,
-
-		// Connection states
-		QueuedDNSRequest,
-		WaitingDNSResolve,
-		OpeningSocket,
-		ConnectingSocket,
-		SendHeaders,
-		ReceiveHeaderResponse,
-		ReceiveHeaderContent,
-		ReceiveContent
-	};
-
-	void Error(InternalStatus statusError);
-	bool ReadLine();
-	void WriteLine(char* fmt = "", ...);
-	bool SendPendingWrites();
-
-	void Reset();
-
-	HTTPRequest::Status status;
-	InternalStatus internalStatus;
-
-	URL url;
-	char hostname[HOSTNAME_LEN];
-	char path[PATH_LEN];
-	IpAddr_t hostAddr;
-	uint16_t serverPort;
 	TcpSocket* sock;
-	uint16_t responseCode;
-
 	uint8_t recvBuffer[TCP_RECV_BUFFER_SIZE];
-	char lineBuffer[LINE_BUFFER_SIZE];
-	int lineBufferSize;
-	int lineBufferSendPos;
 };
 
 class DOSNetworkDriver : public NetworkDriver
-{ 
+{
 public:
 	virtual void Init();
 	virtual void Shutdown();
@@ -109,10 +57,20 @@ public:
 
 	virtual bool IsConnected() { return isConnected; }
 
+	// Returns zero on success, negative number is error
+	virtual int ResolveAddress(const char* name, NetworkAddress address, bool sendRequest) override;
+
 	virtual HTTPRequest* CreateRequest(char* url);
 	virtual void DestroyRequest(HTTPRequest* request);
 
+	virtual NetworkTCPSocket* CreateSocket() override;
+	virtual void DestroySocket(NetworkTCPSocket* socket) override;
+
 private:
-	DOSHTTPRequest* requests[MAX_CONCURRENT_HTTP_REQUESTS];
+	HTTPRequest* requests[MAX_CONCURRENT_HTTP_REQUESTS];
+	DOSTCPSocket* sockets[MAX_CONCURRENT_HTTP_REQUESTS];
+
 	bool isConnected;
 };
+
+#endif

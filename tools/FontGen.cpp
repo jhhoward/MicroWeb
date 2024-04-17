@@ -22,7 +22,17 @@
 
 using namespace std;
 
-void EncodeFont(const char* imageFilename, ofstream& outputFile, const char* varName)
+/*
+struct FontMetaData
+{
+	uint8_t glyphWidth[256 - 32];
+	uint8_t glyphWidthBytes;
+	uint8_t glyphHeight;
+	uint8_t glyphDataStride;
+};
+*/
+
+void EncodeFontOld(const char* imageFilename, ofstream& outputFile, const char* varName)
 {
 	vector<unsigned char> data;
 	unsigned width, height;
@@ -45,7 +55,7 @@ void EncodeFont(const char* imageFilename, ofstream& outputFile, const char* var
 	for(unsigned int x = 0; x < width; x++)
 	{
 		vector<uint8_t> columnBuffer;
-		
+
 		for(unsigned int y = 0; y < height; y++)
 		{
 			int index = (y * width + x) * 4;
@@ -178,6 +188,156 @@ void EncodeFont(const char* imageFilename, ofstream& outputFile, const char* var
 	outputFile << "};" << endl << endl;
 }
 
+void EncodeFont(const char* imageFilename, ofstream& outputFile, const char* varName)
+{
+	vector<unsigned char> data;
+	unsigned width, height;
+	unsigned error = lodepng::decode(data, width, height, imageFilename);
+
+	if (error)
+	{
+		cerr << "Error loading " << imageFilename << endl;
+		return;
+	}
+
+	vector<uint8_t> output;
+	vector<uint8_t> glyphWidths;
+	vector<uint8_t> glyphBuffer;
+	vector<uint16_t> offsets;
+
+	unsigned glyphHeight = height - 1;
+	int charIndex = 0;
+
+	for (unsigned int x = 1; x < width; x++)
+	{
+		vector<uint8_t> columnBuffer;
+
+		if (glyphWidths.size() >= (128 - 32))
+		{
+			break;
+		}
+
+		int checkIndex = x * 4;
+		if (data[checkIndex] > 0)
+		{
+			// This is a break for the next glyph
+			uint16_t offset = (uint16_t)(output.size());
+			offsets.push_back(offset);
+			glyphWidths.push_back((uint8_t)(glyphBuffer.size() / glyphHeight));
+			output.insert(output.end(), glyphBuffer.begin(), glyphBuffer.end());
+			glyphBuffer.clear();
+
+			continue;
+		}
+
+		for (unsigned int y = 0; y < glyphHeight; y++)
+		{
+			int index = ((y + 1) * width + x) * 4;
+			unsigned col = data[index] | (data[index + 1] << 8) | (data[index + 2] << 16);
+
+			if (col > 0)
+			{
+				columnBuffer.push_back(1);
+			}
+			else
+			{
+				columnBuffer.push_back(0);
+			}
+		}
+		glyphBuffer.insert(glyphBuffer.end(), columnBuffer.begin(), columnBuffer.end());
+	}
+
+	
+	cout << "Font line height: " << glyphHeight << endl;
+	cout << "Num glyphs: " << offsets.size() << endl;
+
+	//for(int n = 0; n < offsets.size(); n++)
+	//{
+	//	char c = (char) n + 32;
+	//	cout << c << " : offset " << offsets[n] << " width: " << (int) glyphWidths[n] << endl;
+	//}
+	
+
+	int requiredBytes = 0;
+
+	for (int n = 0; n < glyphWidths.size(); n++)
+	{
+		int width = glyphWidths[n];
+		int needed = width / 8;
+		if (width % 8)
+		{
+			needed++;
+		}
+		if (needed > requiredBytes)
+		{
+			requiredBytes = needed;
+		}
+	}
+
+	outputFile << "static unsigned char " << varName << "_Data[] = {" << endl;
+
+	for (int n = 0; n < offsets.size(); n++)
+	{
+		char c = (char)(n + 32);
+		outputFile << "\t// '" << c << "'" << endl;
+		outputFile << "\t";
+
+		int glyphWidth = glyphWidths[n];
+		for (unsigned int y = 0; y < glyphHeight; y++)
+		{
+			int x = 0;
+
+			for (int b = 0; b < requiredBytes; b++)
+			{
+				int mask = 0;
+
+				for (int z = 0; z < 8; z++)
+				{
+					if (x < glyphWidth)
+					{
+						int index = offsets[n] + (x * glyphHeight + y);
+						if (output[index])
+						{
+							mask |= (0x80 >> z);
+						}
+					}
+
+					x++;
+				}
+
+				outputFile << "0x" << setfill('0') << setw(2) << hex << mask << ", ";
+			}
+		}
+		outputFile << endl;
+	}
+
+	outputFile << dec;
+
+	outputFile << "};" << endl;
+	outputFile << endl;
+
+	outputFile << "Font " << varName << " = {" << endl;
+	outputFile << "\t// Glyph widths" << endl;
+	outputFile << "\t{ ";
+
+	for (int n = 0; n < glyphWidths.size(); n++)
+	{
+		int width = glyphWidths[n];
+		outputFile << width;
+		if (n != glyphWidths.size() - 1)
+		{
+			outputFile << ",";
+		}
+	}
+	outputFile << "}, " << endl;
+	outputFile << "\t" << requiredBytes << ", \t// Byte width" << endl;
+	outputFile << "\t" << glyphHeight << ", \t// Glyph height" << endl;
+	int stride = requiredBytes * glyphHeight;
+	outputFile << "\t" << stride << ", \t// Glyph stride" << endl;
+	outputFile << "\t" << varName << "_Data" << endl;
+	outputFile << "};" << endl << endl;
+}
+
 
 void GenerateDummyFont(ofstream& outputFile, const char* varName)
 {
@@ -200,4 +360,199 @@ void GenerateDummyFont(ofstream& outputFile, const char* varName)
 	outputFile << "\t" << 0 << ", \t// Glyph stride" << endl;
 	outputFile << "\t" << "NULL" << endl;
 	outputFile << "};" << endl << endl;
+}
+
+void EncodeFont(const char* basePath, const char* imageFilename, vector<uint8_t>& outputStream, bool generateBold)
+{
+	char imageFilePath[256];
+	snprintf(imageFilePath, 256, "%s%s", basePath, imageFilename);
+	vector<unsigned char> data;
+	unsigned width, height;
+	unsigned error = lodepng::decode(data, width, height, imageFilePath);
+
+	if (error)
+	{
+		cerr << "Error loading " << imageFilePath << endl;
+		return;
+	}
+
+	vector<uint8_t> output;
+	vector<uint8_t> glyphWidths;
+	vector<uint8_t> glyphBuffer;
+	vector<uint16_t> offsets;
+
+	unsigned glyphHeight = height - 1;
+	int charIndex = 0;
+
+	for (unsigned int x = 1; x < width; x++)
+	{
+		vector<uint8_t> columnBuffer;
+
+		if (glyphWidths.size() >= (256 - 32))
+		{
+			break;
+		}
+
+		int checkIndex = x * 4;
+		if (data[checkIndex] > 0)
+		{
+			if (generateBold)
+			{
+				for (unsigned int y = 0; y < glyphHeight; y++)
+				{
+					int prevIndex = ((y + 1) * width + x - 1) * 4;
+					unsigned col = data[prevIndex] | (data[prevIndex + 1] << 8) | (data[prevIndex + 2] << 16);
+
+					if (col > 0)
+					{
+						columnBuffer.push_back(1);
+					}
+					else
+					{
+						columnBuffer.push_back(0);
+					}
+				}
+				glyphBuffer.insert(glyphBuffer.end(), columnBuffer.begin(), columnBuffer.end());
+			}
+
+			// This is a break for the next glyph
+			uint16_t offset = (uint16_t)(output.size());
+			offsets.push_back(offset);
+			glyphWidths.push_back((uint8_t)(glyphBuffer.size() / glyphHeight));
+			output.insert(output.end(), glyphBuffer.begin(), glyphBuffer.end());
+			glyphBuffer.clear();
+
+			continue;
+		}
+
+		for (unsigned int y = 0; y < glyphHeight; y++)
+		{
+			int index = ((y + 1) * width + x) * 4;
+			unsigned col = data[index] | (data[index + 1] << 8) | (data[index + 2] << 16);
+
+			if (generateBold && !col && x > 0)
+			{
+				int prevIndex = ((y + 1) * width + x - 1) * 4;
+				col = data[prevIndex] | (data[prevIndex + 1] << 8) | (data[prevIndex + 2] << 16);
+			}
+
+			if (col > 0)
+			{
+				columnBuffer.push_back(1);
+			}
+			else
+			{
+				columnBuffer.push_back(0);
+			}
+		}
+		glyphBuffer.insert(glyphBuffer.end(), columnBuffer.begin(), columnBuffer.end());
+	}
+
+
+	cout << "Font line height: " << glyphHeight << endl;
+	cout << "Num glyphs: " << offsets.size() << endl;
+
+	//for(int n = 0; n < offsets.size(); n++)
+	//{
+	//	char c = (char) n + 32;
+	//	cout << c << " : offset " << offsets[n] << " width: " << (int) glyphWidths[n] << endl;
+	//}
+
+
+	/*
+	int requiredBytes = 0;
+
+	for (int n = 0; n < glyphWidths.size(); n++)
+	{
+		int width = glyphWidths[n];
+		int needed = width / 8;
+		if (width % 8)
+		{
+			needed++;
+		}
+		if (needed > requiredBytes)
+		{
+			requiredBytes = needed;
+		}
+	}
+	*/
+
+
+	// Output the glyph data
+	vector<uint16_t> outputOffsets;
+	vector<uint8_t> outputData;
+	int count = 0;
+
+	for (int n = 0; n < offsets.size(); n++)
+	{
+		outputOffsets.push_back(count);
+
+		int glyphWidth = glyphWidths[n];
+		for (unsigned int y = 0; y < glyphHeight; y++)
+		{
+			int x = 0;
+
+			int glyphWidthBytes = (glyphWidth + 7) / 8;
+
+			for (int b = 0; b < glyphWidthBytes; b++)
+			{
+				int mask = 0;
+
+				for (int z = 0; z < 8; z++)
+				{
+					if (x < glyphWidth)
+					{
+						int index = offsets[n] + (x * glyphHeight + y);
+						if (output[index])
+						{
+							mask |= (0x80 >> z);
+						}
+					}
+
+					x++;
+				}
+
+				outputData.push_back((uint8_t)mask);
+				count++;
+			}
+		}
+	}
+
+
+	// Output the metadata 
+	// struct Glyph
+	// {
+	// 	uint8_t width;
+	// 	uint16_t offset;
+	// };
+	// 
+	// Glyph glyphs[NUM_GLYPH_ENTRIES];
+	// uint8_t glyphHeight;
+
+	const int numNeededGlyphs = 256 - 32;
+
+	for (int n = 0; n < numNeededGlyphs; n++)
+	{
+		if (n < glyphWidths.size())
+		{
+			outputStream.push_back(glyphWidths[n]);
+			uint16_t offset = outputOffsets[n];
+			outputStream.push_back(offset & 0xff);
+			outputStream.push_back(offset >> 8);
+		}
+		else
+		{
+			outputStream.push_back(0);
+			outputStream.push_back(0);
+			outputStream.push_back(0);
+		}
+	}
+
+	outputStream.push_back(glyphHeight);
+
+	for (int n = 0; n < outputData.size(); n++)
+	{
+		outputStream.push_back(outputData[n]);
+	}
+
 }

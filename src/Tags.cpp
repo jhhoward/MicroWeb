@@ -19,17 +19,35 @@
 #include "Parser.h"
 #include "Page.h"
 #include "Platform.h"
-#include "Image.h"
+#include "App.h"
+#include "Image/Image.h"
+#include "DataPack.h"
+#include "Memory/Memory.h"
+
+#include "Nodes/Section.h"
+#include "Nodes/ImgNode.h"
+#include "Nodes/Break.h"
+#include "Nodes/StyNode.h"
+#include "Nodes/LinkNode.h"
+#include "Nodes/Block.h"
+#include "Nodes/Button.h"
+#include "Nodes/Field.h"
+#include "Nodes/Form.h"
+#include "Nodes/Table.h"
+#include "Nodes/Select.h"
+#include "Nodes/ListItem.h"
+#include "Nodes/Text.h"
+#include "Nodes/CheckBox.h"
 
 static const HTMLTagHandler* tagHandlers[] =
 {
 	new HTMLTagHandler("generic"),
-	new SectionTagHandler("html", HTMLParseSection::Document),
-	new SectionTagHandler("head", HTMLParseSection::Head),
-	new SectionTagHandler("body", HTMLParseSection::Body),
-	new SectionTagHandler("script", HTMLParseSection::Script),
-	new SectionTagHandler("style", HTMLParseSection::Style),
-	new SectionTagHandler("title", HTMLParseSection::Title),
+	new SectionTagHandler("html", SectionElement::HTML),
+	new SectionTagHandler("head", SectionElement::Head),
+	new SectionTagHandler("body", SectionElement::Body),
+	new SectionTagHandler("script", SectionElement::Script),
+	new SectionTagHandler("style", SectionElement::Style),
+	new SectionTagHandler("title", SectionElement::Title),
 	new HTagHandler("h1", 1),
 	new HTagHandler("h2", 2),
 	new HTagHandler("h3", 3),
@@ -42,10 +60,8 @@ static const HTMLTagHandler* tagHandlers[] =
 	new BlockTagHandler("div", false),
 	new BlockTagHandler("dt", false),
 	new BlockTagHandler("dd", false, 16),
-	new BlockTagHandler("tr", false),			// Table rows shouldn't really be a block but we don't have table support yet
-	new BlockTagHandler("ul", true, 16),
 	new BrTagHandler(),
-	new CenterTagHandler(),
+	new AlignmentTagHandler("center", ElementAlignment::Center),
 	new FontTagHandler(),
 	new StyleTagHandler("b", FontStyle::Bold),
 	new StyleTagHandler("strong", FontStyle::Bold),
@@ -62,12 +78,19 @@ static const HTMLTagHandler* tagHandlers[] =
 	new LiTagHandler(),
 	new HrTagHandler(),
 	new SizeTagHandler("small", 0),
-	new InputTagHandler(),
+	new InputTagHandler("input"),
+	new InputTagHandler("textarea"),
 	new ButtonTagHandler(),
 	new FormTagHandler(),
 	new ImgTagHandler(),
 	new MetaTagHandler(),
 	new PreformattedTagHandler("pre"),
+	new TableTagHandler(),
+	new TableRowTagHandler(),
+	new TableCellTagHandler("td", false),
+	new TableCellTagHandler("th", true),
+	new SelectTagHandler(),
+	new OptionTagHandler(),
 	NULL
 };
 
@@ -91,221 +114,220 @@ const HTMLTagHandler* DetermineTag(const char* str)
 	return &genericTag;
 }
 
-void HTMLTagHandler::ApplyStyleAttributes(WidgetStyle& style, char* attributeStr) const
-{
-	AttributeParser attributes(attributeStr);
-
-	while (attributes.Parse())
-	{
-		if (!stricmp(attributes.Key(), "align"))
-		{
-			if (!stricmp(attributes.Value(), "center"))
-			{
-				style.center = true;
-			}
-			else if (!stricmp(attributes.Value(), "left"))
-			{
-				style.center = false;
-			}
-		}
-	}
-}
-
 void HrTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	parser.page.AddHorizontalRule();
+	int padding = Assets.GetFont(1, FontStyle::Bold)->glyphHeight;
+	parser.EmitNode(BreakNode::Construct(MemoryManager::pageAllocator, padding, true));
 }
 
 void BrTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	parser.page.BreakTextLine();
+	int fontSize = parser.CurrentContext().node->GetStyle().fontSize;
+	int padding = Assets.GetFont(fontSize, FontStyle::Regular)->glyphHeight;
+	parser.EmitNode(BreakNode::Construct(MemoryManager::pageAllocator, padding, false, true));
 }
 
 void HTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
-	currentStyle.fontSize = size >= 3 ? 1 : 2;
-	currentStyle.fontStyle = (FontStyle::Type)(currentStyle.fontStyle | FontStyle::Bold);
-	ApplyStyleAttributes(currentStyle, attributeStr);
-	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize) >> 1);
-	parser.page.PushStyle(currentStyle);
+	int fontSize = size >= 3 ? 1 : 2;
+	int padding = Assets.GetFont(fontSize, FontStyle::Bold)->glyphHeight / 2;
+	parser.EmitNode(BreakNode::Construct(MemoryManager::pageAllocator, padding));
+	parser.PushContext(StyleNode::ConstructFontStyle(MemoryManager::pageAllocator, FontStyle::Bold, fontSize), this);
 }
 
 void HTagHandler::Close(class HTMLParser& parser) const
 {
-	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
-	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize) >> 1);
-	parser.page.PopStyle();
+	int fontSize = size >= 3 ? 1 : 2;
+	int padding = Assets.GetFont(fontSize, FontStyle::Bold)->glyphHeight / 2;
+	parser.PopContext(this);
+	parser.EmitNode(BreakNode::Construct(MemoryManager::pageAllocator, padding));
 }
 
 void SizeTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
-	currentStyle.fontSize = size;
-	parser.page.PushStyle(currentStyle);
+	parser.PushContext(StyleNode::ConstructFontSize(MemoryManager::pageAllocator, size), this);
 }
 
 void SizeTagHandler::Close(class HTMLParser& parser) const
 {
-	parser.page.PopStyle();
+	parser.PopContext(this);
 }
 
 void LiTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
-	int bulletPointWidth = Platform::video->GetFont(currentStyle.fontSize, currentStyle.fontStyle)->CalculateWidth(" * ", currentStyle.fontStyle);
-
-	parser.page.BreakLine();
-	parser.page.AddBulletPoint();
-	parser.page.AdjustLeftMargin(bulletPointWidth);
+	if (parser.CurrentContext().tag == this)
+	{
+		// Have to do this because sometimes people dont close their <li> tag and just
+		// treat them as bullet point markers
+		parser.PopContext(this);
+	}
+	parser.PushContext(ListItemNode::Construct(MemoryManager::pageAllocator), this);
 }
 void LiTagHandler::Close(class HTMLParser& parser) const
 {
-	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
-	int bulletPointWidth = Platform::video->GetFont(currentStyle.fontSize, currentStyle.fontStyle)->CalculateWidth(" * ", currentStyle.fontStyle);
-
-	parser.page.AdjustLeftMargin(-bulletPointWidth);
-	parser.page.BreakLine();
+	parser.PopContext(this);
 }
 
 void ATagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
 	AttributeParser attributes(attributeStr);
+	char* url = NULL;
+
 	while(attributes.Parse())
 	{
 		if (!stricmp(attributes.Key(), "href"))
 		{
-			parser.page.SetWidgetURL(attributes.Value());
+			url = MemoryManager::pageAllocator.AllocString(attributes.Value());
 		}
 	}
 
-	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
-	currentStyle.fontStyle = (FontStyle::Type)(currentStyle.fontStyle | FontStyle::Underline);
-	parser.page.PushStyle(currentStyle);
-
+	parser.PushContext(LinkNode::Construct(MemoryManager::pageAllocator, url), this);
 }
+
 void ATagHandler::Close(class HTMLParser& parser) const
 {
-	parser.page.ClearWidgetURL();
-	parser.page.PopStyle();
+	parser.PopContext(this);
 }
 
 void BlockTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
-	parser.page.AdjustLeftMargin(leftMarginPadding);
-	parser.page.BreakLine(useVerticalPadding ? Platform::video->GetLineHeight(currentStyle.fontSize) >> 1 : 0);
-	ApplyStyleAttributes(currentStyle, attributeStr);
-	parser.page.PushStyle(currentStyle);
+	// TODO-refactor
+	int lineHeight = Assets.GetFont(1, FontStyle::Regular)->glyphHeight;
+	parser.PushContext(BlockNode::Construct(MemoryManager::pageAllocator, leftMarginPadding, useVerticalPadding ? lineHeight >> 1 : 0), this);
 }
 void BlockTagHandler::Close(class HTMLParser& parser) const
 {
-	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
-	parser.page.AdjustLeftMargin(-leftMarginPadding);
-	parser.page.BreakLine(useVerticalPadding ? Platform::video->GetLineHeight(currentStyle.fontSize) >> 1 : 0);
-	parser.page.PopStyle();
+	parser.PopContext(this);
 }
 
 void SectionTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	parser.PushSection(section);
-}
-void SectionTagHandler::Close(class HTMLParser& parser) const
-{
-	parser.PopSection(section);
-}
+	Node* node = SectionElement::Construct(MemoryManager::pageAllocator, sectionType);
+	parser.PushContext(node, this);
 
-void StyleTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
-{
-	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
-	currentStyle.fontStyle = (FontStyle::Type)(currentStyle.fontStyle | style);
-	parser.page.PushStyle(currentStyle);
-}
-void StyleTagHandler::Close(class HTMLParser& parser) const
-{
-	parser.page.PopStyle();
-}
-
-void CenterTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
-{
-	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
-
-	parser.page.BreakLine();
-
-	currentStyle.center = true;
-	parser.page.PushStyle(currentStyle);
-}
-
-void CenterTagHandler::Close(class HTMLParser& parser) const
-{
-	parser.page.PopStyle();
-	parser.page.BreakLine();
-}
-
-void FontTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
-{
-	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
-
-	AttributeParser attributes(attributeStr);
-	while (attributes.Parse())
+	if (sectionType == SectionElement::Body)
 	{
-		if (!stricmp(attributes.Key(), "size"))
+		AttributeParser attributes(attributeStr);
+		while (attributes.Parse())
 		{
-			int size = atoi(attributes.Value());
-
-			if (size < 0)
+			if (!stricmp(attributes.Key(), "link"))
 			{
-				// Relative sizing
-				if (currentStyle.fontSize + size < 0)
-				{
-					currentStyle.fontSize = 0;
-				}
-				else
-				{
-					currentStyle.fontSize += size;
-				}
+				parser.page.colourScheme.linkColour = HTMLParser::ParseColourCode(attributes.Value());
 			}
-			else
+			if (!stricmp(attributes.Key(), "text"))
 			{
-				switch (size)
-				{
-				case 1:
-				case 2:
-					currentStyle.fontSize = 0;
-					break;
-				case 0:
-					// Probably invalid
-				case 3:
-				case 4:
-					currentStyle.fontSize = 1;
-					break;
-				default:
-					// Anything bigger
-					currentStyle.fontSize = 2;
-					break;
-				}
+				parser.page.colourScheme.textColour = HTMLParser::ParseColourCode(attributes.Value());
+			}
+			if (!stricmp(attributes.Key(), "bgcolor"))
+			{
+				parser.page.colourScheme.pageColour = HTMLParser::ParseColourCode(attributes.Value());
+				App::Get().pageRenderer.RefreshAll();
 			}
 		}
 	}
 
-	parser.page.PushStyle(currentStyle);
+	if (node)
+	{
+		ElementStyle style = node->GetStyle();
+		style.fontColour = parser.page.colourScheme.textColour;
+		node->SetStyle(style);
+	}
+}
+void SectionTagHandler::Close(class HTMLParser& parser) const
+{
+	parser.PopContext(this);
+}
+
+void StyleTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
+{
+	Node* styleNode = StyleNode::ConstructFontStyle(MemoryManager::pageAllocator, style);
+	if (styleNode)
+	{
+		parser.PushContext(styleNode, this);
+	}
+}
+
+void StyleTagHandler::Close(class HTMLParser& parser) const
+{
+	parser.PopContext(this);
+}
+
+void AlignmentTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
+{
+	parser.PushContext(StyleNode::ConstructAlignment(MemoryManager::pageAllocator, alignmentType), this);
+}
+
+void AlignmentTagHandler::Close(class HTMLParser& parser) const
+{
+	parser.PopContext(this);
+	parser.EmitNode(BreakNode::Construct(MemoryManager::pageAllocator));
+}
+
+void FontTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
+{
+	Node* styleNode = StyleNode::Construct(MemoryManager::pageAllocator);
+	if (styleNode)
+	{
+		StyleNode::Data* data = static_cast<StyleNode::Data*>(styleNode->data);
+
+		AttributeParser attributes(attributeStr);
+		while (attributes.Parse())
+		{
+			if (!stricmp(attributes.Key(), "size"))
+			{
+				int fontSize = atoi(attributes.Value());
+
+				if (attributes.Value()[0] == '+' || attributes.Value()[0] == '-')
+				{
+					data->styleOverride.SetFontSizeDelta(fontSize);
+				}
+				else
+				{
+					switch (fontSize)
+					{
+					case 1:
+					case 2:
+						data->styleOverride.SetFontSize(0);
+						break;
+					case 0:
+						// Probably invalid
+					case 3:
+					case 4:
+						data->styleOverride.SetFontSize(1);
+						break;
+					default:
+						// Anything bigger
+						data->styleOverride.SetFontSize(2);
+						break;
+					}
+				}
+			}
+			else if (!stricmp(attributes.Key(), "color"))
+			{
+				if (Platform::video->paletteLUT)
+				{
+					data->styleOverride.SetFontColour(HTMLParser::ParseColourCode(attributes.Value()));
+				}
+			}
+		}
+
+		parser.PushContext(styleNode, this);
+	}
 }
 
 void FontTagHandler::Close(class HTMLParser& parser) const
 {
-	parser.page.PopStyle();
+	parser.PopContext(this);
 }
 
 void ListTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
-	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize) >> 1);
+	parser.PushContext(ListNode::Construct(MemoryManager::pageAllocator), this);
 }
 
 void ListTagHandler::Close(class HTMLParser& parser) const
 {
-	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
-	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize) >> 1);
+	parser.PopContext(this);
 }
 
 struct HTMLInputTag
@@ -314,48 +336,61 @@ struct HTMLInputTag
 	{
 		Unknown,
 		Submit,
-		Text
+		Text,
+		CheckBox,
+		Radio,
+		Password
 	};
 };
 
 void ButtonTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	char* title = NULL;
-
 	AttributeParser attributes(attributeStr);
 	while (attributes.Parse())
 	{
-		if (!stricmp(attributes.Key(), "title"))
-		{
-			title = parser.page.allocator.AllocString(attributes.Value());
-		}
 	}
 
-	if (title)
-	{
-		parser.page.AddButton(title);
-	}
+	parser.PushContext(ButtonNode::Construct(MemoryManager::pageAllocator, NULL, FormNode::OnSubmitButtonPressed), this);
+}
+
+void ButtonTagHandler::Close(class HTMLParser& parser) const
+{
+	parser.PopContext(this);
 }
 
 void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
 	char* value = NULL;
 	char* name = NULL;
+	bool checked = false;
 	HTMLInputTag::Type type = HTMLInputTag::Text;
 	int bufferLength = 80;
+	ExplicitDimension width;
 
 	AttributeParser attributes(attributeStr);
 	while (attributes.Parse())
 	{
 		if (!stricmp(attributes.Key(), "type"))
 		{
-			if (!stricmp(attributes.Value(), "submit"))
+			if (!stricmp(attributes.Value(), "submit") || !stricmp(attributes.Value(), "button"))
 			{
 				type = HTMLInputTag::Submit;
 			}
 			else if (!stricmp(attributes.Value(), "text") || !stricmp(attributes.Value(), "search"))
 			{
 				type = HTMLInputTag::Text;
+			}
+			else if (!stricmp(attributes.Value(), "password"))
+			{
+				type = HTMLInputTag::Password;
+			}
+			else if (!stricmp(attributes.Value(), "checkbox"))
+			{
+				type = HTMLInputTag::CheckBox;
+			}
+			else if (!stricmp(attributes.Value(), "radio"))
+			{
+				type = HTMLInputTag::Radio;
 			}
 			else
 			{
@@ -364,11 +399,19 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 		}
 		if (!stricmp(attributes.Key(), "value"))
 		{
-			value = parser.page.allocator.AllocString(attributes.Value());
+			value = MemoryManager::pageAllocator.AllocString(attributes.Value());
 		}
 		if (!stricmp(attributes.Key(), "name"))
 		{
-			name = parser.page.allocator.AllocString(attributes.Value());
+			name = MemoryManager::pageAllocator.AllocString(attributes.Value());
+		}
+		if (!stricmp(attributes.Key(), "width"))
+		{
+			width = ExplicitDimension::Parse(attributes.Value());
+		}
+		if (!stricmp(attributes.Key(), "checked"))
+		{
+			checked = true;
 		}
 	}
 
@@ -377,103 +420,107 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 	case HTMLInputTag::Submit:
 		if (value)
 		{
-			parser.page.AddButton(value);
+			parser.EmitNode(ButtonNode::Construct(MemoryManager::pageAllocator, value, FormNode::OnSubmitButtonPressed));
 		}
 		break;
 	case HTMLInputTag::Text:
-		parser.page.AddTextField(value, bufferLength, name);
+	case HTMLInputTag::Password:
+		{
+			Node* fieldNode = TextFieldNode::Construct(MemoryManager::pageAllocator, value, FormNode::OnSubmitButtonPressed);
+			if (fieldNode && fieldNode->data)
+			{
+				TextFieldNode::Data* fieldData = static_cast<TextFieldNode::Data*>(fieldNode->data);
+				fieldData->name = name;
+				fieldData->explicitWidth = width;
+				fieldData->isPassword = type == HTMLInputTag::Password;
+				parser.EmitNode(fieldNode);
+			}
+		}
 		break;
+	case HTMLInputTag::CheckBox:
+	case HTMLInputTag::Radio:
+	{
+		Node* fieldNode = CheckBoxNode::Construct(MemoryManager::pageAllocator, name, value, type == HTMLInputTag::Radio, checked);
+		if (fieldNode)
+		{
+			parser.EmitNode(fieldNode);
+		}
+	}
+	break;
 	}
 }
 
 void FormTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	WidgetFormData* formData = parser.page.allocator.Alloc<WidgetFormData>();
+	parser.EmitNode(BreakNode::Construct(MemoryManager::pageAllocator));
+
+	Node* formNode = FormNode::Construct(MemoryManager::pageAllocator);
+	parser.PushContext(formNode, this);
+
+	FormNode::Data* formData = static_cast<FormNode::Data*>(formNode->data);
+
 	if (formData)
 	{
-		formData->action = NULL;
-		formData->method = WidgetFormData::Get;
-
 		AttributeParser attributes(attributeStr);
 		while (attributes.Parse())
 		{
 			if (!stricmp(attributes.Key(), "action"))
 			{
-				formData->action = parser.page.allocator.AllocString(attributes.Value());
+				formData->action = MemoryManager::pageAllocator.AllocString(attributes.Value());
 			}
 			if (!stricmp(attributes.Key(), "method"))
 			{
 				if (!stricmp(attributes.Value(), "post"))
 				{
-					formData->method = WidgetFormData::Post;
+					formData->method = FormNode::Data::Post;
 				}
 			}
 		}
-
-		parser.page.SetFormData(formData);
 	}
 }
 
 void FormTagHandler::Close(HTMLParser& parser) const
 {
-	parser.page.SetFormData(NULL);
+	parser.PopContext(this);
+	parser.EmitNode(BreakNode::Construct(MemoryManager::pageAllocator));
 }
 
 void ImgTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	AttributeParser attributes(attributeStr);
-	int width = -1;
-	int height = -1;
-	char* altText = NULL;
+	Node* imageNode = ImageNode::Construct(MemoryManager::pageAllocator);
+	if (imageNode)
+	{
+		ImageNode::Data* data = static_cast<ImageNode::Data*>(imageNode->data);
+		if (data)
+		{
+			AttributeParser attributes(attributeStr);
 
-	while (attributes.Parse())
-	{
-		if (!stricmp(attributes.Key(), "alt"))
-		{
-			altText = (char*) attributes.Value();
-		}
-		if (!stricmp(attributes.Key(), "width"))
-		{
-			width = atoi(attributes.Value());
-		}
-		if (!stricmp(attributes.Key(), "height"))
-		{
-			height = atoi(attributes.Value());
-		}
-	}
+			while (attributes.Parse())
+			{
+				if (!stricmp(attributes.Key(), "alt"))
+				{
+					data->altText = MemoryManager::pageAllocator.AllocString(attributes.Value());
+					if (data->altText)
+					{
+						HTMLParser::ReplaceAmpersandEscapeSequences(data->altText);
+					}
+				}
+				else if (!stricmp(attributes.Key(), "src"))
+				{
+					data->source = MemoryManager::pageAllocator.AllocString(attributes.Value());
+				}
+				else if (!stricmp(attributes.Key(), "width"))
+				{
+					data->explicitWidth = ExplicitDimension::Parse(attributes.Value());
+				}
+				else if (!stricmp(attributes.Key(), "height"))
+				{
+					data->explicitHeight = ExplicitDimension::Parse(attributes.Value());
+				}
+			}
 
-	if (width == -1)
-	{
-		if (height != -1)
-		{
-			width = height;
+			parser.EmitNode(imageNode);
 		}
-	}
-	if (height == -1)
-	{
-		if (width != -1)
-		{
-			height = width;
-		}
-	}
-
-	if (width == -1 && height == -1)
-	{
-		Image* imageIcon = Platform::video->imageIcon;
-		if (imageIcon)
-		{
-			parser.page.AddImage(NULL, imageIcon->width, imageIcon->height);
-		}
-
-		if (altText)
-		{
-			parser.page.AppendText(altText);
-		}
-	}
-	else
-	{
-		Platform::video->ScaleImageDimensions(width, height);
-		parser.page.AddImage(altText, width, height);
 	}
 }
 
@@ -518,20 +565,162 @@ void MetaTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 
 void PreformattedTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
-	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize, currentStyle.fontStyle) >> 1);
-
-	currentStyle.fontStyle = (FontStyle::Type)(currentStyle.fontStyle | FontStyle::Monospace);
-	parser.page.PushStyle(currentStyle);
+	// TODO-refactor
 	parser.PushPreFormatted();
-	parser.page.BreakTextLine();
+	parser.EmitNode(BreakNode::Construct(MemoryManager::pageAllocator));
+
+	int lineHeight = Assets.GetFont(1, FontStyle::Regular)->glyphHeight;
+	int padding = lineHeight >> 1;
+	parser.PushContext(BlockNode::Construct(MemoryManager::pageAllocator, padding, padding), this);
+	parser.PushContext(StyleNode::ConstructFontStyle(MemoryManager::pageAllocator, FontStyle::Monospace), this);
 }
 
 void PreformattedTagHandler::Close(class HTMLParser& parser) const
 {
-	parser.page.PopStyle();
+	// TODO-refactor
 	parser.PopPreFormatted();
-
-	WidgetStyle currentStyle = parser.page.GetStyleStackTop();
-	parser.page.BreakLine(Platform::video->GetLineHeight(currentStyle.fontSize, currentStyle.fontStyle) >> 1);
+	parser.PopContext(this);
+	parser.PopContext(this);
+//	parser.EmitNode(BreakNode::Construct(MemoryManager::pageAllocator));
 }
+
+void TableTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
+{
+	Node* tableNode = TableNode::Construct(MemoryManager::pageAllocator);
+	if (tableNode)
+	{
+		TableNode::Data* tableNodeData = static_cast<TableNode::Data*>(tableNode->data);
+
+		AttributeParser attributes(attributeStr);
+
+		while (attributes.Parse())
+		{
+			if (!stricmp(attributes.Key(), "border"))
+			{
+				tableNodeData->border = attributes.ValueAsInt();
+			}
+			else if (!stricmp(attributes.Key(), "cellpadding"))
+			{
+				tableNodeData->cellPadding = attributes.ValueAsInt();
+			}
+			else if (!stricmp(attributes.Key(), "cellSpacing"))
+			{
+				tableNodeData->cellSpacing = attributes.ValueAsInt();
+			}
+			else if (!stricmp(attributes.Key(), "bgcolor"))
+			{
+				tableNodeData->bgColour = HTMLParser::ParseColourCode(attributes.Value());
+			}
+			else if (!stricmp(attributes.Key(), "width"))
+			{
+				tableNodeData->explicitWidth = ExplicitDimension::Parse(attributes.Value());
+			}
+		}
+
+		parser.PushContext(tableNode, this);
+	}
+}
+
+void TableTagHandler::Close(class HTMLParser& parser) const
+{
+	parser.PopContext(this);
+}
+
+void TableRowTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
+{
+	parser.PushContext(TableRowNode::Construct(MemoryManager::pageAllocator), this);
+}
+
+void TableRowTagHandler::Close(class HTMLParser& parser) const
+{
+	parser.PopContext(this);
+}
+
+void TableCellTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
+{
+	Node* cellNode = TableCellNode::Construct(MemoryManager::pageAllocator, isHeader);
+	if (cellNode)
+	{
+		TableCellNode::Data* cellData = static_cast<TableCellNode::Data*>(cellNode->data);
+
+		AttributeParser attributes(attributeStr);
+
+		while (attributes.Parse())
+		{
+			if (!stricmp(attributes.Key(), "bgcolor"))
+			{
+				cellData->bgColour = HTMLParser::ParseColourCode(attributes.Value());
+			}
+			else if (!stricmp(attributes.Key(), "colspan"))
+			{
+				cellData->columnSpan = attributes.ValueAsInt();
+				if (cellData->columnSpan <= 0)
+				{
+					cellData->columnSpan = 1;
+				}
+			}
+			else if (!stricmp(attributes.Key(), "width"))
+			{
+				cellData->explicitWidth = ExplicitDimension::Parse(attributes.Value());
+			}
+		}
+		parser.PushContext(cellNode, this);
+	}
+}
+
+void TableCellTagHandler::Close(class HTMLParser& parser) const
+{
+	parser.PopContext(this);
+}
+
+void SelectTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
+{
+	const char* name = nullptr;
+	AttributeParser attributes(attributeStr);
+
+	while (attributes.Parse())
+	{
+		if (!stricmp(attributes.Key(), "name"))
+		{
+			name = attributes.Value();
+		}
+	}
+
+	parser.PushContext(SelectNode::Construct(MemoryManager::pageAllocator, name), this);
+}
+
+void SelectTagHandler::Close(class HTMLParser& parser) const
+{
+	parser.PopContext(this);
+}
+
+void OptionTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
+{
+	Node* optionNode = OptionNode::Construct(MemoryManager::pageAllocator);
+
+	if (optionNode)
+	{
+		parser.PushContext(optionNode, this);
+
+		AttributeParser attributes(attributeStr);
+
+		while (attributes.Parse())
+		{
+			if (!stricmp(attributes.Key(), "selected"))
+			{
+				SelectNode::Data* selectData = optionNode->FindParentDataOfType<SelectNode::Data>(Node::Select);
+				OptionNode::Data* optionData = static_cast<OptionNode::Data*>(optionNode->data);
+				if (selectData && optionData)
+				{
+					selectData->selected = optionData;
+				}
+			}
+		}
+	}
+}
+
+void OptionTagHandler::Close(class HTMLParser& parser) const
+{
+	parser.PopContext(this);
+}
+

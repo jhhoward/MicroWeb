@@ -144,6 +144,7 @@
     <ClCompile Include="..\..\tools\ImageGen.cpp" />
     <ClCompile Include="..\..\tools\lodepng.cpp" />
     <ClCompile Include="..\..\tools\MouseGen.cpp" />
+    <ClCompile Include="..\..\tools\PaletteGen.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\tools\lodepng.h" />

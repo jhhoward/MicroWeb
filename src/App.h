@@ -12,26 +12,29 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _APP_H_
+#define _APP_H_
 
 #include <stdio.h>
 #include "Parser.h"
 #include "Page.h"
-#include "Renderer.h"
 #include "URL.h"
 #include "Interface.h"
+#include "Render.h"
 
-#define MAX_PAGE_URL_HISTORY 5
+#define MAX_PAGE_HISTORY_BUFFER_SIZE MAX_URL_LENGTH
+#define APP_LOAD_BUFFER_SIZE 256
 
 class HTTPRequest;
 
 struct LoadTask
 {
-	LoadTask() : type(LocalFile), fs(NULL) {}
+	LoadTask() : type(LocalFile), fs(NULL), debugDumpFile(NULL) {}
 
 	void Load(const char* url);
 	void Stop();
 	bool HasContent();
+	bool IsBusy();
 	size_t GetContent(char* buffer, size_t count);
 	const char* GetURL();
 
@@ -49,9 +52,20 @@ struct LoadTask
 		FILE* fs;
 		HTTPRequest* request;
 	};
+
+	FILE* debugDumpFile;
 };
 
 struct Widget;
+
+struct AppConfig
+{
+	bool loadImages : 1;
+	bool dumpPage : 1;
+	bool invertScreen : 1;
+	bool useSwap : 1;
+	bool useEMS : 1;
+};
 
 class App
 {
@@ -67,13 +81,22 @@ public:
 	void NextPage();
 
 	void StopLoad();
+	void ReloadPage();
 
 	void ShowErrorPage(const char* message);
 
+	static App& Get() { return *app; }
+
 	Page page;
-	Renderer renderer;
+	PageRenderer pageRenderer;
 	HTMLParser parser;
 	AppInterface ui;
+	static AppConfig config;
+
+	LoadTask pageLoadTask;
+	LoadTask pageContentLoadTask;
+
+	void LoadImageNodeContent(Node* node);
 
 private:
 	void ResetPage();
@@ -82,10 +105,16 @@ private:
 	void ShowNoHTTPSPage();
 
 	bool requestedNewPage;
-	LoadTask loadTask;
+	Node* loadTaskTargetNode;
 	bool running;
 
-	URL pageHistory[MAX_PAGE_URL_HISTORY];
-	int pageHistorySize;
-	int pageHistoryPos;
+	char pageHistoryBuffer[MAX_PAGE_HISTORY_BUFFER_SIZE];
+	char* pageHistoryPtr;
+
+	static App* app;
+
+	char loadBuffer[APP_LOAD_BUFFER_SIZE];
 };
+
+
+#endif

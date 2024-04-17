@@ -12,9 +12,14 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _FONT_H_
+#define _FONT_H_
 
 #include <stdint.h>
+
+#define FIRST_FONT_GLYPH 32
+#define LAST_FONT_GLYPH 255
+#define NUM_GLYPH_ENTRIES (LAST_FONT_GLYPH + 1 - FIRST_FONT_GLYPH)
 
 struct FontStyle
 {
@@ -28,14 +33,22 @@ struct FontStyle
 	};
 };
 
-struct Font
+struct Font 
 {
-	uint8_t glyphWidth[96];
-	uint8_t glyphWidthBytes;
+#pragma pack(push, 1)
+	struct Glyph
+	{
+		uint8_t width;
+		uint16_t offset;
+	};
+#pragma pack(pop)
+
+	Glyph glyphs[NUM_GLYPH_ENTRIES];
 	uint8_t glyphHeight;
-	uint8_t glyphDataStride;
-	uint8_t* glyphData;
+	uint8_t glyphData[1];
 
 	int CalculateWidth(const char* text, FontStyle::Type style = FontStyle::Regular);
+	int GetGlyphWidth(char c, FontStyle::Type style = FontStyle::Regular);
 };
 
+#endif

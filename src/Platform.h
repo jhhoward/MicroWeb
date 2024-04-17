@@ -12,80 +12,50 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _PLATFORM_H_
+#define _PLATFORM_H_
 
 #include <stdlib.h>
 #include "Font.h"
+#include "Colour.h"
 #include "Cursor.h"
-#include "Widget.h"
 
 struct Image;
+class DrawSurface;
+struct VideoModeInfo;
 
 class VideoDriver
 {
 public:
-	virtual void Init() = 0;
+	virtual void Init(VideoModeInfo* videoMode) = 0;
 	virtual void Shutdown() = 0;
 
-	virtual void ClearScreen() = 0;
-	virtual void InvertScreen() {}
-
-	virtual void ArrangeAppInterfaceWidgets(class AppInterface& app) = 0;
-
-	virtual void ClearWindow() = 0;
-	virtual void ClearRect(int x, int y, int width, int height) = 0;
-	virtual void FillRect(int x, int y, int width, int height) = 0;
-	virtual void InvertRect(int x, int y, int width, int height) = 0;
-	virtual void ScrollWindow(int delta) = 0;
-	virtual void SetScissorRegion(int y1, int y2) = 0;
-	virtual void ClearScissorRegion() = 0;
-
-	virtual void DrawString(const char* text, int x, int y, int size = 1, FontStyle::Type style = FontStyle::Regular) = 0;
-	virtual void DrawScrollBar(int position, int size) = 0;
-	virtual void DrawImage(Image* image, int x, int y) = 0;
-
-	virtual void HLine(int x, int y, int count) = 0;
-	virtual void VLine(int x, int y, int count) = 0;
-
-	virtual void ScaleImageDimensions(int& width, int& height) {}
-
-	virtual MouseCursorData* GetCursorGraphic(MouseCursor::Type type) = 0;
-
-	virtual Font* GetFont(int fontSize, FontStyle::Type style = FontStyle::Regular) = 0;
-	virtual int GetGlyphWidth(char c, int fontSize = 1, FontStyle::Type style = FontStyle::Regular) = 0;
-	virtual int GetLineHeight(int fontSize = 1, FontStyle::Type style = FontStyle::Regular) = 0;
+	void InvertVideoOutput();
+	VideoModeInfo* GetVideoModeInfo() { return videoMode; }
 
 	int screenWidth;
 	int screenHeight;
 
-	int windowWidth;
-	int windowHeight;
-	int windowX, windowY;
-
-	Image* imageIcon;
-	Image* bulletImage;
-
-	bool isTextMode;
+	DrawSurface* drawSurface;
+	ColourScheme colourScheme;
+	uint8_t* paletteLUT;
+	
+protected:
+	VideoModeInfo* videoMode;
 };
 
-class HTTPRequest
+typedef uint8_t NetworkAddress[4];   // An IPv4 address is 4 bytes
+class HTTPRequest;
+
+class NetworkTCPSocket
 {
 public:
-	enum Status
-	{
-		Stopped,
-		Connecting,
-		Downloading,
-		Finished,
-		Error,
-		UnsupportedHTTPS
-	};
-
-	virtual Status GetStatus() = 0;
-	virtual size_t ReadData(char* buffer, size_t count) = 0;
-	virtual void Stop() = 0;
-	virtual const char* GetStatusString() { return ""; }
-	virtual const char* GetURL() { return ""; }
+	virtual int Send(uint8_t* data, int length) = 0;
+	virtual int Receive(uint8_t* buffer, int length) = 0;
+	virtual int Connect(NetworkAddress address, int port) = 0;
+	virtual bool IsConnectComplete() = 0;
+	virtual bool IsClosed() = 0;
+	virtual void Close() = 0;
 };
 
 class NetworkDriver
@@ -96,6 +66,12 @@ public:
 	virtual void Update() {}
 
 	virtual bool IsConnected() { return false; }
+
+	// Returns zero on success, negative number is error
+	virtual int ResolveAddress(const char* name, NetworkAddress address, bool sendRequest) { return false; }
+
+	virtual NetworkTCPSocket* CreateSocket() { return NULL; }
+	virtual void DestroySocket(NetworkTCPSocket* socket) {}
 
 	virtual HTTPRequest* CreateRequest(char* url) { return NULL; }
 	virtual void DestroyRequest(HTTPRequest* request) {}
@@ -115,17 +91,25 @@ public:
 	virtual void SetMouseCursor(MouseCursor::Type type) = 0;
 	virtual void GetMouseStatus(int& buttons, int& x, int& y) = 0;
 	virtual void SetMousePosition(int x, int y) = 0;
+	
+	virtual bool GetMouseButtonPress(int& x, int& y) = 0;
+	virtual bool GetMouseButtonRelease(int& x, int& y) = 0;
+
 	virtual InputButtonCode GetKeyPress() { return 0; }
 };
 
 class Platform
 {
 public:
-	static void Init(int argc, char* argv[]);
+	static bool Init(int argc, char* argv[]);
 	static void Shutdown();
 	static void Update();
+
+	static void FatalError(const char* message, ...);
 
 	static VideoDriver* video;
 	static NetworkDriver* network;
 	static InputDriver* input;
 };
+
+#endif

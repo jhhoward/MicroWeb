@@ -20,14 +20,16 @@
 
 int main(int argc, char* argv[])
 {
-	Platform::Init(argc, argv);
+	if (!Platform::Init(argc, argv))
+	{
+		return 0;
+	}
 
 	App* app = new App();
 
 	if (!app)
 	{
-		Platform::Shutdown();
-		fprintf(stderr, "Not enough memory\n");
+		Platform::FatalError("Error allocating memory for application");
 		return 0;
 	}
 

@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include "DOSInput.h"
 #include "../Keycodes.h"
+#include "../DataPack.h"
 
 void DOSInputDriver::Init()
 {
@@ -30,8 +31,7 @@ void DOSInputDriver::Init()
 
 	currentCursor = MouseCursor::Hand;
 	SetMouseCursor(MouseCursor::Pointer);
-	lastMouseButtons = 0;
-	mouseVisible = false;
+	mouseHideCount = 1;
 
 	ShowMouse();
 }
@@ -45,12 +45,14 @@ void DOSInputDriver::ShowMouse()
 {
 	if (!hasMouse)
 		return;
-	if (mouseVisible)
+
+	mouseHideCount--;
+	if (mouseHideCount > 0)
 		return;
+
 	union REGS inreg, outreg;
 	inreg.x.ax = 1;
 	int86(0x33, &inreg, &outreg);
-	mouseVisible = true;
 }
 
 void DOSInputDriver::SetMousePosition(int x, int y)
@@ -64,12 +66,56 @@ void DOSInputDriver::SetMousePosition(int x, int y)
 	int86(0x33, &inreg, &outreg);
 }
 
+bool DOSInputDriver::GetMouseButtonPress(int& x, int& y)
+{
+	if (!hasMouse)
+		return false;
+
+	union REGS inreg, outreg;
+	inreg.x.ax = 5;
+	inreg.x.bx = 0;
+	int86(0x33, &inreg, &outreg);
+	x = outreg.x.cx;
+	y = outreg.x.dx;
+
+	if (Platform::video->screenWidth == 320)
+	{
+		x /= 2;
+	}
+
+	return (outreg.x.bx > 0);
+}
+
+bool DOSInputDriver::GetMouseButtonRelease(int& x, int& y)
+{
+	if (!hasMouse)
+		return false;
+
+	union REGS inreg, outreg;
+	inreg.x.ax = 6;
+	inreg.x.bx = 0;
+	int86(0x33, &inreg, &outreg);
+	x = outreg.x.cx;
+	y = outreg.x.dx;
+
+	if (Platform::video->screenWidth == 320)
+	{
+		x /= 2;
+	}
+
+	return (outreg.x.bx > 0);
+}
+
+
 void DOSInputDriver::HideMouse()
 {
 	if (!hasMouse)
 		return;
-	if (!mouseVisible)
+
+	mouseHideCount++;
+	if (mouseHideCount > 1)
 		return;
+
 	union REGS inreg, outreg;
 	inreg.x.ax = 2;
 	int86(0x33, &inreg, &outreg);
@@ -92,7 +138,7 @@ void DOSInputDriver::SetMouseCursor(MouseCursor::Type type)
 	{
 		return;
 	}
-	MouseCursorData* cursor = Platform::video->GetCursorGraphic(type);
+	MouseCursorData* cursor = Assets.GetMouseCursorData(type);
 	if (cursor)
 	{
 		SetMouseCursorASM(cursor->data, cursor->hotSpotX, cursor->hotSpotY);
@@ -135,10 +181,9 @@ void DOSInputDriver::GetMouseStatus(int& buttons, int& x, int& y)
 	y = outreg.x.dx;
 	buttons = outreg.x.bx;
 
-	if (Platform::video->isTextMode)
+	if (Platform::video->screenWidth == 320)
 	{
-		x >>= 3;
-		y >>= 3;
+		x /= 2;
 	}
 }
 
@@ -152,24 +197,6 @@ InputButtonCode DOSInputDriver::GetKeyPress()
 			keyPress = getch() << 8;
 		}
 		return keyPress;
-	}
-
-	int buttons, mouseX, mouseY;
-	GetMouseStatus(buttons, mouseX, mouseY);
-
-	int oldButtons = lastMouseButtons;
-	lastMouseButtons = buttons;
-
-	if (buttons != oldButtons)
-	{
-		if ((buttons & 1) && !(oldButtons & 1))
-		{
-			return KEYCODE_MOUSE_LEFT;
-		}
-		if ((buttons & 2) && !(oldButtons & 2))
-		{
-			return KEYCODE_MOUSE_RIGHT;
-		}
 	}
 
 	return 0;

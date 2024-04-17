@@ -6,3 +6,5 @@ set WIPFC=c:\watcom\wipfc
 set LIBDOS=c:\watcom\lib286\dos;c:\watcom\lib286
 wmake.exe clean
 wmake.exe
+rem wmake -f hp95lx.mak clean
+rem wmake -f hp95lx.mak

@@ -12,10 +12,13 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _TAGS_H_
+#define _TAGS_H_
 
 #include "Parser.h"
 #include "Font.h"
+#include "Nodes/Section.h"
+#include "Style.h"
 
 class HTMLParser;
 
@@ -27,26 +30,24 @@ public:
 	virtual void Close(class HTMLParser& parser) const {}
 	
 	const char* name;
-
-protected:
-	void ApplyStyleAttributes(struct WidgetStyle& style, char* attributeStr) const;
 };
 
 class SectionTagHandler : public HTMLTagHandler
 {
 public:
-	SectionTagHandler(const char* inName, HTMLParseSection::Type inSection) : HTMLTagHandler(inName), section(inSection) {}
+	SectionTagHandler(const char* inName, SectionElement::Type inSectionType) : HTMLTagHandler(inName), sectionType(inSectionType) {}
 	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
 	virtual void Close(class HTMLParser& parser) const;
-	const HTMLParseSection::Type section;
+	const SectionElement::Type sectionType;
 };
 
-class CenterTagHandler : public HTMLTagHandler
+class AlignmentTagHandler : public HTMLTagHandler
 {
 public:
-	CenterTagHandler() : HTMLTagHandler("center") {}
+	AlignmentTagHandler(const char* inName, ElementAlignment::Type inAlignmentType) : HTMLTagHandler(inName), alignmentType(inAlignmentType) {}
 	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
 	virtual void Close(class HTMLParser& parser) const;
+	const ElementAlignment::Type alignmentType;
 };
 
 class PreformattedTagHandler : public HTMLTagHandler
@@ -144,7 +145,7 @@ private:
 class InputTagHandler : public HTMLTagHandler
 {
 public:
-	InputTagHandler() : HTMLTagHandler("input") {}
+	InputTagHandler(const char* tagName) : HTMLTagHandler(tagName) {}
 	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
 };
 
@@ -175,6 +176,51 @@ class ButtonTagHandler : public HTMLTagHandler
 public:
 	ButtonTagHandler() : HTMLTagHandler("button") {}
 	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
+	virtual void Close(class HTMLParser& parser) const;
+};
+
+class TableTagHandler : public HTMLTagHandler
+{
+public:
+	TableTagHandler() : HTMLTagHandler("table") {}
+	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
+	virtual void Close(class HTMLParser& parser) const;
+};
+
+class TableRowTagHandler : public HTMLTagHandler
+{
+public:
+	TableRowTagHandler() : HTMLTagHandler("tr") {}
+	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
+	virtual void Close(class HTMLParser& parser) const;
+};
+
+class TableCellTagHandler : public HTMLTagHandler
+{
+public:
+	TableCellTagHandler(const char* name, bool inIsHeader) : HTMLTagHandler(name), isHeader(inIsHeader) {}
+	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
+	virtual void Close(class HTMLParser& parser) const;
+private:
+	bool isHeader;
+};
+
+class SelectTagHandler : public HTMLTagHandler
+{
+public:
+	SelectTagHandler() : HTMLTagHandler("select") {}
+	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
+	virtual void Close(class HTMLParser& parser) const;
+};
+
+class OptionTagHandler : public HTMLTagHandler
+{
+public:
+	OptionTagHandler() : HTMLTagHandler("option") {}
+	virtual void Open(class HTMLParser& parser, char* attributeStr) const;
+	virtual void Close(class HTMLParser& parser) const;
 };
 
 const HTMLTagHandler* DetermineTag(const char* str);
+
+#endif

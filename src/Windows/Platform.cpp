@@ -13,50 +13,46 @@
 //
 
 #include <windows.h>
+#include <stdarg.h>
 #include "../Platform.h"
 #include "WinVid.h"
 #include "WinInput.h"
+#include "WinNet.h"
+#include "../Draw/Surface.h"
+#include "../VidModes.h"
+#include "../Memory/Memory.h"
+#include "../App.h"
 
 WindowsVideoDriver winVid;
-NetworkDriver nullNetworkDriver;
+WindowsNetworkDriver winNetworkDriver;
 WindowsInputDriver winInputDriver;
 
 VideoDriver* Platform::video = &winVid;
-NetworkDriver* Platform::network = &nullNetworkDriver;
+NetworkDriver* Platform::network = &winNetworkDriver;
 InputDriver* Platform::input = &winInputDriver;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 HWND hWnd;
 
-void Platform::Init(int argc, char* argv[])
+bool Platform::Init(int argc, char* argv[])
 {
-	WNDCLASSW wc = { 0 };
-	HINSTANCE hInstance = GetModuleHandle(NULL);
-
-	wc.style = CS_HREDRAW | CS_VREDRAW;
-	wc.lpszClassName = L"Pixels";
-	wc.hInstance = hInstance;
-	wc.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
-	wc.lpfnWndProc = WndProc;
-	wc.hCursor = LoadCursor(0, IDC_ARROW);
-
-	RECT wr = { 0, 0, winVid.screenWidth, winVid.screenHeight * winVid.verticalScale };
-	AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);
-
-	RegisterClassW(&wc);
-	hWnd = CreateWindowW(wc.lpszClassName, L"MicroWeb",
-		WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-		100, 100, wr.right - wr.left, wr.bottom - wr.top, NULL, NULL, hInstance, NULL);
+	VideoModeInfo* videoMode = ShowVideoModePicker(8);
+	if (!videoMode)
+	{
+		return false;
+	}
 
 	network->Init();
-	video->Init();
-	video->ClearScreen();
+	video->Init(videoMode);
 	input->Init();
 	input->ShowMouse();
+
+	return true;
 }
 
 void Platform::Shutdown()
 {
+	MemoryManager::pageBlockAllocator.Shutdown();
 	input->Shutdown();
 	video->Shutdown();
 	network->Shutdown();
@@ -77,6 +73,12 @@ void Platform::Update()
 	{
 		Shutdown();
 		exit(0);
+	}
+
+	App& app = App::Get();
+	if (!app.pageRenderer.IsRendering() && !app.pageLoadTask.IsBusy() && !app.pageContentLoadTask.IsBusy() && app.page.layout.IsFinished())
+	{
+		Sleep(10);
 	}
 }
 
@@ -118,11 +120,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
 		break;
 
 	case WM_MOUSEWHEEL:
-		if (wParam < 0)
+		if ((int)wParam > 0)
 		{
 			winInputDriver.QueueKeyPress(VK_UP);
 		}
-		else if (wParam > 0)
+		else 
 		{
 			winInputDriver.QueueKeyPress(VK_DOWN);
 		}
@@ -130,4 +132,37 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
 	}
 
 	return DefWindowProcW(hwnd, msg, wParam, lParam);
+}
+
+void Platform::FatalError(const char* message, ...)
+{
+	va_list args;
+
+	if (video)
+	{
+		video->Shutdown();
+	}
+
+	va_start(args, message);
+
+	size_t size = vsnprintf(NULL, 0, message, args);
+
+	// Allocate memory for the message
+	char* buffer = new char[size + 1];
+
+	// Format the message
+	vsnprintf(buffer, size + 1, message, args);
+
+	va_end(args);
+
+	int wsize = MultiByteToWideChar(CP_ACP, 0, buffer, -1, NULL, 0);
+	wchar_t* wbuffer = new wchar_t[wsize + 1];
+	MultiByteToWideChar(CP_ACP, 0, buffer, -1, wbuffer, wsize);
+
+	MessageBox(NULL, wbuffer, L"Fatal error", MB_OK);
+
+	delete[] wbuffer;
+	delete[] buffer;
+
+	exit(1);
 }

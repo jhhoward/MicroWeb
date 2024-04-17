@@ -14,16 +14,129 @@
 
 #include <iostream>
 #include <fstream>
+#include <vector>
+
+#include "../src/DataPack.h"
 
 using namespace std;
 
-void EncodeImage(const char* imageFilename, ofstream& outputFile, const char* varName);
-void EncodeFont(const char* imageFilename, ofstream& outputFile, const char* varName);
-void EncodeCursor(const char* imageFilename, ofstream& outputFile, const char* varName, int hotSpotX, int hotSpotY);
-void GenerateDummyFont(ofstream& outputFile, const char* varName);
+//void EncodeImage(const char* imageFilename, ofstream& outputFile, const char* varName);
+//void EncodeFont(const char* imageFilename, ofstream& outputFile, const char* varName);
+//void EncodeCursor(const char* imageFilename, ofstream& outputFile, const char* varName, int hotSpotX, int hotSpotY);
+//void GenerateDummyFont(ofstream& outputFile, const char* varName);
+
+void EncodeFont(const char* basePath, const char* name, vector<uint8_t>& output, bool generateBold = true);
+void EncodeCursor(const char* basePath, const char* name, vector<uint8_t>& output);
+void EncodeImage(const char* basePath, const char* name, vector<uint8_t>& output);
+
+void GeneratePaletteLUTs(const char* filename);
+
+
+void AddEntryHeader(const char* name, vector<DataPackEntry>& entries, vector<uint8_t>& data)
+{
+	DataPackEntry entry;
+	memset(entry.name, 0, 8);
+	strncpy_s(entry.name, name, 8);
+	entry.offset = (uint32_t)(data.size());
+	entries.push_back(entry);
+}
+
+void GenerateAssetPack(const char* name)
+{
+	char basePath[256];
+	vector<uint8_t> data;
+	vector<DataPackEntry> entries;
+
+	snprintf(basePath, 256, "assets/%s/", name);
+
+	AddEntryHeader("FHELV1", entries, data);
+	EncodeFont(basePath, "Helv1.png", data, false);
+	AddEntryHeader("FHELV2", entries, data);
+	EncodeFont(basePath, "Helv2.png", data, false);
+	AddEntryHeader("FHELV3", entries, data);
+	EncodeFont(basePath, "Helv3.png", data, false);
+
+	//AddEntryHeader("FHELV1B", entries, data);
+	//EncodeFont(basePath, "Helv1.png", data, true);
+	//AddEntryHeader("FHELV2B", entries, data);
+	//EncodeFont(basePath, "Helv2.png", data, true);
+	//AddEntryHeader("FHELV3B", entries, data);
+	//EncodeFont(basePath, "Helv3.png", data, true);
+
+	AddEntryHeader("FCOUR1", entries, data);
+	EncodeFont(basePath, "Cour1.png", data, false);
+	AddEntryHeader("FCOUR2", entries, data);
+	EncodeFont(basePath, "Cour2.png", data, false);
+	AddEntryHeader("FCOUR3", entries, data);
+	EncodeFont(basePath, "Cour3.png", data, false);
+
+	//AddEntryHeader("FCOUR1B", entries, data);
+	//EncodeFont(basePath, "Cour1.png", data, true);
+	//AddEntryHeader("FCOUR2B", entries, data);
+	//EncodeFont(basePath, "Cour2.png", data, true);
+	//AddEntryHeader("FCOUR3B", entries, data);
+	//EncodeFont(basePath, "Cour3.png", data, true);
+
+	AddEntryHeader("CMOUSE", entries, data);
+	EncodeCursor(basePath, "mouse.png", data);
+	AddEntryHeader("CLINK", entries, data);
+	EncodeCursor(basePath, "mouse-link.png", data);
+	AddEntryHeader("CTEXT", entries, data);
+	EncodeCursor(basePath, "mouse-select.png", data);
+
+	AddEntryHeader("IIMG", entries, data);
+	EncodeImage(basePath, "image-icon.png", data);
+	AddEntryHeader("IBROKEN", entries, data);
+	EncodeImage(basePath, "broken-image-icon.png", data);
+	AddEntryHeader("ICHECK1", entries, data);
+	EncodeImage(basePath, "checkbox.png", data);
+	AddEntryHeader("ICHECK2", entries, data);
+	EncodeImage(basePath, "checkbox-ticked.png", data);
+	AddEntryHeader("IRADIO1", entries, data);
+	EncodeImage(basePath, "radio.png", data);
+	AddEntryHeader("IRADIO2", entries, data);
+	EncodeImage(basePath, "radio-selected.png", data);
+	AddEntryHeader("IDOWN", entries, data);
+	EncodeImage(basePath, "down-icon.png", data);
+
+	AddEntryHeader("END", entries, data);
+
+	char outputPath[256];
+	snprintf(outputPath, 256, "%s.dat", name);
+	FILE* fs;
+	
+	fopen_s(&fs, outputPath, "wb");
+	if (fs)
+	{
+		uint16_t numEntries = (uint16_t)(entries.size());
+		for (int n = 0; n < entries.size(); n++)
+		{
+			entries[n].offset += sizeof(uint16_t) + sizeof(DataPackEntry) * numEntries;
+		}
+
+		fwrite(&numEntries, sizeof(uint16_t), 1, fs);
+		fwrite(entries.data(), sizeof(DataPackEntry), numEntries, fs);
+
+		fwrite(data.data(), 1, data.size(), fs);
+
+		fclose(fs);
+	}
+}
+
+void GenerateAssetPacks()
+{
+	GenerateAssetPack("CGA");
+	GenerateAssetPack("EGA");
+	GenerateAssetPack("LowRes");
+	GenerateAssetPack("Default");
+}
 
 int main(int argc, char* argv)
 {
+	GenerateAssetPacks();
+
+	GeneratePaletteLUTs("src/Palettes.inc");
+#if 0
 	// CGA resources
 	{
 		ofstream outputFile("src/DOS/CGAData.inc");
@@ -32,13 +145,21 @@ int main(int argc, char* argv)
 		outputFile << "// This file is auto generated" << endl << endl;
 		outputFile << "// Fonts:" << endl;
 
-		EncodeFont("assets/CGA/font.png", outputFile, "CGA_RegularFont");
-		EncodeFont("assets/CGA/font-small.png", outputFile, "CGA_SmallFont");
-		EncodeFont("assets/CGA/font-large.png", outputFile, "CGA_LargeFont");
+		EncodeFont("assets/CGA/Helv2.png", outputFile, "CGA_RegularFont");
+		EncodeFont("assets/CGA/Helv1.png", outputFile, "CGA_SmallFont");
+		EncodeFont("assets/CGA/Helv3.png", outputFile, "CGA_LargeFont");
+		
+		EncodeFont("assets/CGA/Cour2.png", outputFile, "CGA_RegularFont_Monospace");
+		EncodeFont("assets/CGA/Cour1.png", outputFile, "CGA_SmallFont_Monospace");
+		EncodeFont("assets/CGA/Cour3.png", outputFile, "CGA_LargeFont_Monospace");
 
-		EncodeFont("assets/CGA/font-mono.png", outputFile, "CGA_RegularFont_Monospace");
-		EncodeFont("assets/CGA/font-mono-small.png", outputFile, "CGA_SmallFont_Monospace");
-		EncodeFont("assets/CGA/font-mono-large.png", outputFile, "CGA_LargeFont_Monospace");
+		//EncodeFont("assets/LowRes/Helv2.png", outputFile, "CGA_RegularFont");
+		//EncodeFont("assets/LowRes/Helv1.png", outputFile, "CGA_SmallFont");
+		//EncodeFont("assets/LowRes/Helv3.png", outputFile, "CGA_LargeFont");
+		//
+		//EncodeFont("assets/LowRes/Cour2.png", outputFile, "CGA_RegularFont_Monospace");
+		//EncodeFont("assets/LowRes/Cour1.png", outputFile, "CGA_SmallFont_Monospace");
+		//EncodeFont("assets/LowRes/Cour3.png", outputFile, "CGA_LargeFont_Monospace");
 
 		outputFile << endl;
 		outputFile << "// Mouse cursors:" << endl;
@@ -64,13 +185,13 @@ int main(int argc, char* argv)
 		outputFile << "// This file is auto generated" << endl << endl;
 		outputFile << "// Fonts:" << endl;
 
-		EncodeFont("assets/Default/font.png", outputFile, "Default_RegularFont");
-		EncodeFont("assets/Default/font-small.png", outputFile, "Default_SmallFont");
-		EncodeFont("assets/Default/font-large.png", outputFile, "Default_LargeFont");
+		EncodeFont("assets/Default/Helv2.png", outputFile, "Default_RegularFont");
+		EncodeFont("assets/Default/Helv1.png", outputFile, "Default_SmallFont");
+		EncodeFont("assets/Default/Helv3.png", outputFile, "Default_LargeFont");
 
-		EncodeFont("assets/Default/font-mono.png", outputFile, "Default_RegularFont_Monospace");
-		EncodeFont("assets/Default/font-mono-small.png", outputFile, "Default_SmallFont_Monospace");
-		EncodeFont("assets/Default/font-mono-large.png", outputFile, "Default_LargeFont_Monospace");
+		EncodeFont("assets/Default/Cour2.png", outputFile, "Default_RegularFont_Monospace");
+		EncodeFont("assets/Default/Cour1.png", outputFile, "Default_SmallFont_Monospace");
+		EncodeFont("assets/Default/Cour3.png", outputFile, "Default_LargeFont_Monospace");
 
 		outputFile << endl;
 		outputFile << "// Mouse cursors:" << endl;
@@ -100,6 +221,6 @@ int main(int argc, char* argv)
 		outputFile << endl;
 		outputFile.close();
 	}
-
+#endif
 	return 0;
 }

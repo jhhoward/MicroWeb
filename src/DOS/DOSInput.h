@@ -12,7 +12,8 @@
 // GNU General Public License for more details.
 //
 
-#pragma once
+#ifndef _DOSINPUT_H_
+#define _DOSINPUT_H_
 #include "../Platform.h"
 
 class DOSInputDriver : public InputDriver
@@ -27,11 +28,16 @@ public:
 
 	virtual void GetMouseStatus(int& buttons, int& x, int& y);
 	virtual void SetMousePosition(int x, int y);
+	virtual bool GetMouseButtonPress(int& x, int& y);
+	virtual bool GetMouseButtonRelease(int& x, int& y);
+
 	virtual InputButtonCode GetKeyPress();
 
 private:
 	MouseCursor::Type currentCursor;
-	int lastMouseButtons;
 	bool mouseVisible;
 	bool hasMouse;
+	int mouseHideCount;
 };
+
+#endif
