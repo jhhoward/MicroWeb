@@ -7,6 +7,8 @@
 #include "../Memory/MemBlock.h"
 #include "../Colour.h"
 
+#define USE_ASM_ROUTINES 1
+
 #define GC_INDEX 0x3ce
 #define GC_DATA 0x3cf
 
@@ -373,6 +375,39 @@ void DrawSurface_4BPP::DrawString(DrawContext& context, Font* font, const char* 
 
 }
 
+static void BlitLineASM(uint8_t* srcPtr, uint8_t* destLine, uint8_t destMask, int count);
+#pragma aux BlitLineASM = \
+	"push ds" \
+	"mov ds, dx"       /* ds:si = src */ \ 
+	"next_pixel:" \
+	"mov dx, 0x3ce"    /* dx = GC_INDEX */ \
+	"mov al, 0"        /* GC_SET_RESET */ \
+	"out dx, al" \
+	"lodsb" \
+	"cmp al, 0xff" \
+	"je pixel_done"    /* Skip if transparent (0xff) */ \
+	"inc dx"           /* dx = GC_DATA */ \
+	"out dx, al"       /* Write colour register */ \
+	"mov dx, 0x3ce"    /* dx = GC_INDEX */ \
+	"mov al, 8"        /* GC_BITMASK */ \
+	"out dx, al" \
+	"inc dx"           /* dx = GC_DATA */ \
+	"mov al, bl" \
+	"out dx, al"       /* Write bitmask register */ \
+	"mov al, [es:di]"  /* Read latches */ \
+	"or [es:di], 0xff"  /* Write */ \
+	"pixel_done:" \
+	"ror bl, 1"        /* Rotate bitmask */ \
+	"cmp bl, 0x80" \
+	"jne rotated_mask" \
+	"inc di"           /* Mask fully rotated, move to next byte */ \
+	"rotated_mask:" \
+	"dec cx" \
+	"jnz next_pixel" \
+	"pop ds" \
+	modify [cx ax si di dx] \	
+	parm[dx si][es di][bl][cx];
+
 void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int y)
 {
 	if (!image->lines.IsAllocated())
@@ -432,14 +467,22 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 		outp(GC_INDEX, GC_MODE);
 		outp(GC_DATA, 0x3);
 
+		uint8_t startDestMask = 0x80 >> (x & 7);
+		int destOffset = (x >> 3);
+
 		// Blit the image data line by line
 		for (int j = 0; j < destHeight; j++)
 		{
 			MemBlockHandle* imageLines = image->lines.Get<MemBlockHandle*>();
 			MemBlockHandle imageLine = imageLines[srcY + j];
 			uint8_t* src = imageLine.Get<uint8_t*>() + srcX;
-			uint8_t* destRow = lines[y + j] + (x >> 3);
-			uint8_t destMask = 0x80 >> (x & 7);
+
+#if USE_ASM_ROUTINES
+			uint8_t* dest = lines[y + j] + destOffset;
+			BlitLineASM(src, dest, startDestMask, destWidth);
+#else
+			uint8_t* destRow = lines[y + j] + destOffset;
+			uint8_t destMask = startDestMask;
 
 			for (int i = 0; i < destWidth; i++)
 			{
@@ -447,12 +490,12 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 
 				if (colour != TRANSPARENT_COLOUR_VALUE)
 				{
+					outp(GC_INDEX, GC_SET_RESET);
+					outp(GC_DATA, colour);
+
 					// Set bitmask
 					outp(GC_INDEX, GC_BITMASK);
 					outp(GC_DATA, destMask);
-
-					outp(GC_INDEX, GC_SET_RESET);
-					outp(GC_DATA, colour);
 
 					*destRow |= 0xff;
 				}
@@ -464,6 +507,7 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 					destRow++;
 				}
 			}
+#endif
 		}
 	}
 	else
