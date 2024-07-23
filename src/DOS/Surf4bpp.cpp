@@ -73,11 +73,11 @@ void DrawSurface_4BPP::HLine(DrawContext& context, int x, int y, int count, uint
 		return;
 	}
 
-	// Set write mode 3
-	outp(GC_INDEX, GC_MODE);
-	outp(GC_DATA, 0x3);
+	volatile uint8_t latchRead;
 
-	SetPenColour(colour);
+	// Set write mode 2
+	outp(GC_INDEX, GC_MODE);
+	outp(GC_DATA, 0x2);
 
 	uint8_t* VRAMptr = lines[y];
 	VRAMptr += (x >> 3);
@@ -96,7 +96,8 @@ void DrawSurface_4BPP::HLine(DrawContext& context, int x, int y, int count, uint
 	outp(GC_INDEX, GC_BITMASK);
 	outp(GC_DATA, mask);
 
-	*VRAMptr++ |= 0xff;
+	latchRead = *VRAMptr;
+	*VRAMptr++ = colour;
 
 	if (!count)
 		return;
@@ -106,7 +107,8 @@ void DrawSurface_4BPP::HLine(DrawContext& context, int x, int y, int count, uint
 	while (count >= 8)
 	{
 		count -= 8;
-		*VRAMptr++ |= 0xff;
+		latchRead = *VRAMptr;
+		*VRAMptr++ = colour;
 	}
 
 	// End byte
@@ -114,8 +116,13 @@ void DrawSurface_4BPP::HLine(DrawContext& context, int x, int y, int count, uint
 	{
 		mask = pixelEndBitmasks[count];
 		outp(GC_DATA, mask);
-		*VRAMptr++ |= 0xff;
+		latchRead = *VRAMptr;
+		*VRAMptr++ = colour;
 	}
+
+	// Restore write mode 0
+	outp(GC_INDEX, GC_MODE);
+	outp(GC_DATA, 0x0);
 }
 
 void DrawSurface_4BPP::VLine(DrawContext& context, int x, int y, int count, uint8_t colour)
@@ -145,11 +152,9 @@ void DrawSurface_4BPP::VLine(DrawContext& context, int x, int y, int count, uint
 		return;
 	}
 
-	// Set write mode 3
+	// Set write mode 2
 	outp(GC_INDEX, GC_MODE);
-	outp(GC_DATA, 0x3);
-
-	SetPenColour(colour);
+	outp(GC_DATA, 0x2);
 
 	uint8_t mask = pixelBitmasks[x & 7];
 	int index = x >> 3;
@@ -160,9 +165,14 @@ void DrawSurface_4BPP::VLine(DrawContext& context, int x, int y, int count, uint
 
 	while (count--)
 	{
-		(lines[y])[index] |= mask;
+		volatile uint8_t latchRead = (lines[y])[index];
+		(lines[y])[index] = colour;
 		y++;
 	}
+
+	// Restore write mode 0
+	outp(GC_INDEX, GC_MODE);
+	outp(GC_DATA, 0x0);
 }
 
 void DrawSurface_4BPP::FillRect(DrawContext& context, int x, int y, int width, int height, uint8_t colour)
@@ -193,11 +203,11 @@ void DrawSurface_4BPP::FillRect(DrawContext& context, int x, int y, int width, i
 		return;
 	}
 
-	// Set write mode 3
+	// Set write mode 2
 	outp(GC_INDEX, GC_MODE);
-	outp(GC_DATA, 0x3);
+	outp(GC_DATA, 0x2);
 
-	SetPenColour(colour);
+	volatile uint8_t latchRead;
 
 	while (height)
 	{
@@ -220,7 +230,8 @@ void DrawSurface_4BPP::FillRect(DrawContext& context, int x, int y, int width, i
 		outp(GC_INDEX, GC_BITMASK);
 		outp(GC_DATA, mask);
 
-		*VRAMptr++ |= 0xff;
+		latchRead = *VRAMptr;
+		*VRAMptr++ = colour;
 
 		if (count)
 		{
@@ -229,7 +240,9 @@ void DrawSurface_4BPP::FillRect(DrawContext& context, int x, int y, int width, i
 			while (count >= 8)
 			{
 				count -= 8;
-				*VRAMptr++ |= 0xff;
+
+				latchRead = *VRAMptr;
+				*VRAMptr++ = colour;
 			}
 
 			// End byte
@@ -237,13 +250,19 @@ void DrawSurface_4BPP::FillRect(DrawContext& context, int x, int y, int width, i
 			{
 				mask = pixelEndBitmasks[count];
 				outp(GC_DATA, mask);
-				*VRAMptr++ |= 0xff;
+
+				latchRead = *VRAMptr;
+				*VRAMptr++ = colour;
 			}
 		}
 
 		height--;
 		y++;
 	}
+
+	// Restore write mode 0
+	outp(GC_INDEX, GC_MODE);
+	outp(GC_DATA, 0x0);
 }
 
 void DrawSurface_4BPP::DrawString(DrawContext& context, Font* font, const char* text, int x, int y, uint8_t colour, FontStyle::Type style)
@@ -278,11 +297,9 @@ void DrawSurface_4BPP::DrawString(DrawContext& context, Font* font, const char* 
 		y += firstLine;
 	}
 
-	// Set write mode 3
+	// Set write mode 2
 	outp(GC_INDEX, GC_MODE);
-	outp(GC_DATA, 0x3);
-
-	SetPenColour(colour);
+	outp(GC_DATA, 0x2);
 
 	// Set bit mask
 	outp(GC_INDEX, GC_BITMASK);
@@ -351,13 +368,15 @@ void DrawSurface_4BPP::DrawString(DrawContext& context, Font* font, const char* 
 						}
 					}
 
-					outp(GC_DATA, glyphPixels >> writeOffset);
-					VRAMptr[i] |= 0xff;
-					outp(GC_DATA, glyphPixels << (8 - writeOffset));
-					VRAMptr[i + 1] |= 0xff;
+					volatile uint8_t latchRead;
 
-					//VRAMptr[i] |= (glyphPixels >> writeOffset);
-					//VRAMptr[i + 1] |= (glyphPixels << (8 - writeOffset));
+					outp(GC_DATA, glyphPixels >> writeOffset);
+					latchRead = VRAMptr[i];
+					VRAMptr[i] = colour;
+
+					outp(GC_DATA, glyphPixels << (8 - writeOffset));
+					latchRead = VRAMptr[i + 1];
+					VRAMptr[i + 1] = colour;
 				}
 
 				outY++;
@@ -373,6 +392,9 @@ void DrawSurface_4BPP::DrawString(DrawContext& context, Font* font, const char* 
 		HLine(context, startX, y - firstLine + font->glyphHeight - 1 - context.drawOffsetY, x - startX - context.drawOffsetX, colour);
 	}
 
+	// Restore write mode 0
+	outp(GC_INDEX, GC_MODE);
+	outp(GC_DATA, 0x0);
 }
 
 static void BlitLineASM(uint8_t* srcPtr, uint8_t* destLine, uint8_t destMask, int count);
@@ -380,14 +402,10 @@ static void BlitLineASM(uint8_t* srcPtr, uint8_t* destLine, uint8_t destMask, in
 	"push ds" \
 	"mov ds, dx"       /* ds:si = src */ \ 
 	"next_pixel:" \
-	"mov dx, 0x3ce"    /* dx = GC_INDEX */ \
-	"mov al, 0"        /* GC_SET_RESET */ \
-	"out dx, al" \
 	"lodsb" \
 	"cmp al, 0xff" \
 	"je pixel_done"    /* Skip if transparent (0xff) */ \
-	"inc dx"           /* dx = GC_DATA */ \
-	"out dx, al"       /* Write colour register */ \
+	"mov ah, al" \
 	"mov dx, 0x3ce"    /* dx = GC_INDEX */ \
 	"mov al, 8"        /* GC_BITMASK */ \
 	"out dx, al" \
@@ -395,7 +413,7 @@ static void BlitLineASM(uint8_t* srcPtr, uint8_t* destLine, uint8_t destMask, in
 	"mov al, bl" \
 	"out dx, al"       /* Write bitmask register */ \
 	"mov al, [es:di]"  /* Read latches */ \
-	"or [es:di], 0xff"  /* Write */ \
+	"mov [es:di], ah"  /* Write */ \
 	"pixel_done:" \
 	"ror bl, 1"        /* Rotate bitmask */ \
 	"cmp bl, 0x80" \
@@ -463,9 +481,9 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 
 	if (image->bpp == 8)
 	{
-		// Set write mode 3
+		// Set write mode 2
 		outp(GC_INDEX, GC_MODE);
-		outp(GC_DATA, 0x3);
+		outp(GC_DATA, 0x2);
 
 		uint8_t startDestMask = 0x80 >> (x & 7);
 		int destOffset = (x >> 3);
@@ -490,14 +508,12 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 
 				if (colour != TRANSPARENT_COLOUR_VALUE)
 				{
-					outp(GC_INDEX, GC_SET_RESET);
-					outp(GC_DATA, colour);
-
 					// Set bitmask
 					outp(GC_INDEX, GC_BITMASK);
 					outp(GC_DATA, destMask);
 
-					*destRow |= 0xff;
+					volatile uint8_t latchRead = *destRow;
+					*destRow = colour;
 				}
 
 				destMask >>= 1;
@@ -509,6 +525,10 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 			}
 #endif
 		}
+
+		// Restore write mode 0
+		outp(GC_INDEX, GC_MODE);
+		outp(GC_DATA, 0x0);
 	}
 	else
 	{
@@ -608,14 +628,12 @@ void DrawSurface_4BPP::InvertRect(DrawContext& context, int x, int y, int width,
 		return;
 	}
 
-	// Set write mode 3
+	// Set write mode 2
 	outp(GC_INDEX, GC_MODE);
-	outp(GC_DATA, 0x3);
+	outp(GC_DATA, 0x2);
 
 	outp(GC_INDEX, GC_ROTATE);
 	outp(GC_DATA, GC_XOR);
-
-	SetPenColour(0xf);
 
 	while (height)
 	{
@@ -666,6 +684,9 @@ void DrawSurface_4BPP::InvertRect(DrawContext& context, int x, int y, int width,
 	outp(GC_INDEX, GC_ROTATE);
 	outp(GC_DATA, 0);
 
+	// Restore write mode 0
+	outp(GC_INDEX, GC_MODE);
+	outp(GC_DATA, 0x0);
 }
 
 void DrawSurface_4BPP::VerticalScrollBar(DrawContext& context, int x, int y, int height, int position, int size)
@@ -684,7 +705,7 @@ void DrawSurface_4BPP::VerticalScrollBar(DrawContext& context, int x, int y, int
 	const uint16_t inner = 0xfe7f;
 	int bottomSpacing = height - position - size;
 
-	// Set write mode 3
+	// Set write mode 0
 	outp(GC_INDEX, GC_MODE);
 	outp(GC_DATA, 0x0);
 
@@ -735,9 +756,9 @@ void DrawSurface_4BPP::VerticalScrollBar(DrawContext& context, int x, int y, int
 
 void DrawSurface_4BPP::Clear()
 {
-	// Set write mode 3
+	// Set write mode 0
 	outp(GC_INDEX, GC_MODE);
-	outp(GC_DATA, 0x3);
+	outp(GC_DATA, 0x0);
 
 	SetPenColour(0xf);
 
@@ -796,4 +817,8 @@ void DrawSurface_4BPP::ScrollScreen(int top, int bottom, int width, int amount)
 			memcpy_bytes(lines[y], lines[y + amount], width);
 		}
 	}
+
+	// Restore write mode 0
+	outp(GC_INDEX, GC_MODE);
+	outp(GC_DATA, 0x0);
 }
