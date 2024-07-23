@@ -159,20 +159,109 @@ void HTMLParser::Finish()
 #define NUM_AMPERSAND_ESCAPE_SEQUENCES (sizeof(ampersandEscapeSequences) / (2 * sizeof(const char*)))
 const char* ampersandEscapeSequences[] = 
 {
-	"quot",	"\"",
-	"amp",	"&",
-	"lt",	"<",
-	"gt",	">",
-	"nbsp",	"\x1f",
-	"pound",	"£",
-	"brvbar",	"¦",
-	"uml",	"\"",
-	"not", "¬",
-	"cent", "c",
-	"copy", "(C)",
-	"reg", "(R)",
-	"laquo", "<<",
-	"raquo", ">>",
+	"quot",			"\"",
+	"amp",			"&",
+	"lt",			"<",
+	"gt",			">",
+	"nbsp",			"\x1f",
+	"laquo",		"<<",
+	"raquo",		">>",
+	"iexcl",		"\xA1",					//	¡	161	&iexcl;	inverted exclamation mark
+	"cent",			"\xA2",					//	¢	162	&cent;	cent sign
+	"pound",		"\xA3",					//	£	163	&pound;	pound sign
+	"curren",		"\xA4",					//	¤	164	&curren;	currency sign
+	"yen",			"\xA5",					//	¥	165	&yen;	yen sign
+	"brvbar",		"\xA6",					//	¦	166	&brvbar;	broken bar
+	"sect",			"\xA7",					//	§	167	&sect;	section sign
+	"uml",			"\xA8",					//	¨	168	&uml;	diaeresis
+	"copy",			"\xA9",					//	©	169	&copy;	copyright sign
+	"ordf",			"\xAA",					//	ª	170	&ordf;	feminine ordinal indicator
+	"laquo",		"\xAB",					//	«	171	&laquo;	left-pointing double angle quotation mark
+	"not",			"\xAC",					//	¬	172	&not;	not sign
+	"shy",			"\xAD",					//	�­	173	&shy;	soft hyphen
+	"reg",			"\xAE",					//	®	174	&reg;	registered sign
+	"macr",			"\xAF",					//	¯	175	&macr;	macron
+	"deg",			"\xB0",					//	°	176	&deg;	degree sign
+	"plusmn",		"\xB1",					//	±	177	&plusmn;	plus-minus sign
+	"sup2",			"\xB2",					//	²	178	&sup2;	superscript two
+	"sup3",			"\xB3",					//	³	179	&sup3;	superscript three
+	"acute",		"\xB4",					//	´	180	&acute;	acute accent
+	"micro",		"\xB5",					//	µ	181	&micro;	micro sign
+	"para",			"\xB6",					//	¶	182	&para;	pilcrow sign
+	"middot",		"\xB7",					//	·	183	&middot;	middle dot
+	"cedil",		"\xB8",					//	¸	184	&cedil;	cedilla
+	"sup1",			"\xB9",					//	¹	185	&sup1;	superscript one
+	"ordm",			"\xBA",					//	º	186	&ordm;	masculine ordinal indicator
+	"raquo",		"\xBB",					//	»	187	&raquo;	right-pointing double angle quotation mark
+	"frac14",		"\xBC",					//	¼	188	&frac14;	vulgar fraction one quarter
+	"frac12",		"\xBD",					//	½	189	&frac12;	vulgar fraction one half
+	"frac34",		"\xBE",					//	¾	190	&frac34;	vulgar fraction three quarters
+	"iquest",		"\xBF",					//	¿	191	&iquest;	inverted question mark
+	"Agrave",		"\xC0",					//	À	192	&Agrave;	Latin capital letter A with grave
+	"Aacute",		"\xC1",					//	Á	193	&Aacute;	Latin capital letter A with acute
+	"Acirc",		"\xC2",					//	Â	194	&Acirc;	Latin capital letter A with circumflex
+	"Atilde",		"\xC3",					//	Ã	195	&Atilde;	Latin capital letter A with tilde
+	"Auml",			"\xC4",					//	Ä	196	&Auml;	Latin capital letter A with diaeresis
+	"Aring",		"\xC5",					//	Å	197	&Aring;	Latin capital letter A with ring above
+	"AElig",		"\xC6",					//	Æ	198	&AElig;	Latin capital letter AE
+	"Ccedil",		"\xC7",					//	Ç	199	&Ccedil;	Latin capital letter C with cedilla
+	"Egrave",		"\xC8",					//	È	200	&Egrave;	Latin capital letter E with grave
+	"Eacute",		"\xC9",					//	É	201	&Eacute;	Latin capital letter E with acute
+	"Ecirc",		"\xCA",					//	Ê	202	&Ecirc;	Latin capital letter E with circumflex
+	"Euml",			"\xCB",					//	Ë	203	&Euml;	Latin capital letter E with diaeresis
+	"Igrave",		"\xCC",					//	Ì	204	&Igrave;	Latin capital letter I with grave
+	"Iacute",		"\xCD",					//	Í	205	&Iacute;	Latin capital letter I with acute
+	"Icirc",		"\xCE",					//	Î	206	&Icirc;	Latin capital letter I with circumflex
+	"Iuml",			"\xCF",					//	Ï	207	&Iuml;	Latin capital letter I with diaeresis
+	"ETH",			"\xD0",					//	Ð	208	&ETH;	Latin capital letter Eth
+	"Ntilde",		"\xD1",					//	Ñ	209	&Ntilde;	Latin capital letter N with tilde
+	"Ograve",		"\xD2",					//	Ò	210	&Ograve;	Latin capital letter O with grave
+	"Oacute",		"\xD3",					//	Ó	211	&Oacute;	Latin capital letter O with acute
+	"Ocirc",		"\xD4",					//	Ô	212	&Ocirc;	Latin capital letter O with circumflex
+	"Otilde",		"\xD5",					//	Õ	213	&Otilde;	Latin capital letter O with tilde
+	"Ouml",			"\xD6",					//	Ö	214	&Ouml;	Latin capital letter O with diaeresis
+	"times",		"\xD7",					//	×	215	&times;	multiplication sign
+	"Oslash",		"\xD8",					//	Ø	216	&Oslash;	Latin capital letter O with stroke
+	"Ugrave",		"\xD9",					//	Ù	217	&Ugrave;	Latin capital letter U with grave
+	"Uacute",		"\xDA",					//	Ú	218	&Uacute;	Latin capital letter U with acute
+	"Ucirc",		"\xDB",					//	Û	219	&Ucirc;	Latin capital letter U with circumflex
+	"Uuml",			"\xDC",					//	Ü	220	&Uuml;	Latin capital letter U with diaeresis
+	"Yacute",		"\xDD",					//	Ý	221	&Yacute;	Latin capital letter Y with acute
+	"THORN",		"\xDE",					//	Þ	222	&THORN;	Latin capital letter Thorn
+	"szlig",		"\xDF",					//	ß	223	&szlig;	Latin small letter sharp s
+	"agrave",		"\xE0",					//	à	224	&agrave;	Latin small letter a with grave
+	"aacute",		"\xE1",					//	á	225	&aacute;	Latin small letter a with acute
+	"acirc",		"\xE2",					//	â	226	&acirc;	Latin small letter a with circumflex
+	"atilde",		"\xE3",					//	ã	227	&atilde;	Latin small letter a with tilde
+	"auml",			"\xE4",					//	ä	228	&auml;	Latin small letter a with diaeresis
+	"aring",		"\xE5",					//	å	229	&aring;	Latin small letter a with ring above
+	"aelig",		"\xE6",					//	æ	230	&aelig;	Latin small letter ae
+	"ccedil",		"\xE7",					//	ç	231	&ccedil;	Latin small letter c with cedilla
+	"egrave",		"\xE8",					//	è	232	&egrave;	Latin small letter e with grave
+	"eacute",		"\xE9",					//	é	233	&eacute;	Latin small letter e with acute
+	"ecirc",		"\xEA",					//	ê	234	&ecirc;	Latin small letter e with circumflex
+	"euml",			"\xEB",					//	ë	235	&euml;	Latin small letter e with diaeresis
+	"igrave",		"\xEC",					//	ì	236	&igrave;	Latin small letter i with grave
+	"iacute",		"\xED",					//	í	237	&iacute;	Latin small letter i with acute
+	"icirc",		"\xEE",					//	î	238	&icirc;	Latin small letter i with circumflex
+	"iuml",			"\xEF",					//	ï	239	&iuml;	Latin small letter i with diaeresis
+	"eth",			"\xF0",					//	ð	240	&eth;	Latin small letter eth
+	"ntilde",		"\xF1",					//	ñ	241	&ntilde;	Latin small letter n with tilde
+	"ograve",		"\xF2",					//	ò	242	&ograve;	Latin small letter o with grave
+	"oacute",		"\xF3",					//	ó	243	&oacute;	Latin small letter o with acute
+	"ocirc",		"\xF4",					//	ô	244	&ocirc;	Latin small letter o with circumflex
+	"otilde",		"\xF5",					//	õ	245	&otilde;	Latin small letter o with tilde
+	"ouml",			"\xF6",					//	ö	246	&ouml;	Latin small letter o with diaeresis
+	"divide",		"\xF7",					//	÷	247	&divide;	division sign
+	"oslash",		"\xF8",					//	ø	248	&oslash;	Latin small letter o with stroke
+	"ugrave",		"\xF9",					//	ù	249	&ugrave;	Latin small letter u with grave
+	"uacute",		"\xFA",					//	ú	250	&uacute;	Latin small letter u with acute
+	"ucirc",		"\xFB",					//	û	251	&ucirc;	Latin small letter u with circumflex
+	"uuml",			"\xFC",					//	ü	252	&uuml;	Latin small letter u with diaeresis
+	"yacute",		"\xFD",					//	ý	253	&yacute;	Latin small letter y with acute
+	"thorn",		"\xFE",					//	þ	254	&thorn;	Latin small letter thorn
+	"yuml",			"\xFF",					//	ÿ	255	&yuml;	Latin small letter y with diaeresis
+
 };
 
 void HTMLParser::AppendTextBuffer(char c)
@@ -445,6 +534,8 @@ void HTMLParser::ReplaceAmpersandEscapeSequences(char* buffer, bool replaceNonBr
 				}
 				else
 				{
+					int matchingEscapeSequence = -1;
+
 					for (int n = 0; n < NUM_AMPERSAND_ESCAPE_SEQUENCES; n++)
 					{
 						const char* escapeSequence = ampersandEscapeSequences[n * 2];
@@ -457,7 +548,7 @@ void HTMLParser::ReplaceAmpersandEscapeSequences(char* buffer, bool replaceNonBr
 								matching = false;
 								break;
 							}
-							if (tolower(buffer[i]) != escapeSequence[i])
+							if (buffer[i] != escapeSequence[i])
 							{
 								matching = false;
 								break;
@@ -466,20 +557,55 @@ void HTMLParser::ReplaceAmpersandEscapeSequences(char* buffer, bool replaceNonBr
 
 						if (matching && escapeSequence[escapeSequenceLength] == '\0')
 						{
-							buffer--;	// One step backwards to write over the &
-							const char* replacementText = ampersandEscapeSequences[n * 2 + 1];
-							int replacementTextLength = strlen(replacementText);
-							memcpy(buffer, replacementText, replacementTextLength);
-							strcpy(buffer + replacementTextLength, nextBufferPosition);
-
-							if (replaceNonBreakingSpace && *buffer == '\x1f')
-							{
-								*buffer = ' ';
-							}
-
-							buffer += replacementTextLength - 1;
+							matchingEscapeSequence = n;
 							break;
 						}
+					}
+
+					if (matchingEscapeSequence == -1)
+					{
+						for (int n = 0; n < NUM_AMPERSAND_ESCAPE_SEQUENCES; n++)
+						{
+							// Look again but this time non case sensitive comparison
+							const char* escapeSequence = ampersandEscapeSequences[n * 2];
+							bool matching = true;
+
+							for (int i = 0; i < escapeSequenceLength; i++)
+							{
+								if (escapeSequence[i] == '\0')
+								{
+									matching = false;
+									break;
+								}
+								if (tolower(buffer[i]) != tolower(escapeSequence[i]))
+								{
+									matching = false;
+									break;
+								}
+							}
+
+							if (matching && escapeSequence[escapeSequenceLength] == '\0')
+							{
+								matchingEscapeSequence = n;
+								break;
+							}
+						}
+					}
+
+					if (matchingEscapeSequence != -1)
+					{
+						buffer--;	// One step backwards to write over the &
+						const char* replacementText = ampersandEscapeSequences[matchingEscapeSequence * 2 + 1];
+						int replacementTextLength = strlen(replacementText);
+						memcpy(buffer, replacementText, replacementTextLength);
+						strcpy(buffer + replacementTextLength, nextBufferPosition);
+
+						if (replaceNonBreakingSpace && *buffer == '\x1f')
+						{
+							*buffer = ' ';
+						}
+
+						buffer += replacementTextLength - 1;
 					}
 				}
 			}
