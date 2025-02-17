@@ -33,6 +33,9 @@ void DOSInputDriver::Init()
 	SetMouseCursor(MouseCursor::Pointer);
 	mouseHideCount = 1;
 
+	queuedPressX = -1;
+	queuedPressY = -1;
+
 	ShowMouse();
 }
 
@@ -70,6 +73,15 @@ bool DOSInputDriver::GetMouseButtonPress(int& x, int& y)
 {
 	if (!hasMouse)
 		return false;
+
+	if (queuedPressX != -1)
+	{
+		x = queuedPressX;
+		y = queuedPressY;
+		queuedPressX = -1;
+		queuedPressY = -1;
+		return true;
+	}
 
 	union REGS inreg, outreg;
 	inreg.x.ax = 5;
@@ -200,4 +212,21 @@ InputButtonCode DOSInputDriver::GetKeyPress()
 	}
 
 	return 0;
+}
+
+bool DOSInputDriver::HasInputPending()
+{
+	if (kbhit())
+		return true;
+
+	int x, y;
+
+	if (GetMouseButtonPress(x, y))
+	{
+		queuedPressX = x;
+		queuedPressY = y;
+		return true;
+	}
+
+	return false;
 }

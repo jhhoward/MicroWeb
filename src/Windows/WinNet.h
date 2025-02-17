@@ -23,7 +23,7 @@ public:
 	virtual NetworkTCPSocket* CreateSocket() override;
 	virtual void DestroySocket(NetworkTCPSocket* socket) override;
 
-	virtual HTTPRequest* CreateRequest(char* url) override;
+	virtual HTTPRequest* CreateRequest() override;
 	virtual void DestroyRequest(HTTPRequest* request) override;
 
 private:

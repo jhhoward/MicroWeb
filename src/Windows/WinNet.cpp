@@ -79,14 +79,13 @@ void WindowsNetworkDriver::DestroySocket(NetworkTCPSocket* socket)
 	delete socket;
 }
 
-HTTPRequest* WindowsNetworkDriver::CreateRequest(char* url)
+HTTPRequest* WindowsNetworkDriver::CreateRequest()
 {
 	for (int n = 0; n < MAX_CONCURRENT_REQUESTS; n++)
 	{
 		if (requests[n] == NULL)
 		{
 			requests[n] = new HTTPRequest();
-			requests[n]->Open(url);
 			return requests[n];
 		}
 	}

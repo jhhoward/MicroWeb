@@ -258,12 +258,33 @@ void AppInterface::Update()
 		}
 			break;
 
+#ifdef _WIN32
 		case 'n':
 		{
-#ifdef _WIN32
 			app.page.DebugDumpNodeGraph();
-#endif
 		}
+		break;
+
+		case 'h':
+		{
+			if (hoverNode != NULL)
+			{
+				app.page.DebugDumpNodeGraph(hoverNode, 0);
+			}
+			else
+			{
+				int buttons, mouseX, mouseY;
+				Platform::input->GetMouseStatus(buttons, mouseX, mouseY);
+
+				hoverNode = PickNode(mouseX, mouseY);
+				if (hoverNode != NULL)
+				{
+					app.page.DebugDumpNodeGraph(hoverNode, 0);
+				}
+			}
+		}
+		break;
+#endif
 
 		default:
 //			printf("%x\n", keyPress);

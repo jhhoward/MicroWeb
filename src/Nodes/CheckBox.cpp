@@ -9,8 +9,8 @@
 
 Node* CheckBoxNode::Construct(Allocator& allocator, const char* name, const char* value, bool isRadio, bool isChecked)
 {
-	name = allocator.AllocString(name);
-	value = allocator.AllocString(value);
+	name = name ? allocator.AllocString(name) : NULL;
+	value = value ? allocator.AllocString(value) : NULL;
 
 	CheckBoxNode::Data* data = allocator.Alloc<CheckBoxNode::Data>(name, value, isRadio, isChecked);
 	if (data)

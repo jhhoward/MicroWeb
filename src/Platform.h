@@ -73,7 +73,7 @@ public:
 	virtual NetworkTCPSocket* CreateSocket() { return NULL; }
 	virtual void DestroySocket(NetworkTCPSocket* socket) {}
 
-	virtual HTTPRequest* CreateRequest(char* url) { return NULL; }
+	virtual HTTPRequest* CreateRequest() { return NULL; }
 	virtual void DestroyRequest(HTTPRequest* request) {}
 };
 
@@ -96,6 +96,7 @@ public:
 	virtual bool GetMouseButtonRelease(int& x, int& y) = 0;
 
 	virtual InputButtonCode GetKeyPress() { return 0; }
+	virtual bool HasInputPending() { return false; }
 };
 
 class Platform

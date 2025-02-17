@@ -107,7 +107,7 @@ void DOSNetworkDriver::Update()
 	}
 }
 
-HTTPRequest* DOSNetworkDriver::CreateRequest(char* url)
+HTTPRequest* DOSNetworkDriver::CreateRequest()
 {
 	if (isConnected)
 	{
@@ -115,7 +115,6 @@ HTTPRequest* DOSNetworkDriver::CreateRequest(char* url)
 		{
 			if (requests[n]->GetStatus() == HTTPRequest::Stopped)
 			{
-				requests[n]->Open(url);
 				return requests[n];
 			}
 		}

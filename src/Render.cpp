@@ -263,7 +263,7 @@ void PageRenderer::Update()
 	if (isPaused)
 		return;
 
-	int itemsToRender = 5;
+	int itemsToRender = 30;
 
 	DrawContext itemContext;
 	InitContext(itemContext);
@@ -305,7 +305,16 @@ void PageRenderer::Update()
 		if (finishedRendering)
 		{
 			renderQueue.Dequeue();
-			itemsToRender = 0;
+
+			if (Platform::input->HasInputPending())
+			{
+				// Don't get stuck rendering a lot if there is input pending
+				break;
+			}
+		}
+		else
+		{
+			break;
 		}
 	}
 }	

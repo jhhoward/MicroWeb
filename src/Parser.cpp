@@ -488,6 +488,31 @@ void HTMLParser::FlushTextBuffer()
 	textBuffer[0] = '\0';
 }
 
+const char* HTMLParser::GetUnicodeString(int unicodePoint)
+{
+	TextEncodingPage* encodingPage = NULL;
+
+	if (unicodePoint >= 0x80 && unicodePoint <= 0xff)
+	{
+		encodingPage = &UTF8_Latin1Supplement;
+		unicodePoint -= 0x80;
+	}
+	else if (unicodePoint >= 0x100 && unicodePoint <= 0x17f)
+	{
+		encodingPage = &UTF8_LatinExtendedA;
+		unicodePoint -= 0x100;
+	}
+
+	if (encodingPage)
+	{
+		return encodingPage->replacement[unicodePoint];
+	}
+	else
+	{
+		return "?";
+	}
+}
+
 void HTMLParser::ReplaceAmpersandEscapeSequences(char* buffer, bool replaceNonBreakingSpace)
 {
 	while (*buffer)
@@ -522,14 +547,19 @@ void HTMLParser::ReplaceAmpersandEscapeSequences(char* buffer, bool replaceNonBr
 						number = atoi(buffer + 1);
 					}
 					buffer--;
-					if (number > FIRST_FONT_GLYPH && number <= LAST_FONT_GLYPH)
+
+					if (number > FIRST_FONT_GLYPH && number < 128)
 					{
 						*buffer = (char)(number);
 						strcpy(buffer + 1, nextBufferPosition);
 					}
 					else
 					{
-						strcpy(buffer, nextBufferPosition);
+						const char* unicodeReplacementText = GetUnicodeString(number);
+						int replacementTextLength = strlen(unicodeReplacementText);
+						memcpy(buffer, unicodeReplacementText, replacementTextLength);
+						strcpy(buffer + replacementTextLength, nextBufferPosition);
+						buffer += replacementTextLength - 1;
 					}
 				}
 				else
@@ -684,28 +714,11 @@ void HTMLParser::Parse(char* buffer, size_t count)
 					{
 						// Unicode point is complete
 						parsingUnicode = false;
-						TextEncodingPage* encodingPage = NULL;
 
-						if (unicodePoint >= 0x80 && unicodePoint <= 0xff)
+						const char* unicodeReplacement = GetUnicodeString(unicodePoint);
+						for (const char* s = unicodeReplacement; s && *s; s++)
 						{
-							encodingPage = &UTF8_Latin1Supplement;
-							unicodePoint -= 0x80;
-						}
-						else if (unicodePoint >= 0x100 && unicodePoint <= 0x17f)
-						{
-							encodingPage = &UTF8_LatinExtendedA;
-							unicodePoint -= 0x100;
-						}
-						if (encodingPage)
-						{
-							for (const char* s = encodingPage->replacement[unicodePoint]; s && *s; s++)
-							{
-								ParseChar(*s);
-							}
-						}
-						else
-						{
-							ParseChar('?');
+							ParseChar(*s);
 						}
 					}
 				}

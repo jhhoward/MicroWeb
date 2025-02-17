@@ -32,12 +32,15 @@ public:
 	virtual bool GetMouseButtonRelease(int& x, int& y);
 
 	virtual InputButtonCode GetKeyPress();
+	virtual bool HasInputPending();
 
 private:
 	MouseCursor::Type currentCursor;
 	bool mouseVisible;
 	bool hasMouse;
 	int mouseHideCount;
+
+	int queuedPressX, queuedPressY;
 };
 
 #endif

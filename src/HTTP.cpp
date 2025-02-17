@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "HTTP.h"
 
-HTTPRequest::HTTPRequest() : status(HTTPRequest::Stopped), sock(NULL)
+HTTPRequest::HTTPRequest() : status(HTTPRequest::Stopped), sock(NULL), requestOptions(NULL), requestType(HTTPRequest::Get)
 {
 	contentType[0] = '\0';
 }
@@ -74,9 +74,11 @@ void HTTPRequest::ResetTimeOutTimer()
 	timeout = clock() + HTTP_RESPONSE_TIMEOUT;
 }
 
-void HTTPRequest::Open(char* inURL)
+void HTTPRequest::Open(RequestType type, char* inURL, HTTPOptions* options)
 {
 	url = inURL;
+	requestType = type;
+	requestOptions = options;
 	Reset();
 
 	if (strnicmp(url.url, "http://", 7) == 0) {
@@ -88,7 +90,7 @@ void HTTPRequest::Open(char* inURL)
 		// level directory.
 
 		char* proxy = getenv("HTTP_PROXY");
-		//const char* proxy = "192.168.56.1:8888";
+		//const char* proxy = "127.0.0.1:8888";
 		if (proxy == NULL) {
 
 			char* pathStart = strchr(hostnameStart, '/');
@@ -182,7 +184,15 @@ size_t HTTPRequest::ReadData(char* buffer, size_t count)
 				contentRemaining -= bytesRead;
 				if (contentRemaining <= 0)
 				{
-					Stop();
+					if(requestOptions && requestOptions->keepAlive)
+					{
+						status = HTTPRequest::Finished;
+					}
+					else
+					{
+						Stop();
+					}
+					
 					return bytesRead;
 				}
 			}
@@ -192,7 +202,7 @@ size_t HTTPRequest::ReadData(char* buffer, size_t count)
 				chunkSizeRemaining -= bytesRead;
 				if (!chunkSizeRemaining)
 				{
-					internalStatus = ParseChunkHeader;
+					internalStatus = ParseChunkHeaderLineBreak;
 				}
 			}
 
@@ -223,7 +233,7 @@ void HTTPRequest::Update()
 {
 	if ((status == HTTPRequest::Connecting || status == HTTPRequest::Downloading) && clock() > timeout)
 	{
-		MarkError(TimedOut);
+		//MarkError(TimedOut);
 		return;
 	}
 
@@ -234,204 +244,244 @@ void HTTPRequest::Update()
 
 	switch (status)
 	{
-	case HTTPRequest::Connecting:
-	{
-		switch (internalStatus)
+		case HTTPRequest::Connecting:
 		{
-		case QueuedDNSRequest:
-		{
-			int rc = Platform::network->ResolveAddress(hostname, hostAddr, true);
-			if(rc > 0)
+			switch (internalStatus)
 			{
-				internalStatus = WaitingDNSResolve;
-			}
-			else if(rc == 0)
-			{
-				internalStatus = OpeningSocket;
-			}
-			else
-			{
-				MarkError(HostNameResolveError);
-			}
-		}
-		break;
-		case WaitingDNSResolve:
-		{
-			int8_t rc = Platform::network->ResolveAddress(hostname, hostAddr, false);
-			if (rc == 0)
-			{
-				internalStatus = OpeningSocket;
-			}
-			else if(rc < 0)
-			{
-				MarkError(HostNameResolveError);
-			}
-		}
-		break;
-		case OpeningSocket:
-		{
-			sock = Platform::network->CreateSocket();
-			if (!sock)
-			{
-				MarkError(SocketCreationError);
-			}
-
-			if (sock->Connect(hostAddr, serverPort))
-			{
-				MarkError(SocketCreationError);
-				break;
-			}
-			internalStatus = ConnectingSocket;
-			ResetTimeOutTimer();
-		}
-		break;
-		case ConnectingSocket:
-		{
-			if (sock->IsConnectComplete())
-			{
-				internalStatus = SendHeaders;
-				ResetTimeOutTimer();
-				break;
-			}
-			else if (sock->IsClosed())
-			{
-				MarkError(SocketConnectionError);
-				break;
-			}
-		}
-		break;
-		case SendHeaders:
-		{
-			WriteLine("GET %s HTTP/1.1", path);
-			WriteLine("User-Agent: MicroWeb " __DATE__);
-			WriteLine("Host: %s", hostname);
-			WriteLine("Accept-Encoding: identity");
-			WriteLine("Connection: close");
-			WriteLine("");
-			internalStatus = ReceiveHeaderResponse;
-		}
-		break;
-		case ReceiveHeaderResponse:
-		{
-			if (ReadLine())
-			{
-				if ((strncmp(lineBuffer, "HTTP/1.0", 8) != 0) && (strncmp(lineBuffer, "HTTP/1.1", 8) != 0)) {
-					MarkError(UnsupportedHTTPError);
-					return;
-				}
-
-				// Skip past HTTP version number
-				char* s = lineBuffer + 8;
-				char* s2 = s;
-
-				// Skip past whitespace
-				while (*s) {
-					if (*s != ' ' && *s != '\t') break;
-					s++;
-				}
-
-				if ((s == s2) || (*s == 0) || (sscanf(s, "%3d", &responseCode) != 1)) {
-					MarkError(MalformedHTTPVersionLineError);
-					return;
-				}
-
-				//printf("Response code: %d", responseCode);
-				//getchar();
-				internalStatus = ReceiveHeaderContent;
-
-				contentRemaining = -1;
-				usingChunkedTransfer = false;
-				contentType[0] = '\0';
-			}
-		}
-		break;
-		case ReceiveHeaderContent:
-		{
-			if (ReadLine())
-			{
-				if (lineBuffer[0] == '\0')
+				case QueuedDNSRequest:
 				{
-					if (contentRemaining == 0)
+					int rc = Platform::network->ResolveAddress(hostname, hostAddr, true);
+					if (rc > 0)
 					{
-						// Received header with zero content
-						MarkError(ContentReceiveError);
+						internalStatus = WaitingDNSResolve;
+					}
+					else if (rc == 0)
+					{
+						internalStatus = OpeningSocket;
 					}
 					else
 					{
-						// Header has finished
-						if (usingChunkedTransfer)
-						{
-							internalStatus = ParseChunkHeader;
-						}
-						else
-						{
-							status = Downloading;
-							internalStatus = ReceiveContent;
-						}
+						MarkError(HostNameResolveError);
 					}
-					break;
 				}
-				else if (!strnicmp(lineBuffer, "Location: ", 10))
+				break;
+				case WaitingDNSResolve:
 				{
-					if (responseCode == RESPONSE_MOVED_PERMANENTLY || responseCode == RESPONSE_MOVED_TEMPORARILY || responseCode == RESPONSE_TEMPORARY_REDIRECTION || responseCode == RESPONSE_PERMANENT_REDIRECT)
+					int8_t rc = Platform::network->ResolveAddress(hostname, hostAddr, false);
+					if (rc == 0)
 					{
-						//printf("Redirecting to %s", lineBuffer + 10);
-						//getchar();
-						Stop();
+						internalStatus = OpeningSocket;
+					}
+					else if (rc < 0)
+					{
+						MarkError(HostNameResolveError);
+					}
+				}
+				break;
+				case OpeningSocket:
+				{
+					sock = Platform::network->CreateSocket();
+					if (!sock)
+					{
+						MarkError(SocketCreationError);
+					}
 
-						char* redirectedAddress = lineBuffer + 10;
-						if (!strnicmp(redirectedAddress, "https://", 8) && !strnicmp(url.url, "http://", 7))
-						{
-							// Check if the redirected address is http -> https
-							if (!strcmp(url.url + 7, redirectedAddress + 8))
-							{
-								url = redirectedAddress;
-								status = HTTPRequest::UnsupportedHTTPS;
-								break;
-							}
-							else
-							{
-								// Attempt to change this to http:// instead
-								strcpy(redirectedAddress + 4, redirectedAddress + 5);
-							}
-						}
-
-						Open(redirectedAddress);
+					if (sock->Connect(hostAddr, serverPort))
+					{
+						MarkError(SocketCreationError);
+						break;
+					}
+					internalStatus = ConnectingSocket;
+					ResetTimeOutTimer();
+				}
+				break;
+				case ConnectingSocket:
+				{
+					if (sock->IsConnectComplete())
+					{
+						internalStatus = SendHeaders;
+						ResetTimeOutTimer();
+						break;
+					}
+					else if (sock->IsClosed())
+					{
+						MarkError(SocketConnectionError);
 						break;
 					}
 				}
-				else if (!strnicmp(lineBuffer, "Content-Length:", 15))
+				break;
+				case SendHeaders:
 				{
-					contentRemaining = strtol(lineBuffer + 15, NULL, 10);
+					switch (requestType)
+					{
+					case HTTPRequest::Post:
+						WriteLine("POST %s HTTP/1.1", path);
+						break;
+					case HTTPRequest::Get:
+						WriteLine("GET %s HTTP/1.1", path);
+						break;
+					}
+					WriteLine("User-Agent: MicroWeb " __DATE__);
+					WriteLine("Host: %s", hostname);
+					WriteLine("Accept-Encoding: identity");
+			
+					if(requestOptions && requestOptions->keepAlive)
+					{
+						WriteLine("Connection: keep-alive");
+					}
+					else
+					{
+						WriteLine("Connection: close");
+					}
+			
+					if(requestOptions && requestOptions->headerParams)
+					{
+						WriteLine("%s", requestOptions->headerParams);
+					}
+			
+					if(requestOptions && requestOptions->postContentType && requestOptions->contentData)
+					{
+						WriteLine("Content-Type: %s", requestOptions->postContentType);
+						WriteLine("Content-Length: %d", strlen(requestOptions->contentData));
+						WriteLine("");
+						WriteLine("%s", requestOptions->contentData);
+						WriteLine("");
+					}
+					else
+					{
+						WriteLine("");
+					}
+			
+					if(status != HTTPRequest::Error)
+					{
+						internalStatus = ReceiveHeaderResponse;
+					}
 				}
-				else if (!stricmp(lineBuffer, "Transfer-Encoding: chunked"))
+				break;
+				case ReceiveHeaderResponse:
 				{
-					usingChunkedTransfer = true;
-				}
-				else if (!strnicmp(lineBuffer, "Content-Type:", 13))
-				{
-					strncpy(contentType, lineBuffer + 14, MAX_CONTENT_TYPE_LENGTH);
-				}
+					if (ReadLine())
+					{
+						if ((strncmp(lineBuffer, "HTTP/1.0", 8) != 0) && (strncmp(lineBuffer, "HTTP/1.1", 8) != 0)) {
+							MarkError(UnsupportedHTTPError);
+							return;
+						}
 
-				//printf("Header: %s  -- \n", lineBuffer);
-				//getchar();
+						// Skip past HTTP version number
+						char* s = lineBuffer + 8;
+						char* s2 = s;
+
+						// Skip past whitespace
+						while (*s) {
+							if (*s != ' ' && *s != '\t') break;
+							s++;
+						}
+
+						if ((s == s2) || (*s == 0) || (sscanf(s, "%3d", &responseCode) != 1)) {
+							MarkError(MalformedHTTPVersionLineError);
+							return;
+						}
+
+						//printf("Response code: %d", responseCode);
+						//getchar();
+						internalStatus = ReceiveHeaderContent;
+
+						contentRemaining = -1;
+						usingChunkedTransfer = false;
+						contentType[0] = '\0';
+					}
+				}
+				break;
+				case ReceiveHeaderContent:
+				{
+					if (ReadLine())
+					{
+						if (lineBuffer[0] == '\0')
+						{
+							if (contentRemaining == 0)
+							{
+								// Received header with zero content
+								MarkError(ContentReceiveError);
+							}
+							else
+							{
+								// Header has finished
+								if (usingChunkedTransfer)
+								{
+									internalStatus = ParseChunkHeader;
+								}
+								else
+								{
+									status = Downloading;
+									internalStatus = ReceiveContent;
+								}
+							}
+							break;
+						}
+						else if (!strnicmp(lineBuffer, "Location: ", 10))
+						{
+							if (responseCode == RESPONSE_MOVED_PERMANENTLY || responseCode == RESPONSE_MOVED_TEMPORARILY || responseCode == RESPONSE_TEMPORARY_REDIRECTION || responseCode == RESPONSE_PERMANENT_REDIRECT)
+							{
+								//printf("Redirecting to %s", lineBuffer + 10);
+								//getchar();
+								Stop();
+
+								char* redirectedAddress = lineBuffer + 10;
+								if (!strnicmp(redirectedAddress, "https://", 8) && !strnicmp(url.url, "http://", 7))
+								{
+									// Check if the redirected address is http -> https
+									if (!strcmp(url.url + 7, redirectedAddress + 8))
+									{
+										url = redirectedAddress;
+										status = HTTPRequest::UnsupportedHTTPS;
+										break;
+									}
+									else
+									{
+										// Attempt to change this to http:// instead
+										strcpy(redirectedAddress + 4, redirectedAddress + 5);
+									}
+								}
+
+								Open(requestType, redirectedAddress);
+								break;
+							}
+						}
+						else if (!strnicmp(lineBuffer, "Content-Length:", 15))
+						{
+							contentRemaining = strtol(lineBuffer + 15, NULL, 10);
+						}
+						else if (!stricmp(lineBuffer, "Transfer-Encoding: chunked"))
+						{
+							usingChunkedTransfer = true;
+						}
+						else if (!strnicmp(lineBuffer, "Content-Type:", 13))
+						{
+							strncpy(contentType, lineBuffer + 14, MAX_CONTENT_TYPE_LENGTH);
+						}
+
+						//printf("Header: %s  -- \n", lineBuffer);
+						//getchar();
+					}
+				}
+				break;
 			}
 		}
 		break;
+
+		case HTTPRequest::Downloading:
+		{
+		}
+		break;
+	}
+
+	if (internalStatus == ParseChunkHeaderLineBreak)
+	{
+		if (ReadLine())
+		{
+			internalStatus = ParseChunkHeader;
 		}
 	}
-	break;
-
-	case HTTPRequest::Downloading:
-	{
-		//if (sock->isRemoteClosed())
-		//{
-		//	//status = HTTPRequest::Finished;
-		//}
-	}
-	break;
-	}
-
 	if (internalStatus == ParseChunkHeader)
 	{
 		if (ReadLine())
@@ -442,6 +492,10 @@ void HTTPRequest::Update()
 			{
 				status = Downloading;
 				internalStatus = ReceiveContent;
+			}
+			else
+			{
+				status = Finished;
 			}
 		}
 	}

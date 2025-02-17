@@ -60,8 +60,8 @@ public:
 	// Returns zero on success, negative number is error
 	virtual int ResolveAddress(const char* name, NetworkAddress address, bool sendRequest) override;
 
-	virtual HTTPRequest* CreateRequest(char* url);
-	virtual void DestroyRequest(HTTPRequest* request);
+	virtual HTTPRequest* CreateRequest() override;
+	virtual void DestroyRequest(HTTPRequest* request) override;
 
 	virtual NetworkTCPSocket* CreateSocket() override;
 	virtual void DestroySocket(NetworkTCPSocket* socket) override;

@@ -91,6 +91,7 @@ public:
 	static uint8_t ParseColourCode(const char* colourCode);
 
 	static void ReplaceAmpersandEscapeSequences(char* buffer, bool replaceNonBreakingSpace = true);
+	static const char* GetUnicodeString(int codePoint);
 
 	void Finish();
 	bool IsFinished() { return parseState == ParseFinished; }

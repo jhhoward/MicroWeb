@@ -116,6 +116,10 @@ void FormNode::SubmitForm(Node* node)
 
 		app.OpenURL(URL::GenerateFromRelative(app.page.pageURL.url, address).url);
 	}
+	else if (data->method == FormNode::Data::Post)
+	{
+		// TODO
+	}
 }
 
 void FormNode::OnSubmitButtonPressed(Node* node)

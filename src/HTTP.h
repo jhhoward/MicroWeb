@@ -19,6 +19,18 @@
 #define HTTP_RESPONSE_TIMEOUT_SECONDS 20
 #define HTTP_RESPONSE_TIMEOUT (HTTP_RESPONSE_TIMEOUT_SECONDS * CLOCKS_PER_SEC)
 
+struct HTTPOptions
+{
+	HTTPOptions() : postContentType(0), contentData(0), headerParams(0), keepAlive(false)
+	{
+	}
+	
+	const char* postContentType;
+	const char* contentData;
+	const char* headerParams;
+	bool keepAlive;
+};
+
 class HTTPRequest
 {
 public:
@@ -31,10 +43,16 @@ public:
 		Error,
 		UnsupportedHTTPS
 	};
+	
+	enum RequestType
+	{
+		Get,
+		Post
+	};
 
 	HTTPRequest();
 
-	void Open(char* url);
+	void Open(RequestType requestType, char* url, HTTPOptions* options = NULL);
 
 	HTTPRequest::Status GetStatus() { return status; }
 	size_t ReadData(char* buffer, size_t count);
@@ -69,6 +87,7 @@ private:
 		ReceiveHeaderResponse,
 		ReceiveHeaderContent,
 		ReceiveContent,
+		ParseChunkHeaderLineBreak,
 		ParseChunkHeader
 	};
 
@@ -92,6 +111,8 @@ private:
 	int responseCode;
 	char contentType[MAX_CONTENT_TYPE_LENGTH];
 
+	HTTPOptions* requestOptions;
+
 	char lineBuffer[LINE_BUFFER_SIZE];
 	int lineBufferSize;
 	int lineBufferSendPos;
@@ -102,6 +123,7 @@ private:
 	bool usingChunkedTransfer;
 	
 	clock_t timeout;
+	RequestType requestType;
 };
 
 

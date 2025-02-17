@@ -282,11 +282,15 @@ void LoadTask::Load(const char* targetURL)
 
 	if (type == LoadTask::RemoteFile)
 	{
-		request = Platform::network->CreateRequest(url.url);
-
-		if (App::config.dumpPage && this == &App::Get().pageLoadTask)
+		request = Platform::network->CreateRequest();
+		if (request)
 		{
-			debugDumpFile = fopen("dump.htm", "wb");
+			request->Open(HTTPRequest::Get, url.url);
+
+			if (App::config.dumpPage && this == &App::Get().pageLoadTask)
+			{
+				debugDumpFile = fopen("dump.htm", "wb");
+			}
 		}
 	}
 }
