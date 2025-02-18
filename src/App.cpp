@@ -103,7 +103,7 @@ void App::Run(int argc, char* argv[])
 
 	if (targetURL)
 	{
-		OpenURL(targetURL);
+		OpenURL(HTTPRequest::Get, targetURL);
 	}
 	else
 	{
@@ -220,7 +220,7 @@ void App::Run(int argc, char* argv[])
 	}
 }
 
-void LoadTask::Load(const char* targetURL)
+void LoadTask::Load(HTTPRequest::RequestType requestType, const char* targetURL, HTTPOptions* options)
 {
 	Stop();
 
@@ -285,7 +285,7 @@ void LoadTask::Load(const char* targetURL)
 		request = Platform::network->CreateRequest();
 		if (request)
 		{
-			request->Open(HTTPRequest::Get, url.url);
+			request->Open(requestType, url.url, options);
 
 			if (App::config.dumpPage && this == &App::Get().pageLoadTask)
 			{
@@ -383,13 +383,13 @@ size_t LoadTask::GetContent(char* buffer, size_t count)
 	return 0;
 }
 
-void App::RequestNewPage(const char* url)
+void App::RequestNewPage(HTTPRequest::RequestType requestType, const char* url, HTTPOptions* options)
 {
 	if (!url || !*url)
 		return;
 
 	StopLoad();
-	pageLoadTask.Load(url);
+	pageLoadTask.Load(requestType, url, options);
 	requestedNewPage = true;
 	loadTaskTargetNode = nullptr;
 	//ui.UpdateAddressBar(loadTask.url);
@@ -400,9 +400,9 @@ void App::RequestNewPage(const char* url)
 	}
 }
 
-void App::OpenURL(const char* url)
+void App::OpenURL(HTTPRequest::RequestType requestType, const char* url, HTTPOptions* options)
 {
-	RequestNewPage(url);
+	RequestNewPage(requestType, url, options);
 
 	size_t urlStringLength = strlen(url) + 1;
 
@@ -491,7 +491,7 @@ void App::PreviousPage()
 			pageHistoryPtr--;
 		} while (pageHistoryPtr > pageHistoryBuffer && pageHistoryPtr[-1]);
 
-		RequestNewPage(pageHistoryPtr);
+		RequestNewPage(HTTPRequest::Get, pageHistoryPtr);
 	}
 }
 
@@ -503,7 +503,7 @@ void App::NextPage()
 		if (next < pageHistoryBuffer + MAX_PAGE_HISTORY_BUFFER_SIZE && *next)
 		{
 			pageHistoryPtr = next;
-			RequestNewPage(pageHistoryPtr);
+			RequestNewPage(HTTPRequest::Get, pageHistoryPtr);
 		}
 	}
 }
@@ -512,7 +512,7 @@ void App::ReloadPage()
 {
 	if (*pageHistoryPtr)
 	{
-		RequestNewPage(pageHistoryPtr);
+		RequestNewPage(HTTPRequest::Get, pageHistoryPtr);
 	}
 }
 

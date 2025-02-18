@@ -90,7 +90,7 @@ void HTTPRequest::Open(RequestType type, char* inURL, HTTPOptions* options)
 		// level directory.
 
 		char* proxy = getenv("HTTP_PROXY");
-		//const char* proxy = "127.0.0.1:8888";
+		//const char* proxy = "127.0.0.1:8080";
 		if (proxy == NULL) {
 
 			char* pathStart = strchr(hostnameStart, '/');

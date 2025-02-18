@@ -6,6 +6,8 @@
 #include "CheckBox.h"
 #include "Select.h"
 
+#include "../HTTP.h"
+
 Node* FormNode::Construct(Allocator& allocator)
 {
 	FormNode::Data* data = allocator.Alloc<FormNode::Data>();
@@ -17,30 +19,30 @@ Node* FormNode::Construct(Allocator& allocator)
 	return nullptr;
 }
 
-void FormNode::AppendParameter(char* address, const char* name, const char* value, int& numParams)
+void FormNode::AppendParameter(char* address, const char* name, const char* value, int& numParams, size_t bufferLength)
 {
 	if (!name)
 		return;
 
 	if (numParams == 0)
 	{
-		strcat(address, "?");
+		strncat(address, "?", bufferLength);
 	}
 	else
 	{
-		strcat(address, "&");
+		strncat(address, "&", bufferLength);
 	}
-	strcat(address, name);
-	strcat(address, "=");
+	strncat(address, name, bufferLength);
+	strncat(address, "=", bufferLength);
 	if (value)
 	{
-		strcat(address, value);
+		strncat(address, value, bufferLength);
 	}
 	numParams++;
 
 }
 
-void FormNode::BuildAddressParameterList(Node* node, char* address, int& numParams)
+void FormNode::BuildAddressParameterList(Node* node, char* address, int& numParams, size_t bufferLength)
 {
 	switch(node->type)
 	{
@@ -50,7 +52,7 @@ void FormNode::BuildAddressParameterList(Node* node, char* address, int& numPara
 
 			if (fieldData->name && fieldData->buffer)
 			{
-				AppendParameter(address, fieldData->name, fieldData->buffer, numParams);
+				AppendParameter(address, fieldData->name, fieldData->buffer, numParams, bufferLength);
 			}
 		}
 		break;
@@ -60,7 +62,7 @@ void FormNode::BuildAddressParameterList(Node* node, char* address, int& numPara
 
 			if (checkboxData && checkboxData->isChecked && checkboxData->name && checkboxData->value)
 			{
-				AppendParameter(address, checkboxData->name, checkboxData->value, numParams);
+				AppendParameter(address, checkboxData->name, checkboxData->value, numParams, bufferLength);
 			}
 		}
 		break;
@@ -70,7 +72,7 @@ void FormNode::BuildAddressParameterList(Node* node, char* address, int& numPara
 
 			if (selectData && selectData->selected)
 			{
-				AppendParameter(address, selectData->name, selectData->selected->text, numParams);
+				AppendParameter(address, selectData->name, selectData->selected->text, numParams, bufferLength);
 			}
 		}
 		break;
@@ -78,7 +80,7 @@ void FormNode::BuildAddressParameterList(Node* node, char* address, int& numPara
 
 	for (node = node->firstChild; node; node = node->next)
 	{
-		BuildAddressParameterList(node, address, numParams);
+		BuildAddressParameterList(node, address, numParams, bufferLength);
 	}
 }
 
@@ -87,39 +89,52 @@ void FormNode::SubmitForm(Node* node)
 	FormNode::Data* data = static_cast<FormNode::Data*>(node->data);
 	App& app = App::Get();
 
-	if (data->method == FormNode::Data::Get)
+	char* address = app.ui.addressBarURL.url;
+	if (data->action)
 	{
-		char* address = app.ui.addressBarURL.url;
-		if (data->action)
-		{
-			strcpy(address, data->action);
-		}
-		int numParams = 0;
-
-		// Remove anything after existing ?
-		char* questionMark = strstr(address, "?");
-		if (questionMark)
-		{
-			*questionMark = '\0';
-		}
-
-		BuildAddressParameterList(node, address, numParams);
-
-		// Replace any spaces with +
-		for (char* p = address; *p; p++)
-		{
-			if (*p == ' ')
-			{
-				*p = '+';
-			}
-		}
-
-		app.OpenURL(URL::GenerateFromRelative(app.page.pageURL.url, address).url);
+		strncpy(address, data->action, MAX_URL_LENGTH);
 	}
-	else if (data->method == FormNode::Data::Post)
+	int numParams = 0;
+
+	// Remove anything after existing ?
+	char* questionMark = strstr(address, "?");
+	if (questionMark)
 	{
-		// TODO
+		*questionMark = '\0';
 	}
+
+	char* paramStart = address + strlen(address);
+
+	BuildAddressParameterList(node, address, numParams, MAX_URL_LENGTH);
+
+	// Replace any spaces with +
+	for (char* p = paramStart; *p; p++)
+	{
+		if (*p == ' ')
+		{
+			*p = '+';
+		}
+	}
+
+	if (data->method == FormNode::Data::Post)
+	{
+		static HTTPOptions postOptions;
+
+		postOptions.contentData = paramStart + 1;
+		postOptions.keepAlive = false;
+		postOptions.headerParams = NULL;
+		postOptions.postContentType = "application/x-www-form-urlencoded";
+
+		// Remove '?' from URL as params are passed as part of the POST request
+		*paramStart = '\0';
+
+		app.OpenURL(HTTPRequest::Post, URL::GenerateFromRelative(app.page.pageURL.url, address).url, &postOptions);
+	}
+	else
+	{
+		app.OpenURL(HTTPRequest::Get, URL::GenerateFromRelative(app.page.pageURL.url, address).url);
+	}
+
 }
 
 void FormNode::OnSubmitButtonPressed(Node* node)

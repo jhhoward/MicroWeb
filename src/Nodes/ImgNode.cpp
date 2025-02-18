@@ -145,7 +145,7 @@ void ImageNode::LoadContent(Node* node, LoadTask& loadTask)
 			if (!loadDimensionsOnly && App::Get().pageLoadTask.HasContent())
 				return;
 
-			loadTask.Load(URL::GenerateFromRelative(App::Get().page.pageURL.url, data->source).url);
+			loadTask.Load(HTTPRequest::Get, URL::GenerateFromRelative(App::Get().page.pageURL.url, data->source).url);
 			data->state = ImageNode::DeterminingFormat;
 		}
 	}

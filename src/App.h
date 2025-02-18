@@ -21,17 +21,19 @@
 #include "URL.h"
 #include "Interface.h"
 #include "Render.h"
+#include "HTTP.h"
 
 #define MAX_PAGE_HISTORY_BUFFER_SIZE MAX_URL_LENGTH
 #define APP_LOAD_BUFFER_SIZE 256
 
 class HTTPRequest;
+struct HTTPOptions;
 
 struct LoadTask
 {
 	LoadTask() : type(LocalFile), fs(NULL), debugDumpFile(NULL) {}
 
-	void Load(const char* url);
+	void Load(HTTPRequest::RequestType requestType, const char* url, HTTPOptions* options = NULL);
 	void Stop();
 	bool HasContent();
 	bool IsBusy();
@@ -75,7 +77,7 @@ public:
 
 	void Run(int argc, char* argv[]);
 	void Close() { running = false; }
-	void OpenURL(const char* url);
+	void OpenURL(HTTPRequest::RequestType requestType, const char* url, HTTPOptions* options = NULL);
 
 	void PreviousPage();
 	void NextPage();
@@ -100,7 +102,7 @@ public:
 
 private:
 	void ResetPage();
-	void RequestNewPage(const char* url);
+	void RequestNewPage(HTTPRequest::RequestType requestType, const char* url, HTTPOptions* options = NULL);
 
 	void ShowNoHTTPSPage();
 

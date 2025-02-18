@@ -50,7 +50,7 @@ bool LinkNode::HandleEvent(Node* node, const Event& event)
 		{
 			if (data->url)
 			{
-				App::Get().OpenURL(URL::GenerateFromRelative(App::Get().page.pageURL.url, data->url).url);
+				App::Get().OpenURL(HTTPRequest::Get, URL::GenerateFromRelative(App::Get().page.pageURL.url, data->url).url);
 			}
 			return true;
 		}
@@ -60,7 +60,7 @@ bool LinkNode::HandleEvent(Node* node, const Event& event)
 			{
 				if (data->url)
 				{
-					App::Get().OpenURL(URL::GenerateFromRelative(App::Get().page.pageURL.url, data->url).url);
+					App::Get().OpenURL(HTTPRequest::Get, URL::GenerateFromRelative(App::Get().page.pageURL.url, data->url).url);
 				}
 				return true;
 			}

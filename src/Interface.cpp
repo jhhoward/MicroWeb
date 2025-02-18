@@ -576,7 +576,7 @@ void AppInterface::OnAddressBarSubmit(Node* node)
 {
 	App& app = App::Get();
 	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
-	app.OpenURL(data->buffer);
+	app.OpenURL(HTTPRequest::Get, data->buffer);
 	app.ui.FocusNode(nullptr);
 }
 

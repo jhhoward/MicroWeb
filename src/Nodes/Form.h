@@ -30,8 +30,8 @@ public:
 	static void OnSubmitButtonPressed(Node* node);
 
 private:
-	static void BuildAddressParameterList(Node* node, char* address, int& numParams);
-	static void AppendParameter(char* address, const char* name, const char* value, int& numParams);
+	static void BuildAddressParameterList(Node* node, char* address, int& numParams, size_t bufferLength);
+	static void AppendParameter(char* address, const char* name, const char* value, int& numParams, size_t bufferLength);
 };
 
 #endif
