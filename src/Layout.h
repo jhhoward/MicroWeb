@@ -3,6 +3,8 @@
 #include "Node.h"
 #include "Stack.h"
 
+#define RESCALE_TO_FIT_SCREEN_WIDTH 1
+
 class Page;
 class Node;
 

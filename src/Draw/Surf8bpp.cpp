@@ -189,45 +189,48 @@ void DrawSurface_8BPP::DrawString(DrawContext& context, Font* font, const char* 
 		int outY = y;
 		uint8_t* VRAMptr = lines[y] + x;
 
-		for (uint8_t j = firstLine; j < glyphHeight; j++)
+		if (x >= 0)
 		{
-			if ((style & FontStyle::Italic) && j < (font->glyphHeight >> 1))
+			for (uint8_t j = firstLine; j < glyphHeight; j++)
 			{
-				VRAMptr++;
-			}
-
-			uint8_t boldCarry = 0;
-
-			for (uint8_t i = 0; i < glyphWidthBytes; i++)
-			{
-				uint8_t glyphPixels = *glyphData++;
-
-				if (bold)
+				if ((style & FontStyle::Italic) && j < (font->glyphHeight >> 1))
 				{
-					if (boldCarry)
-					{
-						boldCarry = glyphPixels & 1;
-						glyphPixels |= (glyphPixels >> 1) | 0x80;
-					}
-					else
-					{
-						boldCarry = glyphPixels & 1;
-						glyphPixels |= (glyphPixels >> 1);
-					}
-				}
-
-				for (uint8_t k = 0; k < 8; k++)
-				{
-					if (glyphPixels & (0x80 >> k))
-					{
-						*VRAMptr = colour;
-					}
 					VRAMptr++;
 				}
-			}
 
-			outY++;
-			VRAMptr = lines[outY] + x;
+				uint8_t boldCarry = 0;
+
+				for (uint8_t i = 0; i < glyphWidthBytes; i++)
+				{
+					uint8_t glyphPixels = *glyphData++;
+
+					if (bold)
+					{
+						if (boldCarry)
+						{
+							boldCarry = glyphPixels & 1;
+							glyphPixels |= (glyphPixels >> 1) | 0x80;
+						}
+						else
+						{
+							boldCarry = glyphPixels & 1;
+							glyphPixels |= (glyphPixels >> 1);
+						}
+					}
+
+					for (uint8_t k = 0; k < 8; k++)
+					{
+						if (glyphPixels & (0x80 >> k))
+						{
+							*VRAMptr = colour;
+						}
+						VRAMptr++;
+					}
+				}
+
+				outY++;
+				VRAMptr = lines[outY] + x;
+			}
 		}
 
 		x += glyphWidth;
@@ -240,7 +243,7 @@ void DrawSurface_8BPP::DrawString(DrawContext& context, Font* font, const char* 
 
 	if ((style & FontStyle::Underline) && y - firstLine + font->glyphHeight - 1 < context.clipBottom)
 	{
-		HLine(context, startX, y - firstLine + font->glyphHeight - 1 - context.drawOffsetY, x - startX - context.drawOffsetX, colour);
+		HLine(context, startX - context.drawOffsetX, y - firstLine + font->glyphHeight - 1 - context.drawOffsetY, x - startX, colour);
 	}
 
 }

@@ -338,6 +338,7 @@ void DrawSurface_4BPP::DrawString(DrawContext& context, Font* font, const char* 
 		int outY = y;
 		uint8_t* VRAMptr = lines[y] + (x >> 3);
 
+		if(x >= 0)
 		{
 			for (uint8_t j = firstLine; j < glyphHeight; j++)
 			{
@@ -389,7 +390,7 @@ void DrawSurface_4BPP::DrawString(DrawContext& context, Font* font, const char* 
 
 	if ((style & FontStyle::Underline) && y - firstLine + font->glyphHeight - 1 < context.clipBottom)
 	{
-		HLine(context, startX, y - firstLine + font->glyphHeight - 1 - context.drawOffsetY, x - startX - context.drawOffsetX, colour);
+		HLine(context, startX - context.drawOffsetX, y - firstLine + font->glyphHeight - 1 - context.drawOffsetY, x - startX, colour);
 	}
 
 	// Restore write mode 0

@@ -51,6 +51,7 @@ public:
 	bool IsInterfaceNode(Node* node);
 	bool IsOverNode(Node* node, int x, int y);
 
+	int GetScrollPositionX() { return scrollPositionX; }
 	int GetScrollPositionY() { return scrollPositionY; }
 	void ScrollRelative(int delta);
 	void ScrollAbsolute(int position);
@@ -98,6 +99,7 @@ private:
 	Node* statusBarNode;
 	Node* scrollBarNode;
 
+	int scrollPositionX;
 	int scrollPositionY;
 	int pageHeightForDimensionScaling;
 

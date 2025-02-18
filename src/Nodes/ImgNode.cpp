@@ -97,7 +97,7 @@ void ImageNode::GenerateLayout(Layout& layout, Node* node)
 {
 	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
 
-	if (!data->AreDimensionsLocked())
+	if (!data->AreDimensionsLocked() && RESCALE_TO_FIT_SCREEN_WIDTH)
 	{
 		if (data->image.width > layout.MaxAvailableWidth())
 		{

@@ -247,7 +247,7 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 					{
 						explicitWidth = maxConstrainedTableWidth;
 					}
-
+					
 					if (pass == 0)
 					{
 						if (data->columns[cell->columnIndex].preferredWidth < preferredWidth)
@@ -422,10 +422,10 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 				{
 					if (!data->columns[i].calculatedWidth)
 					{
-						if(data->columns[i].preferredWidth)
+						if (data->columns[i].preferredWidth)
 							data->columns[i].calculatedWidth = minCellWidth;
 					}
-					else
+					else if(RESCALE_TO_FIT_SCREEN_WIDTH)
 					{
 						data->columns[i].calculatedWidth = ((long)widthForSetCells * data->columns[i].calculatedWidth) / totalSetWidth;
 					}

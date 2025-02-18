@@ -53,6 +53,7 @@ void AppInterface::Init()
 
 void AppInterface::Reset()
 {
+	scrollPositionX = 0;
 	scrollPositionY = 0;
 	oldPageHeight = 0;
 
@@ -206,6 +207,15 @@ void AppInterface::Update()
 		case KEYCODE_ARROW_DOWN:
 			scrollDelta += 8;
 			break;
+		case KEYCODE_ARROW_LEFT:
+			if(scrollPositionX >= 8)
+				scrollPositionX -= 8;
+			app.pageRenderer.RefreshAll();
+			break;
+		case KEYCODE_ARROW_RIGHT:
+			scrollPositionX += 8;
+			app.pageRenderer.RefreshAll();
+			break;
 		case KEYCODE_PAGE_UP:
 			scrollDelta -= (windowRect.height - 24);
 			break;
@@ -332,7 +342,7 @@ bool AppInterface::IsOverNode(Node* node, int x, int y)
 	{
 		if (x >= windowRect.x && y >= windowRect.y && x < windowRect.x + windowRect.width && y < windowRect.y + windowRect.height)
 		{
-			x -= windowRect.x;
+			x -= windowRect.x - scrollPositionX;
 			y -= windowRect.y - scrollPositionY;
 			return node->IsPointInsideChildren(x, y);
 		}
@@ -351,7 +361,7 @@ Node* AppInterface::PickNode(int x, int y)
 
 	if (x >= windowRect.x && y >= windowRect.y && x < windowRect.x + windowRect.width && y < windowRect.y + windowRect.height)
 	{
-		int pageX = x - windowRect.x;
+		int pageX = x - windowRect.x + scrollPositionX;
 		int pageY = y - windowRect.y + scrollPositionY;
 
 		Node* pageRootNode = app.page.GetRootNode();

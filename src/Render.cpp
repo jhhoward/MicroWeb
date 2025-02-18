@@ -267,6 +267,7 @@ void PageRenderer::Update()
 
 	DrawContext itemContext;
 	InitContext(itemContext);
+	itemContext.drawOffsetX = -app.ui.GetScrollPositionX();
 	itemContext.drawOffsetY = GetDrawOffsetY();
 
 	while(renderQueue.Size() && itemsToRender)
@@ -443,7 +444,7 @@ void PageRenderer::GenerateDrawContext(DrawContext& context, Node* node)
 		context.clipRight = windowRect.x + windowRect.width;
 		context.clipTop = windowRect.y;
 		context.clipBottom = windowRect.y + windowRect.height;
-		context.drawOffsetX = windowRect.x;
+		context.drawOffsetX = windowRect.x - app.ui.GetScrollPositionX();
 		context.drawOffsetY = windowRect.y - app.ui.GetScrollPositionY();
 	}
 }
@@ -531,6 +532,7 @@ void PageRenderer::MarkNodeDirty(Node* dirtyNode)
 		DrawContext clearContext;
 		InitContext(clearContext);
 		clearContext.clipBottom = windowRect.y + windowRect.height;
+		clearContext.drawOffsetX = -app.ui.GetScrollPositionX();
 		clearContext.drawOffsetY = windowRect.y - app.ui.GetScrollPositionY();
 		clearContext.surface->FillRect(clearContext, dirtyNode->anchor.x, dirtyNode->anchor.y, dirtyNode->size.x, dirtyNode->size.y, app.page.colourScheme.pageColour);
 
@@ -580,6 +582,7 @@ void PageRenderer::InvertNode(Node* node)
 	//	invertContext.clipBottom = lowerContext.clipTop;
 	//}
 
+	invertContext.drawOffsetX = -app.ui.GetScrollPositionX();
 	invertContext.drawOffsetY = windowRect.y - app.ui.GetScrollPositionY();
 	invertContext.surface->InvertRect(invertContext, node->anchor.x, node->anchor.y, node->size.x, node->size.y);
 
