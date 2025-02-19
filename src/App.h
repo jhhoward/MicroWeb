@@ -39,6 +39,7 @@ struct LoadTask
 	bool IsBusy();
 	size_t GetContent(char* buffer, size_t count);
 	const char* GetURL();
+	const char* GetContentType();
 
 	enum Type
 	{

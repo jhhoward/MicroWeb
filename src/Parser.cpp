@@ -25,6 +25,8 @@
 #include "Nodes/Break.h"
 #include "Nodes/Select.h"
 #include "Nodes/Button.h"
+#include "Nodes/StyNode.h"
+#include "Nodes/ImgNode.h"
 #include "Memory/Memory.h"
 #include "App.h"
 
@@ -482,6 +484,11 @@ void HTMLParser::FlushTextBuffer()
 			return;
 		}
 		break;
+
+		case ParsePlainText:
+			if(textBufferSize)
+				EmitText(textBuffer);
+		break;
 	}
 	
 	textBufferSize = 0;
@@ -906,6 +913,31 @@ void HTMLParser::ParseChar(char c)
 			textBufferSize = 0;
 		}
 		break;
+
+		case ParsePlainText:
+		if (c == '\n')
+		{
+			FlushTextBuffer();
+
+			EmitNode(BreakNode::Construct(MemoryManager::pageAllocator));
+			// TODO-refactor
+			//page.BreakTextLine();
+			break;
+		}
+		else if (c == '\t')
+		{
+			int spaces = 8 - (textBufferSize % 8);
+			for (int i = 0; i < spaces; i++)
+			{
+				AppendTextBuffer(' ');
+			}
+		}
+		else if (c == '\r')
+		{
+			break;
+		}
+		else AppendTextBuffer(c);
+		break;
 	}
 	
 }
@@ -914,7 +946,7 @@ void HTMLParser::ParseChar(char c)
 // and we don't want to blow the stack with a huge buffer
 char AttributeParser::attributeStringBuffer[MAX_ATTRIBUTE_STRING_LENGTH];
 
-AttributeParser::AttributeParser(const char* inAttributeString) :key(NULL), value(NULL) 
+AttributeParser::AttributeParser(const char* inAttributeString, bool semiColonAsDivider) :key(NULL), value(NULL), useSemiColonAsDivider(semiColonAsDivider)
 {
 	strncpy(attributeStringBuffer, inAttributeString, MAX_ATTRIBUTE_STRING_LENGTH);
 	attributeStringBuffer[MAX_ATTRIBUTE_STRING_LENGTH - 1] = '\0';
@@ -1073,7 +1105,7 @@ bool AttributeParser::Parse()
 
 bool AttributeParser::IsWhiteSpace(char c)
 {
-	return c == ' ' || c == '\n' || c == '\t';
+	return c == ' ' || c == '\n' || c == '\t' || (useSemiColonAsDivider && c == ';');
 }
 
 NamedColour namedColours[] =
@@ -1148,3 +1180,44 @@ uint8_t HTMLParser::ParseColourCode(const char* colourCode)
 	return 0;
 }
 
+void HTMLParser::SetContentType(const char* contentType)
+{
+	AttributeParser contentTypeParser(contentType, true);
+
+	while (contentTypeParser.Parse())
+	{
+		if (!stricmp(contentTypeParser.Key(), "charset"))
+		{
+			if (!stricmp(contentTypeParser.Value(), "utf-8"))
+			{
+				SetTextEncoding(TextEncoding::UTF8);
+			}
+			else if (!stricmp(contentTypeParser.Value(), "ISO-8859-1"))
+			{
+				SetTextEncoding(TextEncoding::ISO_8859_1);
+			}
+			else if (!stricmp(contentTypeParser.Value(), "ISO-8859-2"))
+			{
+				SetTextEncoding(TextEncoding::ISO_8859_2);
+			}
+			else if (!stricmp(contentTypeParser.Value(), "Windows-1252"))
+			{
+				SetTextEncoding(TextEncoding::ISO_8859_1);
+			}
+		}
+		if (!stricmp(contentTypeParser.Key(), "text/plain"))
+		{
+			parseState = ParsePlainText;
+			PushContext(StyleNode::ConstructFontStyle(MemoryManager::pageAllocator, FontStyle::Monospace, 0), nullptr);
+			PushPreFormatted();
+		}
+		if (!stricmp(contentTypeParser.Key(), "image/gif") || !stricmp(contentTypeParser.Key(), "image/png") || !stricmp(contentTypeParser.Key(), "image/jpeg"))
+		{
+			Node* imageNode = ImageNode::Construct(MemoryManager::pageAllocator);
+			ImageNode::Data* data = static_cast<ImageNode::Data*>(imageNode->data);
+			data->source = MemoryManager::pageAllocator.AllocString(page.pageURL.url);
+			EmitNode(imageNode);
+			Finish();
+		}
+	}
+}

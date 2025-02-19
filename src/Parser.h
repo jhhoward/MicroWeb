@@ -46,7 +46,7 @@ struct HTMLParseContext
 class AttributeParser
 {
 public:
-	AttributeParser(const char* inAttributeString);
+	AttributeParser(const char* inAttributeString, bool useSemiColonAsDivider = false);
 	bool Parse();
 	
 	const char* Key() { return key; }
@@ -60,6 +60,7 @@ private:
 	char* key;
 	char* value;
 	char* attributeString;
+	bool useSemiColonAsDivider;
 };
 
 class HTMLParser
@@ -68,6 +69,7 @@ public:
 	HTMLParser(Page& page);
 
 	void Reset();
+	void SetContentType(const char* contentType);
 	void Parse(char* buffer, size_t count);
 	void Write(const char* str);
 
@@ -113,7 +115,8 @@ private:
 		ParseTag,
 		ParseAmpersandEscape,
 		ParseComment,
-		ParseFinished
+		ParseFinished,
+		ParsePlainText
 	};
 	
 	ParseState parseState;

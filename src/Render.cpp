@@ -499,13 +499,16 @@ void PageRenderer::MarkNodeLayoutComplete(Node* node)
 void PageRenderer::MarkNodeDirty(Node* dirtyNode)
 {
 	// Check this is in a completed layout
-	for (Node* node = app.page.GetRootNode(); node; node = node->GetNextInTree())
+	if (!app.page.layout.IsFinished())
 	{
-		if (node == lastCompleteNode)
-			return;
+		for (Node* node = app.page.GetRootNode(); node; node = node->GetNextInTree())
+		{
+			if (node == lastCompleteNode)
+				return;
 
-		if (node == dirtyNode)
-			break;
+			if (node == dirtyNode)
+				break;
+		}
 	}
 
 	Rect& windowRect = app.ui.windowRect;

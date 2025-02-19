@@ -124,6 +124,7 @@ void App::Run(int argc, char* argv[])
 				ui.UpdateAddressBar(page.pageURL);
 				loadTaskTargetNode = page.GetRootNode();
 				ui.SetStatusMessage("Parsing page content...", StatusBarNode::GeneralStatus);
+				parser.SetContentType(pageLoadTask.GetContentType());
 			}
 
 			size_t bytesRead = pageLoadTask.GetContent(loadBuffer, APP_LOAD_BUFFER_SIZE);
@@ -381,6 +382,46 @@ size_t LoadTask::GetContent(char* buffer, size_t count)
 		}
 	}
 	return 0;
+}
+
+const char* LoadTask::GetContentType()
+{
+	if (type == LoadTask::RemoteFile)
+	{
+		return request->GetContentType();
+	}
+	else
+	{
+		const char* extension = url.url + strlen(url.url);
+		while (extension > url.url)
+		{
+			extension--;
+			if (*extension == '.')
+			{
+				extension++;
+				if (!stricmp(extension, "gif"))
+				{
+					return "image/gif";
+				}
+				else if (!stricmp(extension, "png"))
+				{
+					return "image/png";
+				}
+				else if (!stricmp(extension, "jpeg") || !stricmp(extension, "jpg"))
+				{
+					return "image/jpeg";
+				}
+				else if (!stricmp(extension, "htm") || !stricmp(extension, "html"))
+				{
+					return "text/html";
+				}
+
+				return "text/plain";
+			}
+		}
+
+		return "text/html";
+	}
 }
 
 void App::RequestNewPage(HTTPRequest::RequestType requestType, const char* url, HTTPOptions* options)
