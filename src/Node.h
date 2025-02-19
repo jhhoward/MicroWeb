@@ -23,6 +23,8 @@ public:
 	virtual void EndLayoutContext(Layout& layout, Node* node);
 	virtual void ApplyStyle(Node* node) {}
 	virtual Node* Pick(Node* node, int x, int y);
+	Node* PickLeafChild(Node* node, int x, int y);
+
 	virtual bool CanPick(Node* node) { return false; }
 	virtual bool HandleEvent(Node* node, const Event& event) { return false; }
 

@@ -84,6 +84,8 @@ private:
 	static void OnAddressBarSubmit(Node* node);
 	static void OnScrollBarMoved(Node* node);
 
+	void TransformScreenToPage(int& x, int& y);
+
 	App& app;
 
 	Node* focusedNode;

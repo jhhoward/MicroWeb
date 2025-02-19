@@ -21,7 +21,7 @@ public:
 	class Data
 	{
 	public:
-		Data() : source(nullptr), altText(nullptr), state(WaitingToDownload) {}
+		Data() : source(nullptr), altText(nullptr), state(WaitingToDownload), isMap(false) {}
 		bool HasDimensions() { return image.width > 0 && image.height > 0; }
 		bool AreDimensionsLocked() { return state == DownloadingContent || state == FinishedDownloadingContent || state == ErrorDownloading; }
 		bool IsBrokenImageWithoutDimensions();
@@ -29,6 +29,7 @@ public:
 		const char* source;
 		char* altText;
 		State state;
+		bool isMap;
 
 		ExplicitDimension explicitWidth;
 		ExplicitDimension explicitHeight;

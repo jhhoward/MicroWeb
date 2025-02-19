@@ -342,8 +342,7 @@ bool AppInterface::IsOverNode(Node* node, int x, int y)
 	{
 		if (x >= windowRect.x && y >= windowRect.y && x < windowRect.x + windowRect.width && y < windowRect.y + windowRect.height)
 		{
-			x -= windowRect.x - scrollPositionX;
-			y -= windowRect.y - scrollPositionY;
+			TransformScreenToPage(x, y);
 			return node->IsPointInsideChildren(x, y);
 		}
 		return false;
@@ -361,20 +360,30 @@ Node* AppInterface::PickNode(int x, int y)
 
 	if (x >= windowRect.x && y >= windowRect.y && x < windowRect.x + windowRect.width && y < windowRect.y + windowRect.height)
 	{
-		int pageX = x - windowRect.x + scrollPositionX;
-		int pageY = y - windowRect.y + scrollPositionY;
+		TransformScreenToPage(x, y);
 
 		Node* pageRootNode = app.page.GetRootNode();
-		return pageRootNode->Handler().Pick(pageRootNode, pageX, pageY);
+		return pageRootNode->Handler().Pick(pageRootNode, x, y);
 	}
 
 	return nullptr;
 }
 
+void AppInterface::TransformScreenToPage(int& x, int& y)
+{
+	x -= windowRect.x - scrollPositionX;
+	y -= windowRect.y - scrollPositionY;
+}
+
+
 void AppInterface::HandleClick(int mouseX, int mouseY)
 {
 	if (hoverNode)
 	{
+		if (!IsInterfaceNode(hoverNode))
+		{
+			TransformScreenToPage(mouseX, mouseY);
+		}
 		hoverNode->Handler().HandleEvent(hoverNode, Event(app, Event::MouseClick, mouseX, mouseY));
 	}
 	else if (focusedNode)
@@ -387,6 +396,11 @@ void AppInterface::HandleDrag(int mouseX, int mouseY)
 {
 	if (focusedNode)
 	{
+		if (!IsInterfaceNode(hoverNode))
+		{
+			TransformScreenToPage(mouseX, mouseY);
+		}
+
 		focusedNode->Handler().HandleEvent(focusedNode, Event(app, Event::MouseDrag, mouseX, mouseY));
 	}
 }
@@ -395,9 +409,13 @@ void AppInterface::HandleRelease(int mouseX, int mouseY)
 {
 	if (focusedNode)
 	{
+		if (!IsInterfaceNode(hoverNode))
+		{
+			TransformScreenToPage(mouseX, mouseY);
+		}
+
 		focusedNode->Handler().HandleEvent(focusedNode, Event(app, Event::MouseRelease, mouseX, mouseY));
 	}
-
 }
 
 void AppInterface::UpdateAddressBar(const URL& url)

@@ -3,6 +3,7 @@
 #include "../Event.h"
 #include "../App.h"
 #include "../KeyCodes.h"
+#include "ImgNode.h"
 
 void LinkNode::ApplyStyle(Node* node)
 {
@@ -50,7 +51,22 @@ bool LinkNode::HandleEvent(Node* node, const Event& event)
 		{
 			if (data->url)
 			{
-				App::Get().OpenURL(HTTPRequest::Get, URL::GenerateFromRelative(App::Get().page.pageURL.url, data->url).url);
+				Node* leafNode = PickLeafChild(node, event.x, event.y);
+
+				if (leafNode && leafNode->type == Node::Image && (static_cast<ImageNode::Data*>(leafNode->data))->isMap)
+				{
+					int x = event.x - leafNode->anchor.x;
+					int y = event.y - leafNode->anchor.y;
+
+					char* buffer = (char*) URL::GenerateFromRelative(App::Get().page.pageURL.url, data->url).url;
+					size_t bufferSpace = MAX_URL_LENGTH - strlen(buffer) - 1;
+					snprintf(buffer + strlen(buffer), bufferSpace, "?%d,%d", x, y);
+					App::Get().OpenURL(HTTPRequest::Get, buffer);
+				}
+				else
+				{
+					App::Get().OpenURL(HTTPRequest::Get, URL::GenerateFromRelative(App::Get().page.pageURL.url, data->url).url);
+				}
 			}
 			return true;
 		}

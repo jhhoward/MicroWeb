@@ -209,6 +209,30 @@ Node* NodeHandler::Pick(Node* node, int x, int y)
 	return nullptr;
 }
 
+Node* NodeHandler::PickLeafChild(Node* node, int x, int y)
+{
+	if (!node || (!node->size.IsZero() && !node->IsPointInsideNode(x, y)))
+	{
+		return nullptr;
+	}
+
+	for (Node* it = node->firstChild; it; it = it->next)
+	{
+		Node* result = it->Handler().PickLeafChild(it, x, y);
+		if (result)
+		{
+			return result;
+		}
+	}
+
+	if (!node->size.IsZero() && node->IsPointInsideNode(x, y))
+	{
+		return node;
+	}
+
+	return nullptr;
+}
+
 void NodeHandler::EndLayoutContext(Layout& layout, Node* node)
 {
 }

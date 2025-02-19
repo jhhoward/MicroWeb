@@ -517,6 +517,10 @@ void ImgTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 				{
 					data->explicitHeight = ExplicitDimension::Parse(attributes.Value());
 				}
+				else if (!stricmp(attributes.Key(), "ismap"))
+				{
+					data->isMap = true;
+				}
 			}
 
 			parser.EmitNode(imageNode);
