@@ -109,7 +109,7 @@ bool ButtonNode::HandleEvent(Node* node, const Event& event)
 		{
 			InvertButton(node);
 			ui.FocusNode(nullptr);
-			if (ui.IsOverNode(node, event.x, event.y))
+			if (node->IsPointInsideNode(event.x, event.y))
 			{
 				if (data->onClick)
 				{
