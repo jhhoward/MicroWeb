@@ -36,7 +36,27 @@ HWND hWnd;
 
 bool Platform::Init(int argc, char* argv[])
 {
-	VideoModeInfo* videoMode = ShowVideoModePicker(8);
+	VideoModeInfo* videoMode = nullptr;
+
+	// Check for video mode argument
+	for (int n = 1; n < argc; n++)
+	{
+		if (strstr(argv[n], "-video=") == argv[n])
+		{
+			int chosenMode = tolower(argv[n][7]) - 'a';
+			if (chosenMode >= 0 && chosenMode < GetNumVideoModes())
+			{
+				videoMode = &VideoModeList[chosenMode];
+			}
+			break;
+		}
+	}
+
+	if (!videoMode)
+	{
+		videoMode = ShowVideoModePicker(8);
+	}
+
 	if (!videoMode)
 	{
 		return false;

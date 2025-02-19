@@ -21,7 +21,8 @@ VideoModeInfo VideoModeList[] =
 	{ "240x128 monochrome (HP 95LX)",					0x20,			240,		128,		DrawSurface::Format_1BPP,			100,		50,			DataPack::Lowres,	0xb000,										 },
 	{ "640x200 16 colours (Amstrad PC1512)",			6,				640,		200,		DrawSurface::Format_4BPP_PC1512,	240,		100,		DataPack::CGA,		0xb800,		0xba00							 },
 #ifdef _WIN32
-	{ "800x600 256 colours",							0x12,			800,		600,		DrawSurface::Format_8BPP,			100,		100,		DataPack::Default,	0xa000,										 },
+	{ "640x480 256 colours zoomed",						0x12,			640,		480,		DrawSurface::Format_8BPP,			100,		80,			DataPack::Default,	0xa000,									},
+	{ "800x600 256 colours",							0x12,			800,		600,		DrawSurface::Format_8BPP,			100,		100,		DataPack::Default,	0xa000,									},
 #endif
 	{ nullptr }
 };
@@ -56,4 +57,9 @@ VideoModeInfo* ShowVideoModePicker(int defaultSelection)
 	}
 
 	return nullptr;
+}
+
+int GetNumVideoModes()
+{
+	return sizeof(VideoModeList) / sizeof(VideoModeInfo);
 }

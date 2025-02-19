@@ -164,8 +164,28 @@ bool Platform::Init(int argc, char* argv[])
 	}
 	else FatalError("Could not create network driver");
 
-	int suggestedMode = AutoDetectVideoMode();
-	VideoModeInfo* videoMode = ShowVideoModePicker(suggestedMode);
+	VideoModeInfo* videoMode = nullptr;
+
+	// Check for video mode argument
+	for (int n = 1; n < argc; n++)
+	{
+		if (strstr(argv[n], "-video=") == argv[n])
+		{
+			int chosenMode = tolower(argv[n][7]) - 'a';
+			if (chosenMode >= 0 && chosenMode < GetNumVideoModes())
+			{
+				videoMode = &VideoModeList[chosenMode];
+			}
+			break;
+		}
+	}
+
+	if (!videoMode)
+	{
+		int suggestedMode = AutoDetectVideoMode();
+		videoMode = ShowVideoModePicker(suggestedMode);
+	}
+
 	if (!videoMode)
 	{
 		return false;

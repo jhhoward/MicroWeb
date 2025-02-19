@@ -74,7 +74,7 @@ void App::Run(int argc, char* argv[])
 			{
 				config.dumpPage = true;
 			}
-			else if (!stricmp(argv[n], "-i"))
+			else if (!stricmp(argv[n], "-invert"))
 			{
 				config.invertScreen = true;
 			}
