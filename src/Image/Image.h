@@ -17,9 +17,10 @@ struct Image : ImageMetadata
 {
 	Image() 
 	{
-		width = height = pitch = bpp = 0;
+		width = height = pitch = bpp = sourceWidth = sourceHeight = 0;
 	}
 	MemBlockHandle lines;
+	uint16_t sourceWidth, sourceHeight;
 };
 
 #endif

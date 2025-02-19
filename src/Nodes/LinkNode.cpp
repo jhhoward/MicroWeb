@@ -55,8 +55,12 @@ bool LinkNode::HandleEvent(Node* node, const Event& event)
 
 				if (leafNode && leafNode->type == Node::Image && (static_cast<ImageNode::Data*>(leafNode->data))->isMap)
 				{
+					ImageNode::Data* imageData = static_cast<ImageNode::Data*>(leafNode->data);
 					int x = event.x - leafNode->anchor.x;
 					int y = event.y - leafNode->anchor.y;
+
+					x = ((long)x * imageData->image.sourceWidth) / leafNode->size.x;
+					y = ((long)y * imageData->image.sourceHeight) / leafNode->size.y;
 
 					char* buffer = (char*) URL::GenerateFromRelative(App::Get().page.pageURL.url, data->url).url;
 					size_t bufferSpace = MAX_URL_LENGTH - strlen(buffer) - 1;

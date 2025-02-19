@@ -29,6 +29,7 @@
 #include "Nodes/ImgNode.h"
 #include "Memory/Memory.h"
 #include "App.h"
+#include "DataPack.h"
 
 // debug
 #include "Platform.h"
@@ -917,9 +918,11 @@ void HTMLParser::ParseChar(char c)
 		case ParsePlainText:
 		if (c == '\n')
 		{
+			bool isEmptyLine = textBufferSize == 0;
 			FlushTextBuffer();
 
-			EmitNode(BreakNode::Construct(MemoryManager::pageAllocator));
+			int padding = Assets.GetFont(0, FontStyle::Monospace)->glyphHeight;
+			EmitNode(BreakNode::Construct(MemoryManager::pageAllocator, isEmptyLine ? padding : 0));
 			// TODO-refactor
 			//page.BreakTextLine();
 			break;
@@ -1205,13 +1208,13 @@ void HTMLParser::SetContentType(const char* contentType)
 				SetTextEncoding(TextEncoding::ISO_8859_1);
 			}
 		}
-		if (!stricmp(contentTypeParser.Key(), "text/plain"))
+		else if (!stricmp(contentTypeParser.Key(), "text/plain"))
 		{
 			parseState = ParsePlainText;
 			PushContext(StyleNode::ConstructFontStyle(MemoryManager::pageAllocator, FontStyle::Monospace, 0), nullptr);
 			PushPreFormatted();
 		}
-		if (!stricmp(contentTypeParser.Key(), "image/gif") || !stricmp(contentTypeParser.Key(), "image/png") || !stricmp(contentTypeParser.Key(), "image/jpeg"))
+		else if (!stricmp(contentTypeParser.Key(), "image/gif") || !stricmp(contentTypeParser.Key(), "image/png") || !stricmp(contentTypeParser.Key(), "image/jpeg"))
 		{
 			Node* imageNode = ImageNode::Construct(MemoryManager::pageAllocator);
 			ImageNode::Data* data = static_cast<ImageNode::Data*>(imageNode->data);
