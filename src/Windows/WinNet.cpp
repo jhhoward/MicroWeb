@@ -153,6 +153,7 @@ int WindowsTCPSocket::Send(uint8_t* data, int length)
 			// Send data to the server
 			result = send(sock, (const char*)data, length, 0);
 			if (result == SOCKET_ERROR) {
+				printf("Error: %d\n", WSAGetLastError());
 				// Failed to send data to the server
 				Close();
 				return -1;
@@ -209,6 +210,7 @@ int WindowsTCPSocket::Connect(NetworkAddress address, int port)
 
 	int result = connect(sock, (sockaddr*)&serverAddr, sizeof(serverAddr));
 	if (result == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK) {
+		printf("Error connecting socket: %d\n", WSAGetLastError());
 		return -1;
 	}
 
@@ -217,7 +219,43 @@ int WindowsTCPSocket::Connect(NetworkAddress address, int port)
 
 bool WindowsTCPSocket::IsConnectComplete()
 {
-	return sock != INVALID_SOCKET;
+	fd_set writefds;
+	fd_set exceptfds;
+	FD_ZERO(&writefds);
+	FD_ZERO(&exceptfds);
+
+	FD_SET(sock, &writefds);
+	FD_SET(sock, &exceptfds);
+
+	timeval timeout;
+	timeout.tv_sec = 0; // 0 seconds timeout
+	timeout.tv_usec = 0;
+
+	int result = select(0, NULL, &writefds, &exceptfds, &timeout);
+
+	if (result > 0)
+	{
+		if (FD_ISSET(sock, &exceptfds))
+		{
+			int error = 0;
+			int len = sizeof(error);
+			if (getsockopt(sock, SOL_SOCKET, SO_ERROR, (char*)&error, &len) == 0)
+			{
+				printf("Socket error occurred: %d\n", error);
+			}
+			Close();
+		}
+		else if (FD_ISSET(sock, &writefds))
+		{
+			return true;
+		}
+	}
+	else if (result < 0)
+	{
+		Close();
+	}
+
+	return false;
 }
 
 bool WindowsTCPSocket::IsClosed()
