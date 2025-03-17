@@ -59,6 +59,9 @@ Node::Node(Type inType, void* inData)
 
 void Node::AddChild(Node* child)
 {
+	if (!child)
+		return;
+
 	child->parent = this;
 	child->styleHandle = styleHandle;
 

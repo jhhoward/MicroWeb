@@ -193,6 +193,10 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 			if (!subTextNode)
 			{
 				subTextNode = SubTextElement::Construct(MemoryManager::pageAllocator, emitStartPosition, emitLength);
+
+				if (!subTextNode)
+					break;
+
 				node->AddChild(subTextNode);
 			}
 			else
