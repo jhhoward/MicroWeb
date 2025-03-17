@@ -139,7 +139,7 @@ void HTMLParser::PopContext(const HTMLTagHandler* tag)
 #ifdef WIN32
 				page.DebugDumpNodeGraph();
 #endif
-				Finish();
+				//Finish();
 				//page.GetApp().pageRenderer.RefreshAll();
 				//page.GetApp().pageRenderer.MarkPageLayoutComplete();
 			}
@@ -169,6 +169,7 @@ const char* ampersandEscapeSequences[] =
 	"nbsp",			"\x1f",
 	"laquo",		"<<",
 	"raquo",		">>",
+	"bull",			"\x95",
 	"iexcl",		"\xA1",					//	¡	161	&iexcl;	inverted exclamation mark
 	"cent",			"\xA2",					//	¢	162	&cent;	cent sign
 	"pound",		"\xA3",					//	£	163	&pound;	pound sign
@@ -374,9 +375,9 @@ void HTMLParser::FlushTextBuffer()
 						break;
 					case SectionElement::Script:
 					case SectionElement::Style:
-					case SectionElement::Document:
 						break;
 					default:
+					case SectionElement::Document:
 					case SectionElement::Body:
 					case SectionElement::HTML:
 						EmitText(textBuffer);
