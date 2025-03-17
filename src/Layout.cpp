@@ -96,14 +96,15 @@ void Layout::Update()
 
 	if (!isFinished && App::Get().parser.IsFinished() && !currentNodeToProcess)
 	{
+		page.GetApp().pageRenderer.MarkPageLayoutComplete();
+
 		if (!MemoryManager::pageAllocator.GetError())
 		{
-			page.GetApp().pageRenderer.MarkPageLayoutComplete();
+			// Layout has finished so now we can load image content
+			App::Get().LoadImageNodeContent(page.GetRootNode());
+			page.GetApp().ui.SetStatusMessage("Loading images...", StatusBarNode::GeneralStatus);
 		}
 
-		// Layout has finished so now we can load image content
-		App::Get().LoadImageNodeContent(page.GetRootNode());
-		page.GetApp().ui.SetStatusMessage("Loading images...", StatusBarNode::GeneralStatus);
 		isFinished = true;
 	}
 }
