@@ -13,6 +13,7 @@ void HTTPRequest::Reset()
 	lineBufferSize = 0;
 	lineBufferSendPos = -1;
 	contentType[0] = '\0';
+	contentSize = 0;
 }
 
 void HTTPRequest::WriteLine(const char* fmt, ...)
@@ -449,7 +450,7 @@ void HTTPRequest::Update()
 						}
 						else if (!strnicmp(lineBuffer, "Content-Length:", 15))
 						{
-							contentRemaining = strtol(lineBuffer + 15, NULL, 10);
+							contentSize = contentRemaining = strtol(lineBuffer + 15, NULL, 10);
 						}
 						else if (!stricmp(lineBuffer, "Transfer-Encoding: chunked"))
 						{

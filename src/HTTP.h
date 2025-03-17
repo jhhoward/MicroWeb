@@ -61,6 +61,7 @@ public:
 	const char* GetStatusString();
 	const char* GetURL() { return url.url; }
 	const char* GetContentType() { return contentType; }
+	long GetContentSize() { return contentSize;  }
 
 private:
 	enum InternalStatus
@@ -81,6 +82,7 @@ private:
 		// Connection states
 		QueuedDNSRequest,
 		WaitingDNSResolve,
+		CreatingSocket,
 		OpeningSocket,
 		ConnectingSocket,
 		SendHeaders,
@@ -118,6 +120,7 @@ private:
 	int lineBufferSendPos;
 
 	long contentRemaining;
+	long contentSize;
 
 	long chunkSizeRemaining;
 	bool usingChunkedTransfer;
