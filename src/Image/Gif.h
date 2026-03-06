@@ -5,7 +5,7 @@
 #include "Decoder.h"
 
 #define GIF_MAX_LZW_CODE_LENGTH 12
-#define GIF_MAX_DICTIONARY_ENTRIES (1 << (GIF_MAX_LZW_CODE_LENGTH + 1))
+#define GIF_MAX_DICTIONARY_ENTRIES (1 << (GIF_MAX_LZW_CODE_LENGTH))
 
 #define GIF_INTERLACE_BIT 0x40
 #define GIF_LINE_BUFFER_MAX_SIZE 640
@@ -71,7 +71,6 @@ private:
 	{
 		uint8_t byte;
 		int16_t prev;
-		uint16_t len;
 	};
 
 	struct GraphicControlExtension

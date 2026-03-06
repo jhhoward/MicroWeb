@@ -361,23 +361,7 @@ void GifDecoder::Process(uint8_t* data, size_t dataLength)
 									ptr = dictionary[ptr].prev;
 								}
 								dictionary[dictionaryIndex].byte = dictionary[ptr].byte;
-
 								dictionary[dictionaryIndex].prev = prev;
-								if (prev != -1)
-								{
-									/*if (dictionary[prev].len == 255)
-									{
-										DEBUG_MESSAGE("Dictionary entry length too long");
-										state = ImageDecoder::Error;
-										return;
-									}*/
-
-									dictionary[dictionaryIndex].len = dictionary[prev].len + 1;
-								}
-								else
-								{
-									dictionary[dictionaryIndex].len = 1;
-								}
 
 								dictionaryIndex++;
 
@@ -517,7 +501,6 @@ void GifDecoder::ClearDictionary()
 	{
 		dictionary[dictionaryIndex].byte = (uint8_t) dictionaryIndex;
 		dictionary[dictionaryIndex].prev = -1;
-		dictionary[dictionaryIndex].len = 1;
 	}
 	
 	dictionaryIndex += 2;

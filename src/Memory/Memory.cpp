@@ -5,6 +5,20 @@
 #include <dos.h>
 #include "../DOS/EMS.h"
 extern EMSManager ems;
+
+/* Returns the largest free block in whole Kilobytes */
+unsigned int GetMemFreeKB(void);
+
+#pragma aux GetMemFreeKB = \
+    "mov ah, 48h"    /* DOS: Allocate Memory Block */ \
+    "mov bx, 0FFFFh" /* Request impossible amount */ \
+    "int 21h"        /* Call DOS; BX returns max paragraphs */ \
+    "mov ax, bx"     /* Move paragraphs to AX */ \
+    "mov cl, 6"      /* Prepare to shift by 6 bits */ \
+    "shr ax, cl"     /* AX = AX / 64 (converts paragraphs to KB) */ \
+    value [ax]       \
+    modify [ax bx cl]; 
+
 #endif
 
 LinearAllocator MemoryManager::pageAllocator;
@@ -22,7 +36,7 @@ void MemoryManager::GenerateMemoryReport(char* outString)
 //	DOSavailable = outreg.x.bx / 64;
 	int EMSallocated = ems.TotalAllocated() / 1024;
 	int EMSused = ems.TotalUsed() / 1024;
-	int DOSavailable = _memmax() / 1024;
+	int DOSavailable = GetMemFreeKB();
 	snprintf(outString, 100, "Conv: Alloc: %dK Used: %dK DOS free: %dK EMS: Alloc: %dK Used: %dK Block: %dK Err: %d\n", 
 			(int)(MemoryManager::pageAllocator.TotalAllocated() / 1024), 
 			(int)(MemoryManager::pageAllocator.TotalUsed() / 1024), 
