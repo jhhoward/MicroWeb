@@ -129,7 +129,7 @@ void DrawSurface_8BPP::DrawString(DrawContext& context, Font* font, const char* 
 	y += context.drawOffsetY;
 
 	int startX = x;
-	uint8_t glyphHeight = font->glyphHeight;
+	uint8_t lastLine = font->glyphHeight;
 
 	if (x >= context.clipRight)
 	{
@@ -139,11 +139,11 @@ void DrawSurface_8BPP::DrawString(DrawContext& context, Font* font, const char* 
 	{
 		return;
 	}
-	if (y + glyphHeight > context.clipBottom)
+	if (y + lastLine > context.clipBottom)
 	{
-		glyphHeight = (uint8_t)(context.clipBottom - y);
+		lastLine = (uint8_t)(context.clipBottom - y);
 	}
-	if (y + glyphHeight < context.clipTop)
+	if (y + lastLine < context.clipTop)
 	{
 		return;
 	}
@@ -168,7 +168,25 @@ void DrawSurface_8BPP::DrawString(DrawContext& context, Font* font, const char* 
 
 		int index = c - 32;
 		uint8_t glyphWidth = font->glyphs[index].width;
+		uint8_t glyphTop = font->glyphs[index].top;
+		uint8_t glyphBottom = font->glyphs[index].bottom;
 		uint8_t glyphWidthBytes = (glyphWidth + 7) >> 3;
+		uint8_t* glyphData = font->glyphData + font->glyphs[index].offset;
+		int outY = y;
+
+		if (glyphBottom > lastLine - 1)
+		{
+			glyphBottom = lastLine - 1;
+		}
+		if (firstLine < glyphTop)
+		{
+			outY += glyphTop - firstLine;
+		}
+		else if (firstLine > glyphTop)
+		{
+			glyphData += ((firstLine - glyphTop) * glyphWidthBytes);
+			glyphTop = firstLine;
+		}
 
 		if (glyphWidth == 0)
 		{
@@ -182,16 +200,11 @@ void DrawSurface_8BPP::DrawString(DrawContext& context, Font* font, const char* 
 			break;
 		}
 
-		uint8_t* glyphData = font->glyphData + font->glyphs[index].offset;
-
-		glyphData += (firstLine * glyphWidthBytes);
-
-		int outY = y;
-		uint8_t* VRAMptr = lines[y] + x;
+		uint8_t* VRAMptr = lines[outY] + x;
 
 		if (x >= 0)
 		{
-			for (uint8_t j = firstLine; j < glyphHeight; j++)
+			for (uint8_t j = glyphTop; j <= glyphBottom; j++)
 			{
 				if ((style & FontStyle::Italic) && j < (font->glyphHeight >> 1))
 				{

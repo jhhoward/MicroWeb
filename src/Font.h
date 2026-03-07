@@ -39,6 +39,8 @@ struct Font
 	struct Glyph
 	{
 		uint8_t width;
+		uint8_t top;
+		uint8_t bottom;
 		uint16_t offset;
 	};
 #pragma pack(pop)

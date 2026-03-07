@@ -378,6 +378,8 @@ void EncodeFont(const char* basePath, const char* imageFilename, vector<uint8_t>
 
 	vector<uint8_t> output;
 	vector<uint8_t> glyphWidths;
+	vector<uint8_t> glyphTops;
+	vector<uint8_t> glyphBottoms;
 	vector<uint8_t> glyphBuffer;
 	vector<uint16_t> offsets;
 
@@ -488,11 +490,60 @@ void EncodeFont(const char* basePath, const char* imageFilename, vector<uint8_t>
 		outputOffsets.push_back(count);
 
 		int glyphWidth = glyphWidths[n];
+		int glyphWidthBytes = (glyphWidth + 7) / 8;
+		int top = 0;
+		int bottom = glyphHeight - 1;
+
+		// Find top
 		for (unsigned int y = 0; y < glyphHeight; y++)
 		{
-			int x = 0;
+			bool isEmptyLine = true;
+			for (int x = 0; x < glyphWidth; x++)
+			{
+				int index = offsets[n] + (x * glyphHeight + y);
+				if (output[index])
+				{
+					isEmptyLine = false;
+					break;
+				}
+			}
 
-			int glyphWidthBytes = (glyphWidth + 7) / 8;
+			if (!isEmptyLine)
+			{
+				break;
+			}
+			top++;
+		}
+
+		// Find bottom
+		for (unsigned int y = glyphHeight - 1; y > 0; y--)
+		{
+			bool isEmptyLine = true;
+			for (int x = 0; x < glyphWidth; x++)
+			{
+				int index = offsets[n] + (x * glyphHeight + y);
+				if (output[index])
+				{
+					isEmptyLine = false;
+					break;
+				}
+			}
+
+			if (!isEmptyLine)
+			{
+				break;
+			}
+			bottom--;
+		}
+
+		glyphTops.push_back((uint8_t) top);
+		glyphBottoms.push_back((uint8_t) bottom);
+
+		cout << "Glyph " << n << " top: " << top << " bottom: " << bottom << endl;
+
+		for (unsigned int y = top; y <= bottom; y++)
+		{
+			int x = 0;
 
 			for (int b = 0; b < glyphWidthBytes; b++)
 			{
@@ -518,11 +569,12 @@ void EncodeFont(const char* basePath, const char* imageFilename, vector<uint8_t>
 		}
 	}
 
-
 	// Output the metadata 
 	// struct Glyph
 	// {
 	// 	uint8_t width;
+	//  uint8_t top;
+	//  uint8_t bottom;
 	// 	uint16_t offset;
 	// };
 	// 
@@ -531,11 +583,15 @@ void EncodeFont(const char* basePath, const char* imageFilename, vector<uint8_t>
 
 	const int numNeededGlyphs = 256 - 32;
 
+	//cout << "Empty bytes wasted: " << numEmptyBytes << " Potential saving: " << (numEmptyBytes - numNeededGlyphs) << endl;
+
 	for (int n = 0; n < numNeededGlyphs; n++)
 	{
 		if (n < glyphWidths.size())
 		{
 			outputStream.push_back(glyphWidths[n]);
+			outputStream.push_back(glyphTops[n]);
+			outputStream.push_back(glyphBottoms[n]);
 			uint16_t offset = outputOffsets[n];
 			outputStream.push_back(offset & 0xff);
 			outputStream.push_back(offset >> 8);

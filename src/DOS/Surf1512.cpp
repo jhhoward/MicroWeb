@@ -283,7 +283,7 @@ void DrawSurface_4BPP_PC1512::DrawString(DrawContext& context, Font* font, const
 	y += context.drawOffsetY;
 
 	int startX = x;
-	uint8_t glyphHeight = font->glyphHeight;
+	uint8_t lastLine = font->glyphHeight;
 
 	if (x >= context.clipRight)
 	{
@@ -293,11 +293,11 @@ void DrawSurface_4BPP_PC1512::DrawString(DrawContext& context, Font* font, const
 	{
 		return;
 	}
-	if (y + glyphHeight > context.clipBottom)
+	if (y + lastLine > context.clipBottom)
 	{
-		glyphHeight = (uint8_t)(context.clipBottom - y);
+		lastLine = (uint8_t)(context.clipBottom - y);
 	}
-	if (y + glyphHeight < context.clipTop)
+	if (y + lastLine < context.clipTop)
 	{
 		return;
 	}
@@ -323,7 +323,12 @@ void DrawSurface_4BPP_PC1512::DrawString(DrawContext& context, Font* font, const
 		int index = c - 32;
 		uint8_t glyphWidth = font->glyphs[index].width;
 		uint8_t glyphWidthBytes = (glyphWidth + 7) >> 3;
+		uint8_t glyphBottom = font->glyphs[index].bottom;
 
+		if (glyphBottom > lastLine - 1)
+		{
+			glyphBottom = lastLine - 1;
+		}
 		if (glyphWidth == 0)
 		{
 			continue;
@@ -337,13 +342,24 @@ void DrawSurface_4BPP_PC1512::DrawString(DrawContext& context, Font* font, const
 		}
 
 		uint8_t* glyphDataPtr = font->glyphData + font->glyphs[index].offset;
-		glyphDataPtr += (firstLine * glyphWidthBytes);
 
 		for (int plane = 0; plane < 4; plane++)
 		{
-			int outY = y;
-			uint8_t* VRAMptr = lines[y] + (x >> 3);
+			uint8_t glyphTop = font->glyphs[index].top;
 			uint8_t* glyphData = glyphDataPtr;
+			int outY = y;
+
+			if (firstLine < glyphTop)
+			{
+				outY += glyphTop - firstLine;
+			}
+			else if (firstLine > glyphTop)
+			{
+				glyphData += ((firstLine - glyphTop) * glyphWidthBytes);
+				glyphTop = firstLine;
+			}
+
+			uint8_t* VRAMptr = lines[outY] + (x >> 3);
 
 			SetPlaneRead(plane);
 
@@ -352,7 +368,7 @@ void DrawSurface_4BPP_PC1512::DrawString(DrawContext& context, Font* font, const
 
 			if (!(writeMask & colour))
 			{
-				for (uint8_t j = firstLine; j < glyphHeight; j++)
+				for (uint8_t j = glyphTop; j <= glyphBottom; j++)
 				{
 					uint8_t writeOffset = (uint8_t)(x) & 0x7;
 
@@ -391,7 +407,7 @@ void DrawSurface_4BPP_PC1512::DrawString(DrawContext& context, Font* font, const
 			}
 			else
 			{
-				for (uint8_t j = firstLine; j < glyphHeight; j++)
+				for (uint8_t j = glyphTop; j <= glyphBottom; j++)
 				{
 					uint8_t writeOffset = (uint8_t)(x) & 0x7;
 
