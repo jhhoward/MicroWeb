@@ -82,7 +82,7 @@ void TextFieldNode::DrawHighlight(Node* node, uint8_t colour)
 
 void TextFieldNode::DrawPasswordString(DrawContext& context, Font* font, const char* str, int x, int y, uint8_t colour)
 {
-	int length = strlen(str);
+	size_t length = strlen(str);
 	int glyphWidth = font->GetGlyphWidth(PASSWORD_CHARACTER);
 	while (length--)
 	{
@@ -172,7 +172,7 @@ bool TextFieldNode::HandleEvent(Node* node, const Event& event)
 		if (App::Get().ui.IsInterfaceNode(node) && strlen(data->buffer) > 0)
 		{
 			// This is the address bar
-			cursorPosition = strlen(data->buffer);
+			cursorPosition = (int)strlen(data->buffer);
 			selectionStartPosition = 0;
 			selectionLength = cursorPosition;
 			DrawSelection(context, node);
@@ -180,7 +180,7 @@ bool TextFieldNode::HandleEvent(Node* node, const Event& event)
 		else
 		{
 			selectionStartPosition = selectionLength = 0;
-			cursorPosition = pickedPosition != -1 ? pickedPosition : strlen(data->buffer);
+			cursorPosition = pickedPosition != -1 ? pickedPosition : (int)strlen(data->buffer);
 			DrawCursor(context, node);
 		}
 		DrawHighlight(node, Platform::video->colourScheme.textColour);
@@ -261,7 +261,7 @@ bool TextFieldNode::HandleEvent(Node* node, const Event& event)
 
 			if (cursorPosition < data->bufferSize)
 			{
-				int len = strlen(data->buffer);
+				int len = (int)strlen(data->buffer);
 				for (int n = len; n >= cursorPosition; n--)
 				{
 					data->buffer[n + 1] = data->buffer[n];
@@ -281,7 +281,7 @@ bool TextFieldNode::HandleEvent(Node* node, const Event& event)
 			}
 			else if (cursorPosition > 0)
 			{
-				int len = strlen(data->buffer);
+				int len = (int)strlen(data->buffer);
 				for (int n = cursorPosition - 1; n < len; n++)
 				{
 					data->buffer[n] = data->buffer[n + 1];
@@ -294,7 +294,7 @@ bool TextFieldNode::HandleEvent(Node* node, const Event& event)
 		}
 		else if (event.key == KEYCODE_DELETE)
 		{
-			int len = strlen(data->buffer);
+			int len = (int)strlen(data->buffer);
 			if (selectionLength > 0)
 			{
 				DeleteSelectionContents(node);
@@ -352,7 +352,7 @@ bool TextFieldNode::HandleEvent(Node* node, const Event& event)
 			}
 			else
 			{
-				MoveCursorPosition(node, strlen(data->buffer));
+				MoveCursorPosition(node, (int)strlen(data->buffer));
 			}
 			ShiftIntoView(node);
 			return true;

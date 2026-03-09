@@ -565,7 +565,7 @@ void HTMLParser::ReplaceAmpersandEscapeSequences(char* buffer, bool replaceNonBr
 					else
 					{
 						const char* unicodeReplacementText = GetUnicodeString(number);
-						int replacementTextLength = strlen(unicodeReplacementText);
+						int replacementTextLength = (int)strlen(unicodeReplacementText);
 						memcpy(buffer, unicodeReplacementText, replacementTextLength);
 						strcpy(buffer + replacementTextLength, nextBufferPosition);
 						buffer += replacementTextLength - 1;
@@ -635,7 +635,7 @@ void HTMLParser::ReplaceAmpersandEscapeSequences(char* buffer, bool replaceNonBr
 					{
 						buffer--;	// One step backwards to write over the &
 						const char* replacementText = ampersandEscapeSequences[matchingEscapeSequence * 2 + 1];
-						int replacementTextLength = strlen(replacementText);
+						int replacementTextLength = (int)strlen(replacementText);
 						memcpy(buffer, replacementText, replacementTextLength);
 						strcpy(buffer + replacementTextLength, nextBufferPosition);
 
@@ -798,7 +798,7 @@ void HTMLParser::ParseChar(char c)
 		else if(c == '&')
 		{
 			parseState = ParseAmpersandEscape;
-			escapeSequenceStartIndex = textBufferSize;
+			escapeSequenceStartIndex = (int)textBufferSize;
 			AppendTextBuffer(c);
 		}
 		else
@@ -1143,7 +1143,7 @@ uint8_t HTMLParser::ParseColourCode(const char* colourCode)
 	if (colourCode[0] == '#')
 	{
 		uint8_t red = 0, green = 0, blue = 0;
-		int codeLength = strlen(colourCode + 1);
+		int codeLength = (int)strlen(colourCode + 1);
 		if (codeLength == 6 || codeLength == 8)
 		{
 			sscanf(colourCode, "#%02hhx%02hhx%02hhx", &red, &green, &blue);

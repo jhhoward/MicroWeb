@@ -467,7 +467,7 @@ void App::OpenURL(HTTPRequest::RequestType requestType, const char* url, HTTPOpt
 	// If not enough space in the buffer then move to previous space
 	while (pageHistoryPtr + urlStringLength > pageHistoryBuffer + MAX_PAGE_HISTORY_BUFFER_SIZE)
 	{
-		int firstLength = strlen(pageHistoryBuffer);
+		size_t firstLength = strlen(pageHistoryBuffer);
 
 		if (!firstLength)
 		{

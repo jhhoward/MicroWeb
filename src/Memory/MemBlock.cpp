@@ -98,7 +98,7 @@ void MemBlockAllocator::Shutdown()
 
 MemBlockHandle MemBlockAllocator::AllocString(const char* inString)
 {
-	MemBlockHandle result = Allocate(strlen(inString) + 1);
+	MemBlockHandle result = Allocate((uint16_t)strlen(inString) + 1);
 	if (result.IsAllocated())
 	{
 		strcpy(result.Get<char*>(), inString);
@@ -138,7 +138,7 @@ MemBlockHandle MemBlockAllocator::Allocate(uint16_t size)
 
 			fwrite(&size, sizeof(uint16_t), 1, swapFile);
 
-			char empty = 0xaa;
+			uint8_t empty = 0xaa;
 			size_t bytesLeft = size;
 			while (bytesLeft > 0)
 			{

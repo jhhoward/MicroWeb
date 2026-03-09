@@ -170,7 +170,7 @@ size_t HTTPRequest::ReadData(char* buffer, size_t count)
 			count = chunkSizeRemaining;
 		}
 
-		int16_t rc = sock->Receive((unsigned char*)buffer, count);
+		int16_t rc = sock->Receive((unsigned char*)buffer, (int)count);
 		if (rc < 0)
 		{
 			MarkError(ContentReceiveError);
@@ -179,7 +179,7 @@ size_t HTTPRequest::ReadData(char* buffer, size_t count)
 		{
 			ResetTimeOutTimer();
 
-			size_t bytesRead = (size_t)(rc);
+			int bytesRead = rc;
 			if (contentRemaining > 0)
 			{
 				contentRemaining -= bytesRead;
@@ -194,7 +194,7 @@ size_t HTTPRequest::ReadData(char* buffer, size_t count)
 						Stop();
 					}
 					
-					return bytesRead;
+					return (size_t)bytesRead;
 				}
 			}
 

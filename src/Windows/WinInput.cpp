@@ -63,7 +63,7 @@ void WindowsInputDriver::SetMousePosition(int x, int y)
 {
 	POINT p;
 	p.x = x;
-	p.y = y * static_cast<WindowsVideoDriver*>(Platform::video)->verticalScale;
+	p.y = (long)(y * static_cast<WindowsVideoDriver*>(Platform::video)->verticalScale);
 	if (ClientToScreen(hWnd, &p))
 	{
 		SetCursorPos(p.x, p.y);
