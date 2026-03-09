@@ -6,7 +6,6 @@
 #include "../DOS/EMS.h"
 extern EMSManager ems;
 
-/* Returns the largest free block in whole Kilobytes */
 unsigned int GetMemFreeKB(void);
 
 #pragma aux GetMemFreeKB = \
@@ -36,14 +35,16 @@ void MemoryManager::GenerateMemoryReport(char* outString)
 //	DOSavailable = outreg.x.bx / 64;
 	int EMSallocated = ems.TotalAllocated() / 1024;
 	int EMSused = ems.TotalUsed() / 1024;
-	int DOSavailable = GetMemFreeKB();
-	snprintf(outString, 100, "Conv: Alloc: %dK Used: %dK DOS free: %dK EMS: Alloc: %dK Used: %dK Block: %dK Err: %d\n", 
+	int DOSavailable = GetConventionalMemoryAvailableKB();
+	int swapUsed = MemoryManager::pageBlockAllocator.SwapAllocated() / 1024;
+	snprintf(outString, 100, "Conv: Alloc: %dK Used: %dK DOS free: %dK EMS: Alloc: %dK Used: %dK Block: %dK Swap: %dK Err: %d\n", 
 			(int)(MemoryManager::pageAllocator.TotalAllocated() / 1024), 
 			(int)(MemoryManager::pageAllocator.TotalUsed() / 1024), 
 			DOSavailable, 
 			EMSallocated, 
 			EMSused,
 			(int)(MemoryManager::pageBlockAllocator.TotalAllocated() / 1024),
+			swapUsed,
 			MemoryManager::pageAllocator.GetError());
 #else
 	snprintf(outString, 100, "Conv: Alloc: %dK Used: %dK Block allocation: %dK\n", 
@@ -52,4 +53,14 @@ void MemoryManager::GenerateMemoryReport(char* outString)
 			(int)(MemoryManager::pageBlockAllocator.TotalAllocated() / 1024));
 #endif
 
+}
+
+long MemoryManager::GetConventionalMemoryAvailableKB()
+{
+#ifdef _DOS
+	return GetMemFreeKB();
+#else
+	// Placeholder for other platforms - 1MB free
+	return 1024;
+#endif
 }

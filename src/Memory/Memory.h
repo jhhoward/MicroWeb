@@ -14,6 +14,7 @@ public:
 	static MemBlockAllocator pageBlockAllocator;
 
 	static void GenerateMemoryReport(char* outString);
+	static long GetConventionalMemoryAvailableKB();
 };
 
 

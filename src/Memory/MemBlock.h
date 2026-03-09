@@ -60,6 +60,7 @@ public:
 	MemBlockHandle AllocString(const char* inString);
 
 	long TotalAllocated() { return totalAllocated; }
+	long SwapAllocated() { return swapFileLength; }
 
 	void Reset();
 

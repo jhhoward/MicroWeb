@@ -60,6 +60,11 @@ void MemBlockAllocator::Init()
 	if (App::config.useSwap)
 	{
 		swapFile = fopen("Microweb.swp", "wb+");
+
+		if (!swapFile)
+		{
+			Platform::FatalError("Could not open Microweb.swp swap file!");
+		}
 	}
 
 	if (swapFile)
@@ -105,8 +110,8 @@ MemBlockHandle MemBlockAllocator::AllocString(const char* inString)
 MemBlockHandle MemBlockAllocator::Allocate(uint16_t size)
 {
 	MemBlockHandle result;
-	long conventionalMemoryAvailable = 0;
 
+	// Use EMS if available
 #ifdef __DOS__
 	if (ems.IsAvailable())
 	{
@@ -117,17 +122,16 @@ MemBlockHandle MemBlockAllocator::Allocate(uint16_t size)
 			return result;
 		}
 	}
-
-	conventionalMemoryAvailable += _memmax();
 #endif
 	
+	long conventionalMemoryAvailable = MemoryManager::GetConventionalMemoryAvailableKB() * 1024L;
 	conventionalMemoryAvailable += MemoryManager::pageAllocator.TotalAllocated() - MemoryManager::pageAllocator.TotalUsed();
 
-	if (swapFile && conventionalMemoryAvailable < 16 * 1024)	// If we have less than 16K available, fall back to disk
+	if (swapFile && conventionalMemoryAvailable < 16 * 1024)	// If we have less than 16K of conventional memory available, fall back to disk
 	{
 		uint16_t sizeNeededForSwap = size + sizeof(uint16_t);
 
-		if (sizeNeededForSwap <= MAX_SWAP_ALLOCATION && swapFileLength + sizeNeededForSwap + sizeof(uint16_t) < maxSwapSize)
+		if (sizeNeededForSwap <= MAX_SWAP_ALLOCATION && swapFileLength + sizeNeededForSwap < maxSwapSize)
 		{
 			result.swapFilePosition = swapFileLength;
 			fseek(swapFile, swapFileLength, SEEK_SET);
