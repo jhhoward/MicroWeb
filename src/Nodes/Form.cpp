@@ -89,23 +89,43 @@ void FormNode::SubmitForm(Node* node)
 	FormNode::Data* data = static_cast<FormNode::Data*>(node->data);
 	App& app = App::Get();
 
-	char* address = app.ui.addressBarURL.url;
+	URL address(app.ui.addressBarURL);
 	if (data->action)
 	{
-		strncpy(address, data->action, MAX_URL_LENGTH);
+		if (!strcmp(data->action, "download://"))
+		{
+			for (Node* child = node->firstChild; child; child = child->next)
+			{
+				if(child->type == Node::TextField)
+				{
+					TextFieldNode::Data* fieldData = static_cast<TextFieldNode::Data*>(child->data);
+					if (!strcmp(fieldData->name, "path"))
+					{
+						App::Get().BeginFileDownload(fieldData->buffer);
+					}
+				}
+			}
+			return;
+		}
+		else if (!strcmp(data->action, "cancel://"))
+		{
+			App::Get().CancelFileDownload();
+			return;
+		}
+		address = URL::GenerateFromRelative(app.ui.addressBarURL.url, data->action);
 	}
 	int numParams = 0;
 
 	// Remove anything after existing ?
-	char* questionMark = strstr(address, "?");
+	char* questionMark = strstr(address.url, "?");
 	if (questionMark)
 	{
 		*questionMark = '\0';
 	}
 
-	char* paramStart = address + strlen(address);
+	char* paramStart = address.url + strlen(address.url);
 
-	BuildAddressParameterList(node, address, numParams, MAX_URL_LENGTH);
+	BuildAddressParameterList(node, address.url, numParams, MAX_URL_LENGTH);
 
 	// Replace any spaces with +
 	for (char* p = paramStart; *p; p++)
@@ -128,11 +148,11 @@ void FormNode::SubmitForm(Node* node)
 		// Remove '?' from URL as params are passed as part of the POST request
 		*paramStart = '\0';
 
-		app.OpenURL(HTTPRequest::Post, URL::GenerateFromRelative(app.page.pageURL.url, address).url, &postOptions);
+		app.OpenURL(HTTPRequest::Post, URL::GenerateFromRelative(app.page.pageURL.url, address.url).url, &postOptions);
 	}
 	else
 	{
-		app.OpenURL(HTTPRequest::Get, URL::GenerateFromRelative(app.page.pageURL.url, address).url);
+		app.OpenURL(HTTPRequest::Get, URL::GenerateFromRelative(app.page.pageURL.url, address.url).url);
 	}
 
 }

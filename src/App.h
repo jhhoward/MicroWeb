@@ -31,7 +31,7 @@ struct HTTPOptions;
 
 struct LoadTask
 {
-	LoadTask() : type(LocalFile), fs(NULL), debugDumpFile(NULL) {}
+	LoadTask() : type(LocalFile), fs(NULL), debugDumpFile(NULL), downloadFile(NULL) {}
 
 	void Load(HTTPRequest::RequestType requestType, const char* url, HTTPOptions* options = NULL);
 	void Stop();
@@ -57,6 +57,7 @@ struct LoadTask
 	};
 
 	FILE* debugDumpFile;
+	FILE* downloadFile;
 };
 
 struct Widget;
@@ -86,6 +87,8 @@ public:
 	void StopLoad();
 	void ReloadPage();
 
+	void BeginFileDownload(const char* savePath);
+	void CancelFileDownload();
 	void ShowErrorPage(const char* message);
 
 	static App& Get() { return *app; }
@@ -107,7 +110,8 @@ private:
 
 	void ShowNoHTTPSPage();
 	void ShowDownloadDialogPage();
-	void ShowDownloadProgressPage();
+	void ShowDownloadProgressPage(const char* savePath);
+	void ShowDownloadEndedPage(const char* message);
 
 	bool requestedNewPage;
 	Node* loadTaskTargetNode;

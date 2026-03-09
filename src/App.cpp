@@ -119,35 +119,49 @@ void App::Run(int argc, char* argv[])
 		{
 			if (requestedNewPage)
 			{
-				ResetPage();
-				requestedNewPage = false;
-				page.pageURL = pageLoadTask.GetURL();
-				ui.UpdateAddressBar(page.pageURL);
-				loadTaskTargetNode = page.GetRootNode();
-				ui.SetStatusMessage("Parsing page content...", StatusBarNode::GeneralStatus);
-				if (!parser.SetContentType(pageLoadTask.GetContentType()))
+				if (pageLoadTask.downloadFile)
 				{
-					if (pageLoadTask.type == LoadTask::RemoteFile)
+					ui.SetStatusMessage("Downloading content...", StatusBarNode::GeneralStatus);
+				}
+				else
+				{
+					ResetPage();
+					page.pageURL = pageLoadTask.GetURL();
+					ui.UpdateAddressBar(page.pageURL);
+					loadTaskTargetNode = page.GetRootNode();
+					ui.SetStatusMessage("Parsing page content...", StatusBarNode::GeneralStatus);
+					if (!parser.SetContentType(pageLoadTask.GetContentType()))
 					{
-						ShowDownloadDialogPage();
-						//ShowDownloadProgressPage();
-					}
-					else
-					{
-						ShowErrorPage("Unsupported file format");
+						if (pageLoadTask.type == LoadTask::RemoteFile)
+						{
+							ShowDownloadDialogPage();
+						}
+						else
+						{
+							ShowErrorPage("Unsupported file format");
+						}
 					}
 				}
+
+				requestedNewPage = false;
 			}
 
 			size_t bytesRead = pageLoadTask.GetContent(loadBuffer, APP_LOAD_BUFFER_SIZE);
 			if (bytesRead)
 			{
-				if (pageLoadTask.debugDumpFile)
+				if (pageLoadTask.downloadFile)
 				{
-					fwrite(loadBuffer, 1, bytesRead, pageLoadTask.debugDumpFile);
+					fwrite(loadBuffer, 1, bytesRead, pageLoadTask.downloadFile);
 				}
+				else
+				{
+					if (pageLoadTask.debugDumpFile)
+					{
+						fwrite(loadBuffer, 1, bytesRead, pageLoadTask.debugDumpFile);
+					}
 
-				parser.Parse(loadBuffer, bytesRead);
+					parser.Parse(loadBuffer, bytesRead);
+				}
 			}
 		}
 		else
@@ -184,6 +198,15 @@ void App::Run(int argc, char* argv[])
 					ui.UpdateAddressBar(pageLoadTask.GetURL());
 					ShowErrorPage("File not found");
 					requestedNewPage = false;
+				}
+			}
+			else if (pageLoadTask.downloadFile)
+			{
+				if (!pageLoadTask.IsBusy())
+				{
+					fclose(pageLoadTask.downloadFile);
+					pageLoadTask.downloadFile = NULL;
+					ShowDownloadEndedPage("Download complete!");
 				}
 			}
 			else if (!parser.IsFinished())
@@ -314,6 +337,11 @@ void LoadTask::Stop()
 	{
 		fclose(debugDumpFile);
 		debugDumpFile = NULL;
+	}
+	if (downloadFile)
+	{
+		fclose(downloadFile);
+		downloadFile = NULL;
 	}
 
 	switch (type)
@@ -588,17 +616,30 @@ void VideoDriver::InvertVideoOutput()
 	}
 }
 
-void App::ShowDownloadProgressPage()
+void App::ShowDownloadProgressPage(const char* savePath)
 {
+	ResetPage();
 	parser.Write("<html><body><center>");
 	parser.Write("<h1>Downloading</h1>");
 	parser.Write("<hr>");
-	//parser.Write(page.pageURL.url);
+	parser.Write(page.pageURL.url);
+	parser.Write("<br> to ");
+	parser.Write(savePath);
 	parser.Write("<hr>");
-	parser.Write("<form>");
+	parser.Write("<form action=\"cancel://\">");
 	parser.Write("<input type=\"button\" value=\"Cancel\"/>");
 	parser.Write("</form>");
 	parser.Write("</center></body></html>");
+
+	parser.Finish();
+}
+
+void App::ShowDownloadEndedPage(const char* message)
+{
+	ResetPage();
+	parser.Write("<html><body><center><h1>");
+	parser.Write(message);
+	parser.Write("</h1></center></body></html>");
 
 	parser.Finish();
 }
@@ -611,7 +652,7 @@ void App::ShowDownloadDialogPage()
 	parser.Write("<html><body><center>");
 	parser.Write("<h1>Do you want to download this file?</h1>");
 	parser.Write("<hr>");
-	parser.Write(page.pageURL.url);
+	parser.Write(pageLoadTask.url.url);
 	parser.Write("<br><b>Content type: ");
 	parser.Write(pageLoadTask.GetContentType());
 
@@ -666,8 +707,8 @@ void App::ShowDownloadDialogPage()
 	filename[filenameLength] = '\0';
 
 	parser.Write("</b><hr>");
-	parser.Write("<form>");
-	parser.Write("<input name=\"path\" type=\"text\" value=\"");
+	parser.Write("<form action=\"download://\">");
+	parser.Write("<input name=\"path\" type=\"text\" width=\"75%\" value=\"");
 	parser.Write(getcwd(NULL, 0));
 #ifdef _WIN32
 	parser.Write("\\");
@@ -680,4 +721,26 @@ void App::ShowDownloadDialogPage()
 	parser.Write("</center></body></html>");
 
 	parser.Finish();
+}
+
+void App::BeginFileDownload(const char* savePath)
+{
+	FILE* downloadFile = fopen(savePath, "wb");
+	if (downloadFile)
+	{
+		ShowDownloadProgressPage(savePath);
+		pageLoadTask.Load(HTTPRequest::RequestType::Get, pageLoadTask.url.url);
+		requestedNewPage = true;
+		pageLoadTask.downloadFile = downloadFile;
+		ui.SetStatusMessage("Connecting to server...", StatusBarNode::GeneralStatus);
+	}
+}
+
+void App::CancelFileDownload()
+{
+	if (pageLoadTask.downloadFile)
+	{
+		StopLoad();
+		ShowDownloadEndedPage("Download cancelled");
+	}
 }
