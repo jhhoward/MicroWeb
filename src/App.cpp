@@ -12,6 +12,7 @@
 // GNU General Public License for more details.
 //
 
+#include <direct.h>
 #include <stdio.h>
 #include "App.h"
 #include "Platform.h"
@@ -124,7 +125,18 @@ void App::Run(int argc, char* argv[])
 				ui.UpdateAddressBar(page.pageURL);
 				loadTaskTargetNode = page.GetRootNode();
 				ui.SetStatusMessage("Parsing page content...", StatusBarNode::GeneralStatus);
-				parser.SetContentType(pageLoadTask.GetContentType());
+				if (!parser.SetContentType(pageLoadTask.GetContentType()))
+				{
+					if (pageLoadTask.type == LoadTask::RemoteFile)
+					{
+						ShowDownloadDialogPage();
+						//ShowDownloadProgressPage();
+					}
+					else
+					{
+						ShowErrorPage("Unsupported file format");
+					}
+				}
 			}
 
 			size_t bytesRead = pageLoadTask.GetContent(loadBuffer, APP_LOAD_BUFFER_SIZE);
@@ -574,4 +586,98 @@ void VideoDriver::InvertVideoOutput()
 		context.surface->InvertRect(context, 0, 0, screenWidth, screenHeight);
 		Platform::input->ShowMouse();
 	}
+}
+
+void App::ShowDownloadProgressPage()
+{
+	parser.Write("<html><body><center>");
+	parser.Write("<h1>Downloading</h1>");
+	parser.Write("<hr>");
+	//parser.Write(page.pageURL.url);
+	parser.Write("<hr>");
+	parser.Write("<form>");
+	parser.Write("<input type=\"button\" value=\"Cancel\"/>");
+	parser.Write("</form>");
+	parser.Write("</center></body></html>");
+
+	parser.Finish();
+}
+
+void App::ShowDownloadDialogPage()
+{
+	char temp[32];
+	char filename[14];
+
+	parser.Write("<html><body><center>");
+	parser.Write("<h1>Do you want to download this file?</h1>");
+	parser.Write("<hr>");
+	parser.Write(page.pageURL.url);
+	parser.Write("<br><b>Content type: ");
+	parser.Write(pageLoadTask.GetContentType());
+
+	long contentSize = pageLoadTask.request->GetContentSize();
+	if (contentSize != 0)
+	{
+		parser.Write("<br>Size: ");
+			
+		if (contentSize < 1000)
+		{
+			snprintf(temp, 32, "%d bytes", contentSize);
+		}
+		else if (contentSize < 1000000l)
+		{
+			snprintf(temp, 32, "%d KB", contentSize / 1000);
+		}
+		else
+		{
+			snprintf(temp, 32, "%d MB", contentSize / 1000000l);
+		}
+		parser.Write(temp);
+	}
+
+	const char* srcFilename = pageLoadTask.url.url;
+	const char* ptr;
+
+	while (ptr = strchr(srcFilename, '/'))
+	{
+		srcFilename = ptr + 1;
+	}
+
+	int filenameLength = 0;
+
+	for (int n = 0; n < 8; n++)
+	{
+		if (srcFilename[n] == '\0' || srcFilename[n] == '.')
+		{
+			break;
+		}
+		filename[n] = srcFilename[n];
+		filenameLength++;
+	}
+
+	if (ptr = strchr(srcFilename, '.'))
+	{
+		for (int n = 0; n < 4; n++)
+		{
+			filename[filenameLength++] = ptr[n];
+		}
+	}
+
+	filename[filenameLength] = '\0';
+
+	parser.Write("</b><hr>");
+	parser.Write("<form>");
+	parser.Write("<input name=\"path\" type=\"text\" value=\"");
+	parser.Write(getcwd(NULL, 0));
+#ifdef _WIN32
+	parser.Write("\\");
+#endif
+	parser.Write(filename);
+	parser.Write("\"/><br>");
+	parser.Write("<br>");
+	parser.Write("<input type=\"button\" value=\"Download\"/>");
+	parser.Write("</form>");
+	parser.Write("</center></body></html>");
+
+	parser.Finish();
 }

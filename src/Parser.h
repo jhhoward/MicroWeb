@@ -69,7 +69,7 @@ public:
 	HTMLParser(Page& page);
 
 	void Reset();
-	void SetContentType(const char* contentType);
+	bool SetContentType(const char* contentType);
 	void Parse(char* buffer, size_t count);
 	void Write(const char* str);
 

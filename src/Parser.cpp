@@ -763,6 +763,7 @@ void HTMLParser::Parse(char* buffer, size_t count)
 			HTMLParseContext& parseContext = contextStack.Top();
 			PopContext(parseContext.tag);
 		}
+		Finish();
 	}
 }
 
@@ -1184,9 +1185,10 @@ uint8_t HTMLParser::ParseColourCode(const char* colourCode)
 	return 0;
 }
 
-void HTMLParser::SetContentType(const char* contentType)
+bool HTMLParser::SetContentType(const char* contentType)
 {
 	AttributeParser contentTypeParser(contentType, true);
+	bool isSupportedFormat = false;
 
 	while (contentTypeParser.Parse())
 	{
@@ -1211,17 +1213,25 @@ void HTMLParser::SetContentType(const char* contentType)
 		}
 		else if (!stricmp(contentTypeParser.Key(), "text/plain"))
 		{
+			isSupportedFormat = true;
 			parseState = ParsePlainText;
 			PushContext(StyleNode::ConstructFontStyle(MemoryManager::pageAllocator, FontStyle::Monospace, 0), nullptr);
 			PushPreFormatted();
 		}
 		else if (!stricmp(contentTypeParser.Key(), "image/gif") || !stricmp(contentTypeParser.Key(), "image/png") || !stricmp(contentTypeParser.Key(), "image/jpeg"))
 		{
+			isSupportedFormat = true;
 			Node* imageNode = ImageNode::Construct(MemoryManager::pageAllocator);
 			ImageNode::Data* data = static_cast<ImageNode::Data*>(imageNode->data);
 			data->source = MemoryManager::pageAllocator.AllocString(page.pageURL.url);
 			EmitNode(imageNode);
 			Finish();
 		}
+		else if (!stricmp(contentTypeParser.Key(), "text/html"))
+		{
+			isSupportedFormat = true;
+		}
 	}
+
+	return isSupportedFormat;
 }

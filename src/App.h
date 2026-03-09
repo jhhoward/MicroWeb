@@ -106,6 +106,8 @@ private:
 	void RequestNewPage(HTTPRequest::RequestType requestType, const char* url, HTTPOptions* options = NULL);
 
 	void ShowNoHTTPSPage();
+	void ShowDownloadDialogPage();
+	void ShowDownloadProgressPage();
 
 	bool requestedNewPage;
 	Node* loadTaskTargetNode;
