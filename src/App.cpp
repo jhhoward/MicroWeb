@@ -729,7 +729,7 @@ void App::BeginFileDownload(const char* savePath)
 	if (downloadFile)
 	{
 		ShowDownloadProgressPage(savePath);
-		pageLoadTask.Load(HTTPRequest::RequestType::Get, pageLoadTask.url.url);
+		pageLoadTask.Load(HTTPRequest::Get, pageLoadTask.url.url);
 		requestedNewPage = true;
 		pageLoadTask.downloadFile = downloadFile;
 		ui.SetStatusMessage("Connecting to server...", StatusBarNode::GeneralStatus);
