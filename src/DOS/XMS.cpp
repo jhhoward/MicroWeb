@@ -100,6 +100,11 @@ void XMSManager::Init()
         {
             uint16_t largestFree = XMSGetLargestFree();
 
+            if (largestFree > MAX_XMS_ALLOCATION_KB)
+            {
+                largestFree = MAX_XMS_ALLOCATION_KB;
+            }
+
             if (largestFree > 0)
             {
                 allocationHandle = XMSAllocate(largestFree);
@@ -167,10 +172,14 @@ MemBlockHandle XMSManager::Allocate(size_t size)
 {
     MemBlockHandle result;
 
+    // Pad to 4 byte boundary
+    size = (size + 3) & 0xfffc;
+
     if (size < XMS_BUFFER_SIZE && totalUsed + size < totalAllocated)
     {
         result.type = MemBlockHandle::XMS;
-        result.xmsPointer = totalUsed;
+        result.xmsPointer = totalUsed >> 2;
+        result.xmsLength = size >> 2;
         totalUsed += size;
     }
 
@@ -179,11 +188,11 @@ MemBlockHandle XMSManager::Allocate(size_t size)
 
 void* XMSManager::MapBlock(MemBlockHandle& handle)
 {
-    g_XMSMove.length = XMS_BUFFER_SIZE;
+    g_XMSMove.length = handle.xmsLength << 2;
     g_XMSMove.destHandle = 0;
     g_XMSMove.dest.ptr = buffer;
     g_XMSMove.srcHandle = allocationHandle;
-    g_XMSMove.src.xmsAddress = handle.xmsPointer;
+    g_XMSMove.src.xmsAddress = handle.xmsPointer << 2;
 
     if (XMSTransferCall())
     {
@@ -195,11 +204,11 @@ void* XMSManager::MapBlock(MemBlockHandle& handle)
 
 void XMSManager::Commit(MemBlockHandle& handle)
 {
-    g_XMSMove.length = XMS_BUFFER_SIZE;
+    g_XMSMove.length = handle.xmsLength << 2;
     g_XMSMove.srcHandle = 0;
     g_XMSMove.src.ptr = buffer;
     g_XMSMove.destHandle = allocationHandle;
-    g_XMSMove.dest.xmsAddress = handle.xmsPointer;
+    g_XMSMove.dest.xmsAddress = handle.xmsPointer << 2;
 
     XMSTransferCall();
 }

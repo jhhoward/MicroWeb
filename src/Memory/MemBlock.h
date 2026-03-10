@@ -37,12 +37,16 @@ struct  MemBlockHandle
 	{
 		void* conventionalPointer;
 		long swapFilePosition;
-		long xmsPointer;
 
 		struct
 		{
 			uint16_t emsPage;
 			uint16_t emsPageOffset;
+		};
+		struct
+		{
+			uint32_t xmsPointer : 22;
+			uint16_t xmsLength : 10;
 		};
 	};
 };
