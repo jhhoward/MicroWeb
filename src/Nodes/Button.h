@@ -6,17 +6,17 @@
 class ButtonNode : public NodeHandler
 {
 public:
-	class Data
+	class Data : public Node
 	{
 	public:
-		Data(const char* inButtonText, NodeCallbackFunction inOnClick) : buttonText(inButtonText), onClick(inOnClick) {}
+		Data(const char* inButtonText, NodeCallbackFunction inOnClick) : Node(Node::Button), buttonText(inButtonText), onClick(inOnClick) {}
 		const char* buttonText;
 		NodeCallbackFunction onClick;
 	};
 
 	ButtonNode() : focusingFromMouseClick(false) {}
 
-	static Node* Construct(Allocator& allocator, const char* buttonText, NodeCallbackFunction onClick);
+	static ButtonNode::Data* Construct(Allocator& allocator, const char* buttonText, NodeCallbackFunction onClick);
 	virtual void GenerateLayout(Layout& layout, Node* node) override;
 	virtual void Draw(DrawContext& context, Node* node) override;
 	virtual bool CanPick(Node* node) { return true; }

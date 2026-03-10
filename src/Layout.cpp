@@ -36,7 +36,7 @@ void Layout::Update()
 
 		if (currentNodeToProcess->type == Node::Image && App::config.loadImages)
 		{
-			ImageNode::Data* imageData = static_cast<ImageNode::Data*>(currentNodeToProcess->data);
+			ImageNode::Data* imageData = static_cast<ImageNode::Data*>(currentNodeToProcess);
 			if (!imageData->HasDimensions())
 			{
 				// Waiting to first determine image size

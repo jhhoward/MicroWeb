@@ -7,14 +7,9 @@
 #include "../KeyCodes.h"
 #include "Select.h"
 
-Node* SelectNode::Construct(Allocator& allocator, const char* name)
+SelectNode::Data* SelectNode::Construct(Allocator& allocator, const char* name)
 {
-	SelectNode::Data* data = allocator.Alloc<SelectNode::Data>(allocator.AllocString(name));
-	if (data)
-	{
-		return allocator.Alloc<Node>(Node::Select, data);
-	}
-	return nullptr;
+	return allocator.Alloc<SelectNode::Data>(allocator.AllocString(name));
 }
 
 void SelectNode::ApplyStyle(Node* node)
@@ -28,7 +23,7 @@ void SelectNode::ApplyStyle(Node* node)
 
 void SelectNode::Draw(DrawContext& context, Node* node)
 {
-	SelectNode::Data* data = static_cast<SelectNode::Data*>(node->data);
+	SelectNode::Data* data = static_cast<SelectNode::Data*>(node);
 
 	Font* font = node->GetStyleFont();
 	uint8_t textColour = Platform::video->colourScheme.textColour;
@@ -78,7 +73,7 @@ void SelectNode::DrawHighlight(Node* node, uint8_t colour)
 
 void SelectNode::EndLayoutContext(Layout& layout, Node* node)
 {
-	SelectNode::Data* data = static_cast<SelectNode::Data*>(node->data);
+	SelectNode::Data* data = static_cast<SelectNode::Data*>(node);
 
 	Font* font = node->GetStyleFont();
 
@@ -87,9 +82,9 @@ void SelectNode::EndLayoutContext(Layout& layout, Node* node)
 
 	for (OptionNode::Data* option = data->firstOption; option; option = option->next)
 	{
-		if (option->node->size.x > node->size.x)
+		if (option->size.x > node->size.x)
 		{
-			node->size.x = option->node->size.x;
+			node->size.x = option->size.x;
 		}
 	}
 
@@ -104,21 +99,14 @@ void SelectNode::EndLayoutContext(Layout& layout, Node* node)
 	layout.ProgressCursor(node, node->size.x, node->size.y);
 }
 
-Node* OptionNode::Construct(Allocator& allocator)
+OptionNode::Data* OptionNode::Construct(Allocator& allocator)
 {
-	OptionNode::Data* data = allocator.Alloc<OptionNode::Data>();
-	if (data)
-	{
-		Node* result = allocator.Alloc<Node>(Node::Option, data);
-		data->node = result;
-		return result;
-	}
-	return nullptr;
+	return allocator.Alloc<OptionNode::Data>();
 }
 
 void OptionNode::GenerateLayout(Layout& layout, Node* node)
 {
-	OptionNode::Data* data = static_cast<OptionNode::Data*>(node->data);
+	OptionNode::Data* data = static_cast<OptionNode::Data*>(node);
 	if (!data->addedToSelectNode)
 	{
 		SelectNode::Data* select = node->FindParentDataOfType<SelectNode::Data>(Node::Select);
@@ -160,7 +148,7 @@ void OptionNode::GenerateLayout(Layout& layout, Node* node)
 bool SelectNode::HandleEvent(Node* node, const Event& event)
 {
 	AppInterface& ui = App::Get().ui;
-	SelectNode::Data* data = static_cast<SelectNode::Data*>(node->data);
+	SelectNode::Data* data = static_cast<SelectNode::Data*>(node);
 
 	switch (event.type)
 	{
@@ -309,7 +297,7 @@ Node* SelectNode::Pick(Node* node, int x, int y)
 void SelectNode::DrawDropDownMenu()
 {
 	Font* font = dropDownMenu.activeNode->GetStyleFont();
-	SelectNode::Data* data = static_cast<SelectNode::Data*>(dropDownMenu.activeNode->data);
+	SelectNode::Data* data = static_cast<SelectNode::Data*>(dropDownMenu.activeNode);
 
 	DrawContext context;
 	App::Get().pageRenderer.GenerateDrawContext(context, dropDownMenu.activeNode);
@@ -347,7 +335,7 @@ void SelectNode::ShowDropDownMenu(Node *node)
 	dropDownMenu.activeNode = node;
 	dropDownMenu.numOptions = 0;
 
-	SelectNode::Data* data = static_cast<SelectNode::Data*>(dropDownMenu.activeNode->data);
+	SelectNode::Data* data = static_cast<SelectNode::Data*>(dropDownMenu.activeNode);
 
 	for (OptionNode::Data* option = data->firstOption; option; option = option->next)
 	{

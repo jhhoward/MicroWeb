@@ -5,20 +5,14 @@
 #include "../Interface.h"
 #include "../Draw/Surface.h"
 
-Node* ScrollBarNode::Construct(Allocator& allocator, int scrollPosition, int maxScroll, NodeCallbackFunction onScroll)
+ScrollBarNode::Data* ScrollBarNode::Construct(Allocator& allocator, int scrollPosition, int maxScroll, NodeCallbackFunction onScroll)
 {
-	ScrollBarNode::Data* data = allocator.Alloc<ScrollBarNode::Data>(scrollPosition, maxScroll, onScroll);
-	if (data)
-	{
-		return allocator.Alloc<Node>(Node::ScrollBar, data);
-	}
-
-	return nullptr;
+	return allocator.Alloc<ScrollBarNode::Data>(scrollPosition, maxScroll, onScroll);
 }
 
 void ScrollBarNode::CalculateWidgetParams(Node* node, int& outPosition, int& outSize)
 {
-	ScrollBarNode::Data* data = static_cast<ScrollBarNode::Data*>(node->data);
+	ScrollBarNode::Data* data = static_cast<ScrollBarNode::Data*>(node);
 	const int minWidgetSize = 15;
 	const int maxWidgetSize = node->size.y;
 	int scrollPosition = data->scrollPosition;
@@ -63,7 +57,7 @@ void ScrollBarNode::Draw(DrawContext& context, Node* node)
 bool ScrollBarNode::HandleEvent(Node* node, const Event& event)
 {
 	AppInterface& ui = App::Get().ui;
-	ScrollBarNode::Data* data = static_cast<ScrollBarNode::Data*>(node->data);
+	ScrollBarNode::Data* data = static_cast<ScrollBarNode::Data*>(node);
 	int widgetPosition, widgetSize;
 	CalculateWidgetParams(node, widgetPosition, widgetSize);
 	int maxWidgetPosition = node->size.y - widgetSize;

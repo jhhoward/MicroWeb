@@ -6,34 +6,33 @@
 class OptionNode : public NodeHandler
 {
 public:
-	class Data
+	class Data : public Node
 	{
 	public:
-		Data() : node(nullptr), text(nullptr), next(nullptr), addedToSelectNode(false) {}
-		Node* node;
+		Data() : Node(Node::Option), text(nullptr), next(nullptr), addedToSelectNode(false) {}
 		const char* text;
 		Data* next;
 		bool addedToSelectNode;
 	};
 
-	static Node* Construct(Allocator& allocator);
+	static OptionNode::Data* Construct(Allocator& allocator);
 	virtual void GenerateLayout(Layout& layout, Node* node) override;
 };
 
 class SelectNode : public NodeHandler
 {
 public:
-	class Data
+	class Data : public Node
 	{
 	public:
-		Data(const char* inName) : name(inName), firstOption(nullptr), selected(nullptr) {}
+		Data(const char* inName) : Node(Node::Select), name(inName), firstOption(nullptr), selected(nullptr) {}
 		const char* name;
 		OptionNode::Data* firstOption;
 		OptionNode::Data* selected;
 	};
 
 	virtual void ApplyStyle(Node* node) override;
-	static Node* Construct(Allocator& allocator, const char* inName);
+	static SelectNode::Data* Construct(Allocator& allocator, const char* inName);
 	virtual void Draw(DrawContext& context, Node* element) override;
 	virtual void EndLayoutContext(Layout& layout, Node* node) override;
 

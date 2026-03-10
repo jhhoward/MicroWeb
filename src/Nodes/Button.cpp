@@ -10,7 +10,7 @@
 
 void ButtonNode::Draw(DrawContext& context, Node* node)
 {
-	ButtonNode::Data* data = static_cast<ButtonNode::Data*>(node->data);
+	ButtonNode::Data* data = static_cast<ButtonNode::Data*>(node);
 
 	if (data->buttonText)
 	{
@@ -36,7 +36,7 @@ void ButtonNode::Draw(DrawContext& context, Node* node)
 	}
 }
 
-Node* ButtonNode::Construct(Allocator& allocator, const char* inButtonText, NodeCallbackFunction callback)
+ButtonNode::Data* ButtonNode::Construct(Allocator& allocator, const char* inButtonText, NodeCallbackFunction callback)
 {
 	char* buttonText = NULL;
 	if (inButtonText)
@@ -49,18 +49,12 @@ Node* ButtonNode::Construct(Allocator& allocator, const char* inButtonText, Node
 		HTMLParser::ReplaceAmpersandEscapeSequences(buttonText);
 	}
 
-	ButtonNode::Data* data = allocator.Alloc<ButtonNode::Data>(buttonText, callback);
-	if (data)
-	{
-		return allocator.Alloc<Node>(Node::Button, data);
-	}
-
-	return nullptr;
+	return allocator.Alloc<ButtonNode::Data>(buttonText, callback);
 }
 
 Coord ButtonNode::CalculateSize(Node* node)
 {
-	ButtonNode::Data* data = static_cast<ButtonNode::Data*>(node->data);
+	ButtonNode::Data* data = static_cast<ButtonNode::Data*>(node);
 	Font* font = node->GetStyleFont();
 	int labelHeight = font->glyphHeight;
 	int labelWidth = 0;
@@ -94,7 +88,7 @@ void ButtonNode::GenerateLayout(Layout& layout, Node* node)
 bool ButtonNode::HandleEvent(Node* node, const Event& event)
 {
 	AppInterface& ui = App::Get().ui;
-	ButtonNode::Data* data = static_cast<ButtonNode::Data*>(node->data);
+	ButtonNode::Data* data = static_cast<ButtonNode::Data*>(node);
 
 	switch (event.type)
 	{

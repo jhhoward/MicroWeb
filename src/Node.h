@@ -99,7 +99,7 @@ public:
 		return *nodeHandlers[type];
 	}
 
-	Node(Type inType, void* inData);
+	Node(Type inType);
 	void AddChild(Node* child);
 	void InsertSibling(Node* sibling);
 	void CalculateEncapsulatingRect(Rect& rect);
@@ -112,7 +112,7 @@ public:
 		Node* parent = FindParentOfType(searchType);
 		if (parent)
 		{
-			return static_cast<T*>(parent->data);
+			return static_cast<T*>(parent);
 		}
 		return nullptr;
 	}
@@ -137,8 +137,6 @@ public:
 	Node* parent;
 	Node* next;
 	Node* firstChild;
-
-	void* data;
 
 protected:
 	static NodeHandler* nodeHandlers[Node::NumNodeTypes];

@@ -7,22 +7,17 @@
 #include "CheckBox.h"
 #include "../KeyCodes.h"
 
-Node* CheckBoxNode::Construct(Allocator& allocator, const char* name, const char* value, bool isRadio, bool isChecked)
+CheckBoxNode::Data* CheckBoxNode::Construct(Allocator& allocator, const char* name, const char* value, bool isRadio, bool isChecked)
 {
 	name = name ? allocator.AllocString(name) : NULL;
 	value = value ? allocator.AllocString(value) : NULL;
 
-	CheckBoxNode::Data* data = allocator.Alloc<CheckBoxNode::Data>(name, value, isRadio, isChecked);
-	if (data)
-	{
-		return allocator.Alloc<Node>(Node::CheckBox, data);
-	}
-	return nullptr;
+	return allocator.Alloc<CheckBoxNode::Data>(name, value, isRadio, isChecked);
 }
 
 void CheckBoxNode::Draw(DrawContext& context, Node* node)
 {
-	CheckBoxNode::Data* data = static_cast<CheckBoxNode::Data*>(node->data);
+	CheckBoxNode::Data* data = static_cast<CheckBoxNode::Data*>(node);
 
 	if (data)
 	{
@@ -65,7 +60,7 @@ void CheckBoxNode::Draw(DrawContext& context, Node* node)
 
 void CheckBoxNode::GenerateLayout(Layout& layout, Node* node)
 {
-	CheckBoxNode::Data* data = static_cast<CheckBoxNode::Data*>(node->data);
+	CheckBoxNode::Data* data = static_cast<CheckBoxNode::Data*>(node);
 	Image* image = data->isRadio ? Assets.radio : Assets.checkbox;
 
 	Font* font = node->GetStyleFont();
@@ -117,9 +112,9 @@ bool CheckBoxNode::IsPartOfRadioSet(Node* contextNode, Node* node)
 	if (node->type == Node::CheckBox)
 	{
 		Node* formNode = contextNode->FindParentOfType(Node::Form);
-		CheckBoxNode::Data* contextData = static_cast<CheckBoxNode::Data*>(contextNode->data);
+		CheckBoxNode::Data* contextData = static_cast<CheckBoxNode::Data*>(contextNode);
 
-		CheckBoxNode::Data* data = static_cast<CheckBoxNode::Data*>(node->data);
+		CheckBoxNode::Data* data = static_cast<CheckBoxNode::Data*>(node);
 		Node* otherFormNode = node->FindParentOfType(Node::Form);
 
 		if (data && data->isRadio && formNode == otherFormNode && data->name && !strcmp(contextData->name, data->name))
@@ -134,7 +129,7 @@ bool CheckBoxNode::IsPartOfRadioSet(Node* contextNode, Node* node)
 bool CheckBoxNode::HandleEvent(Node* node, const Event& event)
 {
 	AppInterface& ui = App::Get().ui;
-	CheckBoxNode::Data* data = static_cast<CheckBoxNode::Data*>(node->data);
+	CheckBoxNode::Data* data = static_cast<CheckBoxNode::Data*>(node);
 
 	switch (event.type)
 	{
@@ -154,7 +149,7 @@ bool CheckBoxNode::HandleEvent(Node* node, const Event& event)
 						{
 							if (n != node && IsPartOfRadioSet(node, n))
 							{
-								CheckBoxNode::Data* otherData = static_cast<CheckBoxNode::Data*>(n->data);
+								CheckBoxNode::Data* otherData = static_cast<CheckBoxNode::Data*>(n);
 								otherData->isChecked = false;
 								n->Redraw();
 							}
@@ -184,7 +179,7 @@ bool CheckBoxNode::HandleEvent(Node* node, const Event& event)
 				{
 					if (IsPartOfRadioSet(node, n))
 					{
-						CheckBoxNode::Data* otherData = static_cast<CheckBoxNode::Data*>(n->data);
+						CheckBoxNode::Data* otherData = static_cast<CheckBoxNode::Data*>(n);
 						if (otherData->isChecked)
 						{
 							shouldFocus = false;
@@ -221,7 +216,7 @@ bool CheckBoxNode::HandleEvent(Node* node, const Event& event)
 						if (next && next != node)
 						{
 							data->isChecked = false;
-							CheckBoxNode::Data* nextData = static_cast<CheckBoxNode::Data*>(next->data);
+							CheckBoxNode::Data* nextData = static_cast<CheckBoxNode::Data*>(next);
 							nextData->isChecked = true;
 							node->Redraw();
 							next->Redraw();
@@ -236,7 +231,7 @@ bool CheckBoxNode::HandleEvent(Node* node, const Event& event)
 						if (next && next != node)
 						{
 							data->isChecked = false;
-							CheckBoxNode::Data* nextData = static_cast<CheckBoxNode::Data*>(next->data);
+							CheckBoxNode::Data* nextData = static_cast<CheckBoxNode::Data*>(next);
 							nextData->isChecked = true;
 							node->Redraw();
 							next->Redraw();

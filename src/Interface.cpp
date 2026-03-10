@@ -124,8 +124,8 @@ void AppInterface::Update()
 			case Node::Link:
 				Platform::input->SetMouseCursor(MouseCursor::Hand);
 				{
-					LinkNode::Data* linkData = static_cast<LinkNode::Data*>(hoverNode->data);
-					if (linkData && linkData->url)
+					LinkNode::Data* linkData = static_cast<LinkNode::Data*>(hoverNode);
+					if (linkData->url)
 					{
 						SetStatusMessage(URL::GenerateFromRelative(app.page.pageURL.url, linkData->url).url, StatusBarNode::HoverStatus);
 						hasHoverStatusMessage = true;
@@ -137,8 +137,8 @@ void AppInterface::Update()
 				break;
 			case Node::Image:
 				{
-					ImageNode::Data* imageData = static_cast<ImageNode::Data*>(hoverNode->data);
-					if (imageData && imageData->altText)
+					ImageNode::Data* imageData = static_cast<ImageNode::Data*>(hoverNode);
+					if (imageData->altText)
 					{
 						SetStatusMessage(imageData->altText, StatusBarNode::HoverStatus);
 						hasHoverStatusMessage = true;
@@ -428,12 +428,11 @@ void AppInterface::UpdateAddressBar(const URL& url)
 
 void AppInterface::UpdatePageScrollBar()
 {
-	ScrollBarNode::Data* data = static_cast<ScrollBarNode::Data*>(scrollBarNode->data);
 	int maxScrollHeight = app.pageRenderer.GetVisiblePageHeight() - app.ui.windowRect.height;
 	if (maxScrollHeight < 0)
 		maxScrollHeight = 0;
-	data->scrollPosition = scrollPositionY;
-	data->maxScroll = maxScrollHeight;
+	scrollBarNode->scrollPosition = scrollPositionY;
+	scrollBarNode->maxScroll = maxScrollHeight;
 	scrollBarNode->Redraw();
 }
 
@@ -454,8 +453,7 @@ void AppInterface::GenerateInterfaceNodes()
 
 	{
 		titleBuffer[0] = '\0';
-		TextElement::Data* titleNodeData = allocator.Alloc<TextElement::Data>(MemBlockHandle (titleBuffer));
-		titleNode = allocator.Alloc<Node>(Node::Text, titleNodeData);
+		titleNode = allocator.Alloc<TextElement::Data>(MemBlockHandle (titleBuffer));
 		titleNode->anchor.Clear();
 		titleNode->size.x = Platform::video->screenWidth;
 		titleNode->size.y = interfaceFont->glyphHeight;
@@ -593,7 +591,7 @@ void AppInterface::OnForwardButtonPressed(Node* node)
 void AppInterface::OnAddressBarSubmit(Node* node)
 {
 	App& app = App::Get();
-	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
+	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node);
 	app.OpenURL(HTTPRequest::Get, data->buffer);
 	app.ui.FocusNode(nullptr);
 }
@@ -712,7 +710,7 @@ void AppInterface::CycleNodes(int direction)
 
 void AppInterface::OnScrollBarMoved(Node* node)
 {
-	ScrollBarNode::Data* data = static_cast<ScrollBarNode::Data*>(node->data);
+	ScrollBarNode::Data* data = static_cast<ScrollBarNode::Data*>(node);
 	AppInterface& ui = App::Get().ui;
 	ui.ScrollRelative(data->scrollPosition - ui.scrollPositionY);
 }

@@ -8,18 +8,19 @@
 class StyleNode : public NodeHandler
 {
 public:
-	class Data
+	class Data : public Node
 	{
 	public:
+		Data() : Node(Node::Style) {}
 		ElementStyleOverride styleOverride;
 	};
 
 	virtual void ApplyStyle(Node* node) override;
 	virtual void GenerateLayout(Layout& layout, Node* node) override;
 
-	static Node* Construct(Allocator& allocator);
-	static Node* ConstructFontStyle(Allocator& allocator, FontStyle::Type fontStyle, int fontSize = -1);
-	static Node* ConstructFontSize(Allocator& allocator, int fontSize);
-	static Node* ConstructAlignment(Allocator& allocator, ElementAlignment::Type alignment);
+	static StyleNode::Data* Construct(Allocator& allocator);
+	static StyleNode::Data* ConstructFontStyle(Allocator& allocator, FontStyle::Type fontStyle, int fontSize = -1);
+	static StyleNode::Data* ConstructFontSize(Allocator& allocator, int fontSize);
+	static StyleNode::Data* ConstructAlignment(Allocator& allocator, ElementAlignment::Type alignment);
 };
 

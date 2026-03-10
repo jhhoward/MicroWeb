@@ -18,11 +18,11 @@ struct ElementAlignment
 
 struct StyleOverrideMask
 {
+	FontStyle::Type fontStyle;
 	union
 	{
 		struct
 		{
-			FontStyle::Type fontStyle : 4;
 			bool fontSize : 1;
 			bool fontSizeDelta : 1;
 			bool alignment : 1;
@@ -33,6 +33,7 @@ struct StyleOverrideMask
 
 	void Clear()
 	{
+		fontStyle = FontStyle::Regular;
 		mask = 0;
 	}
 };

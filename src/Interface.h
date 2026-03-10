@@ -18,6 +18,8 @@
 #include "URL.h"
 #include "Node.h"
 #include "Nodes/Status.h"
+#include "Nodes/Button.h"
+#include "Nodes/Scroll.h"
 
 #define MAX_TITLE_LENGTH 80
 
@@ -96,10 +98,10 @@ private:
 
 	Node* rootInterfaceNode;
 	Node* titleNode;
-	Node* backButtonNode;
-	Node* forwardButtonNode;
-	Node* statusBarNode;
-	Node* scrollBarNode;
+	ButtonNode::Data* backButtonNode;
+	ButtonNode::Data* forwardButtonNode;
+	StatusBarNode::Data* statusBarNode;
+	ScrollBarNode::Data* scrollBarNode;
 
 	int scrollPositionX;
 	int scrollPositionY;

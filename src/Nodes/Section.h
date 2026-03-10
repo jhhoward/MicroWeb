@@ -17,13 +17,13 @@ public:
 		Interface
 	};
 
-	class Data
+	class Data : public Node
 	{
 	public:
-		Data(SectionElement::Type inType) : type(inType) { }
+		Data(SectionElement::Type inType) : Node(Node::Section), type(inType) { }
 		SectionElement::Type type;
 	};
 
-	static Node* Construct(Allocator& allocator, SectionElement::Type sectionType);
+	static SectionElement::Data* Construct(Allocator& allocator, SectionElement::Type sectionType);
 };
 

@@ -5,20 +5,14 @@
 #include "../Interface.h"
 #include "../Draw/Surface.h"
 
-Node* StatusBarNode::Construct(Allocator& allocator)
+StatusBarNode::Data* StatusBarNode::Construct(Allocator& allocator)
 {
-	StatusBarNode::Data* data = allocator.Alloc<StatusBarNode::Data>();
-	if (data)
-	{
-		return allocator.Alloc<Node>(Node::StatusBar, data);
-	}
-
-	return nullptr;
+	return allocator.Alloc<StatusBarNode::Data>();
 }
 
 void StatusBarNode::Draw(DrawContext& context, Node* node)
 {
-	StatusBarNode::Data* data = static_cast<StatusBarNode::Data*>(node->data);
+	StatusBarNode::Data* data = static_cast<StatusBarNode::Data*>(node);
 
 	Font* font = node->GetStyleFont();
 	uint8_t textColour = Platform::video->colourScheme.textColour;
@@ -32,7 +26,7 @@ void StatusBarNode::Draw(DrawContext& context, Node* node)
 
 void StatusBarNode::SetStatus(Node* node, const char* message, StatusType type)
 {
-	StatusBarNode::Data* data = static_cast<StatusBarNode::Data*>(node->data);
+	StatusBarNode::Data* data = static_cast<StatusBarNode::Data*>(node);
 
 	if (message)
 	{

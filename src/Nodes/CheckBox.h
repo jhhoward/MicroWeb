@@ -6,11 +6,11 @@
 class CheckBoxNode : public NodeHandler
 {
 public:
-	class Data
+	class Data : public Node
 	{
 	public:
 		Data(const char* inName, const char* inValue, bool inIsRadio, bool inIsChecked) :
-			name(inName), value(inValue), isRadio(inIsRadio), isChecked(inIsChecked) {}
+			Node(Node::CheckBox), name(inName), value(inValue), isRadio(inIsRadio), isChecked(inIsChecked) {}
 		const char* name;
 		const char* value;
 		bool isRadio;
@@ -18,7 +18,7 @@ public:
 		bool isChecked;
 	};
 
-	static Node* Construct(Allocator& allocator, const char* name, const char* value, bool isRadio, bool isChecked);
+	static CheckBoxNode::Data* Construct(Allocator& allocator, const char* name, const char* value, bool isRadio, bool isChecked);
 	virtual void Draw(DrawContext& context, Node* element) override;
 	virtual void GenerateLayout(Layout& layout, Node* node) override;
 	virtual bool CanPick(Node* node) { return true; }

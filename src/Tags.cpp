@@ -268,7 +268,7 @@ void FontTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 	Node* styleNode = StyleNode::Construct(MemoryManager::pageAllocator);
 	if (styleNode)
 	{
-		StyleNode::Data* data = static_cast<StyleNode::Data*>(styleNode->data);
+		StyleNode::Data* data = static_cast<StyleNode::Data*>(styleNode);
 
 		AttributeParser attributes(attributeStr);
 		while (attributes.Parse())
@@ -426,14 +426,13 @@ void InputTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 	case HTMLInputTag::Text:
 	case HTMLInputTag::Password:
 		{
-			Node* fieldNode = TextFieldNode::Construct(MemoryManager::pageAllocator, value, FormNode::OnSubmitButtonPressed);
-			if (fieldNode && fieldNode->data)
+			TextFieldNode::Data* fieldData = TextFieldNode::Construct(MemoryManager::pageAllocator, value, FormNode::OnSubmitButtonPressed);
+			if (fieldData)
 			{
-				TextFieldNode::Data* fieldData = static_cast<TextFieldNode::Data*>(fieldNode->data);
 				fieldData->name = name;
 				fieldData->explicitWidth = width;
 				fieldData->isPassword = type == HTMLInputTag::Password;
-				parser.EmitNode(fieldNode);
+				parser.EmitNode(fieldData);
 			}
 		}
 		break;
@@ -454,13 +453,12 @@ void FormTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
 	parser.EmitNode(BreakNode::Construct(MemoryManager::pageAllocator));
 
-	Node* formNode = FormNode::Construct(MemoryManager::pageAllocator);
-	parser.PushContext(formNode, this);
-
-	FormNode::Data* formData = static_cast<FormNode::Data*>(formNode->data);
+	FormNode::Data* formData = FormNode::Construct(MemoryManager::pageAllocator);
 
 	if (formData)
 	{
+		parser.PushContext(formData, this);
+
 		AttributeParser attributes(attributeStr);
 		while (attributes.Parse())
 		{
@@ -487,44 +485,40 @@ void FormTagHandler::Close(HTMLParser& parser) const
 
 void ImgTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	Node* imageNode = ImageNode::Construct(MemoryManager::pageAllocator);
+	ImageNode::Data* imageNode = ImageNode::Construct(MemoryManager::pageAllocator);
 	if (imageNode)
 	{
-		ImageNode::Data* data = static_cast<ImageNode::Data*>(imageNode->data);
-		if (data)
-		{
-			AttributeParser attributes(attributeStr);
+		AttributeParser attributes(attributeStr);
 
-			while (attributes.Parse())
+		while (attributes.Parse())
+		{
+			if (!stricmp(attributes.Key(), "alt"))
 			{
-				if (!stricmp(attributes.Key(), "alt"))
+				imageNode->altText = MemoryManager::pageAllocator.AllocString(attributes.Value());
+				if (imageNode->altText)
 				{
-					data->altText = MemoryManager::pageAllocator.AllocString(attributes.Value());
-					if (data->altText)
-					{
-						HTMLParser::ReplaceAmpersandEscapeSequences(data->altText);
-					}
-				}
-				else if (!stricmp(attributes.Key(), "src"))
-				{
-					data->source = MemoryManager::pageAllocator.AllocString(attributes.Value());
-				}
-				else if (!stricmp(attributes.Key(), "width"))
-				{
-					data->explicitWidth = ExplicitDimension::Parse(attributes.Value());
-				}
-				else if (!stricmp(attributes.Key(), "height"))
-				{
-					data->explicitHeight = ExplicitDimension::Parse(attributes.Value());
-				}
-				else if (!stricmp(attributes.Key(), "ismap"))
-				{
-					data->isMap = true;
+					HTMLParser::ReplaceAmpersandEscapeSequences(imageNode->altText);
 				}
 			}
-
-			parser.EmitNode(imageNode);
+			else if (!stricmp(attributes.Key(), "src"))
+			{
+				imageNode->source = MemoryManager::pageAllocator.AllocString(attributes.Value());
+			}
+			else if (!stricmp(attributes.Key(), "width"))
+			{
+				imageNode->explicitWidth = ExplicitDimension::Parse(attributes.Value());
+			}
+			else if (!stricmp(attributes.Key(), "height"))
+			{
+				imageNode->explicitHeight = ExplicitDimension::Parse(attributes.Value());
+			}
+			else if (!stricmp(attributes.Key(), "ismap"))
+			{
+				imageNode->isMap = true;
+			}
 		}
+
+		parser.EmitNode(imageNode);
 	}
 }
 
@@ -590,34 +584,32 @@ void PreformattedTagHandler::Close(class HTMLParser& parser) const
 
 void TableTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	Node* tableNode = TableNode::Construct(MemoryManager::pageAllocator);
+	TableNode::Data* tableNode = TableNode::Construct(MemoryManager::pageAllocator);
 	if (tableNode)
 	{
-		TableNode::Data* tableNodeData = static_cast<TableNode::Data*>(tableNode->data);
-
 		AttributeParser attributes(attributeStr);
 
 		while (attributes.Parse())
 		{
 			if (!stricmp(attributes.Key(), "border"))
 			{
-				tableNodeData->border = attributes.ValueAsInt();
+				tableNode->border = attributes.ValueAsInt();
 			}
 			else if (!stricmp(attributes.Key(), "cellpadding"))
 			{
-				tableNodeData->cellPadding = attributes.ValueAsInt();
+				tableNode->cellPadding = attributes.ValueAsInt();
 			}
 			else if (!stricmp(attributes.Key(), "cellSpacing"))
 			{
-				tableNodeData->cellSpacing = attributes.ValueAsInt();
+				tableNode->cellSpacing = attributes.ValueAsInt();
 			}
 			else if (!stricmp(attributes.Key(), "bgcolor"))
 			{
-				tableNodeData->bgColour = HTMLParser::ParseColourCode(attributes.Value());
+				tableNode->bgColour = HTMLParser::ParseColourCode(attributes.Value());
 			}
 			else if (!stricmp(attributes.Key(), "width"))
 			{
-				tableNodeData->explicitWidth = ExplicitDimension::Parse(attributes.Value());
+				tableNode->explicitWidth = ExplicitDimension::Parse(attributes.Value());
 			}
 		}
 
@@ -642,30 +634,28 @@ void TableRowTagHandler::Close(class HTMLParser& parser) const
 
 void TableCellTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	Node* cellNode = TableCellNode::Construct(MemoryManager::pageAllocator, isHeader);
+	TableCellNode::Data* cellNode = TableCellNode::Construct(MemoryManager::pageAllocator, isHeader);
 	if (cellNode)
 	{
-		TableCellNode::Data* cellData = static_cast<TableCellNode::Data*>(cellNode->data);
-
 		AttributeParser attributes(attributeStr);
 
 		while (attributes.Parse())
 		{
 			if (!stricmp(attributes.Key(), "bgcolor"))
 			{
-				cellData->bgColour = HTMLParser::ParseColourCode(attributes.Value());
+				cellNode->bgColour = HTMLParser::ParseColourCode(attributes.Value());
 			}
 			else if (!stricmp(attributes.Key(), "colspan"))
 			{
-				cellData->columnSpan = attributes.ValueAsInt();
-				if (cellData->columnSpan <= 0)
+				cellNode->columnSpan = attributes.ValueAsInt();
+				if (cellNode->columnSpan <= 0)
 				{
-					cellData->columnSpan = 1;
+					cellNode->columnSpan = 1;
 				}
 			}
 			else if (!stricmp(attributes.Key(), "width"))
 			{
-				cellData->explicitWidth = ExplicitDimension::Parse(attributes.Value());
+				cellNode->explicitWidth = ExplicitDimension::Parse(attributes.Value());
 			}
 		}
 		parser.PushContext(cellNode, this);
@@ -700,7 +690,7 @@ void SelectTagHandler::Close(class HTMLParser& parser) const
 
 void OptionTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
-	Node* optionNode = OptionNode::Construct(MemoryManager::pageAllocator);
+	OptionNode::Data* optionNode = OptionNode::Construct(MemoryManager::pageAllocator);
 
 	if (optionNode)
 	{
@@ -713,10 +703,9 @@ void OptionTagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 			if (!stricmp(attributes.Key(), "selected"))
 			{
 				SelectNode::Data* selectData = optionNode->FindParentDataOfType<SelectNode::Data>(Node::Select);
-				OptionNode::Data* optionData = static_cast<OptionNode::Data*>(optionNode->data);
-				if (selectData && optionData)
+				if (selectData)
 				{
-					selectData->selected = optionData;
+					selectData->selected = optionNode;
 				}
 			}
 		}

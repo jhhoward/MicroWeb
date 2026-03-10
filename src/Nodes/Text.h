@@ -6,15 +6,15 @@
 class TextElement : public NodeHandler
 {
 public:
-	class Data
+	class Data : public Node
 	{
 	public:
-		Data(MemBlockHandle& inText) : text(inText), lastAvailableWidth(-1) {}
+		Data(MemBlockHandle& inText) : Node(Node::Text), text(inText), lastAvailableWidth(-1) {}
 		MemBlockHandle text;
 		int lastAvailableWidth;
 	};
 	
-	static Node* Construct(Allocator& allocator, const char* text);
+	static TextElement::Data* Construct(Allocator& allocator, const char* text);
 	virtual void GenerateLayout(Layout& layout, Node* node) override;
 	virtual void Draw(DrawContext& context, Node* element) override;
 };
@@ -22,14 +22,14 @@ public:
 class SubTextElement : public TextElement
 {
 public:
-	class Data
+	class Data : public Node
 	{
 	public:
-		Data(int inStartIndex, int inLength) : startIndex(inStartIndex), length(inLength) {}
+		Data(int inStartIndex, int inLength) : Node(Node::SubText), startIndex(inStartIndex), length(inLength) {}
 		int startIndex;
 		int length;
 	};
-	static Node* Construct(Allocator& allocator, int startIndex, int length);
+	static SubTextElement::Data* Construct(Allocator& allocator, int startIndex, int length);
 	virtual void GenerateLayout(Layout& layout, Node* node) override;
 	virtual void Draw(DrawContext& context, Node* element) override;
 };

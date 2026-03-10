@@ -12,7 +12,7 @@
 
 void ImageNode::Draw(DrawContext& context, Node* node)
 {
-	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
+	ImageNode::Data* data = static_cast<ImageNode::Data*>(node);
 	//printf("--IMG [%d, %d]\n", node->anchor.x, node->anchor.y);
 	uint8_t outlineColour = App::Get().page.colourScheme.textColour;
 
@@ -61,20 +61,14 @@ bool ImageNode::Data::IsBrokenImageWithoutDimensions()
 }
 
 
-Node* ImageNode::Construct(Allocator& allocator)
+ImageNode::Data* ImageNode::Construct(Allocator& allocator)
 {
-	ImageNode::Data* data = allocator.Alloc<ImageNode::Data>();
-	if (data)
-	{
-		return allocator.Alloc<Node>(Node::Image, data);
-	}
-
-	return nullptr;
+	return allocator.Alloc<ImageNode::Data>();
 }
 
 void ImageNode::BeginLayoutContext(Layout& layout, Node* node)
 {
-	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
+	ImageNode::Data* data = static_cast<ImageNode::Data*>(node);
 
 	if (!data->AreDimensionsLocked())
 	{
@@ -95,7 +89,7 @@ void ImageNode::BeginLayoutContext(Layout& layout, Node* node)
 
 void ImageNode::GenerateLayout(Layout& layout, Node* node)
 {
-	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
+	ImageNode::Data* data = static_cast<ImageNode::Data*>(node);
 
 	if (!data->AreDimensionsLocked() && RESCALE_TO_FIT_SCREEN_WIDTH)
 	{
@@ -127,7 +121,7 @@ void ImageNode::LoadContent(Node* node, LoadTask& loadTask)
 		return;
 	}
 
-	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
+	ImageNode::Data* data = static_cast<ImageNode::Data*>(node);
 	if (data && data->state != ImageNode::ErrorDownloading && data->state != ImageNode::FinishedDownloadingContent) 
 	{
 		if (data->HasDimensions() && !App::Get().page.layout.IsFinished())
@@ -153,7 +147,7 @@ void ImageNode::LoadContent(Node* node, LoadTask& loadTask)
 
 void ImageNode::FinishContent(Node* node, struct LoadTask& loadTask) 
 {
-	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
+	ImageNode::Data* data = static_cast<ImageNode::Data*>(node);
 
 	if (data)
 	{
@@ -170,7 +164,7 @@ void ImageNode::FinishContent(Node* node, struct LoadTask& loadTask)
 
 void ImageNode::ImageLoadError(Node* node)
 {
-	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
+	ImageNode::Data* data = static_cast<ImageNode::Data*>(node);
 
 	if (data->state != ImageNode::ErrorDownloading)
 	{
@@ -196,7 +190,7 @@ void ImageNode::ImageLoadError(Node* node)
 
 bool ImageNode::ParseContent(Node* node, char* buffer, size_t count)
 {
-	ImageNode::Data* data = static_cast<ImageNode::Data*>(node->data);
+	ImageNode::Data* data = static_cast<ImageNode::Data*>(node);
 
 	if (data->state == ImageNode::DeterminingFormat)
 	{
@@ -237,7 +231,7 @@ bool ImageNode::ParseContent(Node* node, char* buffer, size_t count)
 		{
 			if (n->type == Node::Image)
 			{
-				ImageNode::Data* otherData = static_cast<ImageNode::Data*>(n->data);
+				ImageNode::Data* otherData = static_cast<ImageNode::Data*>(n);
 
 				if (otherData->source && !strcmp(data->source, otherData->source) && n != node)
 				{

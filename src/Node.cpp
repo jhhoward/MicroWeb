@@ -45,13 +45,13 @@ NodeHandler* Node::nodeHandlers[Node::NumNodeTypes] =
 	new CheckBoxNode()
 };
 
-Node::Node(Type inType, void* inData)
-	: type(inType)
+Node::Node(Type inType)
+	: styleHandle(0)
+	, type(inType)
 	, isLayoutComplete(false)
 	, parent(nullptr)
 	, next(nullptr)
 	, firstChild(nullptr)
-	, data(inData)
 {
 	anchor.Clear();
 	size.Clear();

@@ -12,21 +12,21 @@
  * 2) Column and row dimensions are calculated based on preferred sizes
  */
 
-Node* TableNode::Construct(Allocator& allocator)
+TableNode::Data* TableNode::Construct(Allocator& allocator)
 {
 	TableNode::Data* data = allocator.Alloc<TableNode::Data>();
 	if (data)
 	{
 		data->cellPadding = 2;
 		data->cellSpacing = 2;
-		return allocator.Alloc<Node>(Node::Table, data);
+		return data;
 	}
 	return nullptr;
 }
 
 void TableNode::Draw(DrawContext& context, Node* node)
 {
-	TableNode::Data* data = static_cast<TableNode::Data*>(node->data);
+	TableNode::Data* data = static_cast<TableNode::Data*>(node);
 
 	int x = node->anchor.x;
 	int y = node->anchor.y;
@@ -55,7 +55,7 @@ void TableNode::Draw(DrawContext& context, Node* node)
 
 void TableNode::BeginLayoutContext(Layout& layout, Node* node)
 {
-	TableNode::Data* data = static_cast<TableNode::Data*>(node->data);
+	TableNode::Data* data = static_cast<TableNode::Data*>(node);
 
 	layout.BreakNewLine();
 	layout.tableDepth++;
@@ -87,7 +87,7 @@ void TableNode::BeginLayoutContext(Layout& layout, Node* node)
 
 void TableNode::EndLayoutContext(Layout& layout, Node* node)
 {
-	TableNode::Data* data = static_cast<TableNode::Data*>(node->data);
+	TableNode::Data* data = static_cast<TableNode::Data*>(node);
 
 	layout.PopLayout();
 	layout.PopCursor();
@@ -223,7 +223,7 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 					if (pass == 1 && cell->columnSpan == 1)
 						continue;
 
-					int preferredWidth = (2 * data->cellPadding + cell->node->size.x);
+					int preferredWidth = (2 * data->cellPadding + cell->size.x);
 					int explicitWidth = 0;
 					int explicitWidthPercentage = 0;
 
@@ -487,7 +487,7 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 		if (!row->nextRow)
 		{
 			// Use last row's dimensions to calculate how tall the table should be
-			int bottom = row->node->anchor.y + row->node->size.y;
+			int bottom = row->anchor.y + row->size.y;
 			node->size.y = bottom - node->anchor.y + data->cellSpacing;
 		}
 	}
@@ -499,20 +499,14 @@ void TableNode::EndLayoutContext(Layout& layout, Node* node)
 
 // Table row node
 
-Node* TableRowNode::Construct(Allocator& allocator)
+TableRowNode::Data* TableRowNode::Construct(Allocator& allocator)
 {
-	TableRowNode::Data* data = allocator.Alloc<TableRowNode::Data>();
-	if (data)
-	{
-		data->node = allocator.Alloc<Node>(Node::TableRow, data);
-		return data->node;
-	}
-	return nullptr;
+	return allocator.Alloc<TableRowNode::Data>();
 }
 
 void TableRowNode::BeginLayoutContext(Layout& layout, Node* node)
 {
-	TableRowNode::Data* data = static_cast<TableRowNode::Data*>(node->data);
+	TableRowNode::Data* data = static_cast<TableRowNode::Data*>(node);
 
 	layout.BreakNewLine();
 
@@ -555,7 +549,7 @@ void TableRowNode::BeginLayoutContext(Layout& layout, Node* node)
 
 void TableRowNode::EndLayoutContext(Layout& layout, Node* node)
 {
-	TableRowNode::Data* data = static_cast<TableRowNode::Data*>(node->data);
+	TableRowNode::Data* data = static_cast<TableRowNode::Data*>(node);
 	TableNode::Data* tableData = node->FindParentDataOfType<TableNode::Data>(Node::Table);
 
 	if (tableData)
@@ -569,7 +563,7 @@ void TableRowNode::EndLayoutContext(Layout& layout, Node* node)
 			node->size.y = 0;
 			for (TableCellNode::Data* cellData = data->firstCell; cellData; cellData = cellData->nextCell)
 			{
-				int cellBottom = cellData->node->anchor.y + cellData->node->size.y;
+				int cellBottom = cellData->anchor.y + cellData->size.y;
 				if (cellBottom > node->anchor.y + node->size.y)
 				{
 					node->size.y = cellBottom - node->anchor.y;
@@ -577,7 +571,7 @@ void TableRowNode::EndLayoutContext(Layout& layout, Node* node)
 			}
 			for (TableCellNode::Data* cellData = data->firstCell; cellData; cellData = cellData->nextCell)
 			{
-				cellData->node->size.y = node->size.y;
+				cellData->size.y = node->size.y;
 			}
 			layout.PadVertical(node->size.y + tableData->cellSpacing);
 		}
@@ -592,22 +586,14 @@ void TableRowNode::ApplyStyle(Node* node)
 }
 
 // Table cell node
-
-Node* TableCellNode::Construct(Allocator& allocator, bool isHeader)
+TableCellNode::Data* TableCellNode::Construct(Allocator& allocator, bool isHeader)
 {
-	TableCellNode::Data* data = allocator.Alloc<TableCellNode::Data>(isHeader);
-	if (data)
-	{
-		Node* node = allocator.Alloc<Node>(Node::TableCell, data);
-		data->node = node;
-		return node;
-	}
-	return nullptr;
+	return allocator.Alloc<TableCellNode::Data>(isHeader);
 }
 
 void TableCellNode::ApplyStyle(Node* node)
 {
-	TableCellNode::Data* data = static_cast<TableCellNode::Data*>(node->data);
+	TableCellNode::Data* data = static_cast<TableCellNode::Data*>(node);
 	ElementStyle style = node->GetStyle();
 
 	if (data->isHeader)
@@ -625,7 +611,7 @@ void TableCellNode::ApplyStyle(Node* node)
 
 void TableCellNode::BeginLayoutContext(Layout& layout, Node* node)
 {
-	TableCellNode::Data* data = static_cast<TableCellNode::Data*>(node->data);
+	TableCellNode::Data* data = static_cast<TableCellNode::Data*>(node);
 
 	TableNode::Data* tableData = node->FindParentDataOfType<TableNode::Data>(Node::Table);
 	TableRowNode::Data* rowData = node->FindParentDataOfType<TableRowNode::Data>(Node::TableRow);
@@ -684,7 +670,7 @@ void TableCellNode::BeginLayoutContext(Layout& layout, Node* node)
 
 void TableCellNode::EndLayoutContext(Layout& layout, Node* node)
 {
-	TableCellNode::Data* data = static_cast<TableCellNode::Data*>(node->data);
+	TableCellNode::Data* data = static_cast<TableCellNode::Data*>(node);
 
 	TableNode::Data* tableData = node->FindParentDataOfType<TableNode::Data>(Node::Table);
 	TableRowNode::Data* rowData = node->FindParentDataOfType<TableRowNode::Data>(Node::TableRow);
@@ -717,7 +703,7 @@ void TableCellNode::Draw(DrawContext& context, Node* node)
 
 	TableNode::Data* tableData = node->FindParentDataOfType<TableNode::Data>(Node::Table);
 	Node* rowNode = node->FindParentOfType(Node::TableRow);
-	TableCellNode::Data* data = static_cast<TableCellNode::Data*>(node->data);
+	TableCellNode::Data* data = static_cast<TableCellNode::Data*>(node);
 
 	if (tableData && !tableData->IsGeneratingLayout() && rowNode)
 	{

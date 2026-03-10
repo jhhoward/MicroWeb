@@ -9,7 +9,7 @@
 class FormNode : public NodeHandler
 {
 public:
-	class Data
+	class Data : public Node
 	{
 	public:
 		enum MethodType
@@ -20,10 +20,10 @@ public:
 		char* action;
 		MethodType method;
 
-		Data() : action(NULL), method(Get) {}
+		Data() : Node(Node::Form), action(NULL), method(Get) {}
 	};
 
-	static Node* Construct(Allocator& allocator);
+	static FormNode::Data* Construct(Allocator& allocator);
 
 	static void SubmitForm(Node* node);
 

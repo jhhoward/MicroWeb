@@ -6,14 +6,14 @@
 class ListItemNode : public NodeHandler
 {
 public:
-	class Data
+	class Data : public Node
 	{
 	public:
-		Data()  {}
+		Data() : Node(Node::ListItem) {}
 		int index;
 	};
 
-	static Node* Construct(Allocator& allocator);
+	static ListItemNode::Data* Construct(Allocator& allocator);
 	virtual void Draw(DrawContext& context, Node* element) override;
 	virtual void BeginLayoutContext(Layout& layout, Node* node) override;
 	virtual void EndLayoutContext(Layout& layout, Node* node) override;
@@ -22,14 +22,14 @@ public:
 class ListNode : public NodeHandler
 {
 public:
-	class Data
+	class Data : public Node
 	{
 	public:
-		Data() {}
+		Data() : Node(Node::List) {}
 		char type;
 	};
 
-	static Node* Construct(Allocator& allocator);
+	static ListNode::Data* Construct(Allocator& allocator);
 	virtual void BeginLayoutContext(Layout& layout, Node* node) override;
 	virtual void EndLayoutContext(Layout& layout, Node* node) override;
 };

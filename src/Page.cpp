@@ -108,7 +108,7 @@ void Page::DebugDumpNodeGraph()
 		printf("%s :\t%d\n", nodeTypeNames[n], nodeTypeCounts[n]);
 	}
 	printf("Total: %d nodes\n", totalCount);
-
+	
 }
 
 void Page::DebugDumpNodeGraph(Node* node, int depth)
@@ -128,12 +128,12 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 	{
 		printf(" ");
 	}
-	
+
 	switch (node->type)
 	{
 		case Node::Text:
 		{
-			TextElement::Data* data = static_cast<TextElement::Data*>(node->data);
+			TextElement::Data* data = static_cast<TextElement::Data*>(node);
 			if (node->firstChild)
 			{
 				printf("<%s> [%d,%d:%d,%d]\n", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y);
@@ -146,8 +146,8 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 		break;
 	case Node::SubText:
 		{
-			TextElement::Data* data = static_cast<TextElement::Data*>(node->parent->data);
-			SubTextElement::Data* subData = static_cast<SubTextElement::Data*>(node->data);
+			TextElement::Data* data = static_cast<TextElement::Data*>(node->parent);
+			SubTextElement::Data* subData = static_cast<SubTextElement::Data*>(node);
 			char* text = data->text.Get<char*>() + subData->startIndex;
 			char temp = text[subData->length];
 			text[subData->length] = 0;
@@ -157,31 +157,31 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 		break;
 	case Node::Option:
 		{
-			OptionNode::Data* data = static_cast<OptionNode::Data*>(node->data);
+			OptionNode::Data* data = static_cast<OptionNode::Data*>(node);
 			printf("<%s> [%s]\n", nodeTypeNames[node->type], data->text);
 		}
 		break;
 	case Node::Link:
 		{
-			LinkNode::Data* data = static_cast<LinkNode::Data*>(node->data);
+			LinkNode::Data* data = static_cast<LinkNode::Data*>(node);
 			printf("<%s> [%d,%d:%d,%d] %s\n", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y, data->url);
 		}
 		break;
 	case Node::Section:
 		{
-			SectionElement::Data* data = static_cast<SectionElement::Data*>(node->data);
+			SectionElement::Data* data = static_cast<SectionElement::Data*>(node);
 			printf("<%s> [%d,%d:%d,%d] %s\n", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y, sectionTypeNames[data->type]);
 		}
 		break;
 	case Node::Form:
 		{
-			FormNode::Data* data = static_cast<FormNode::Data*>(node->data);
+			FormNode::Data* data = static_cast<FormNode::Data*>(node);
 			printf("<%s> [%d,%d:%d,%d] action: %s\n", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y, data->action ? data->action : "NONE");
 		}
 		break;
 	case Node::Style:
 		{
-			StyleNode::Data* data = static_cast<StyleNode::Data*>(node->data);
+			StyleNode::Data* data = static_cast<StyleNode::Data*>(node);
 			printf("<%s> [%d,%d:%d,%d] ", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y);
 			if (data->styleOverride.overrideMask.alignment)
 			{

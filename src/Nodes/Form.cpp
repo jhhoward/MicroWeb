@@ -8,15 +8,9 @@
 
 #include "../HTTP.h"
 
-Node* FormNode::Construct(Allocator& allocator)
+FormNode::Data* FormNode::Construct(Allocator& allocator)
 {
-	FormNode::Data* data = allocator.Alloc<FormNode::Data>();
-	if (data)
-	{
-		return allocator.Alloc<Node>(Node::Form, data);
-	}
-
-	return nullptr;
+	return allocator.Alloc<FormNode::Data>();
 }
 
 void FormNode::AppendParameter(char* address, const char* name, const char* value, int& numParams, size_t bufferLength)
@@ -48,7 +42,7 @@ void FormNode::BuildAddressParameterList(Node* node, char* address, int& numPara
 	{
 		case Node::TextField:
 		{
-			TextFieldNode::Data* fieldData = static_cast<TextFieldNode::Data*>(node->data);
+			TextFieldNode::Data* fieldData = static_cast<TextFieldNode::Data*>(node);
 
 			if (fieldData->name && fieldData->buffer)
 			{
@@ -58,7 +52,7 @@ void FormNode::BuildAddressParameterList(Node* node, char* address, int& numPara
 		break;
 		case Node::CheckBox:
 		{
-			CheckBoxNode::Data* checkboxData = static_cast<CheckBoxNode::Data*>(node->data);
+			CheckBoxNode::Data* checkboxData = static_cast<CheckBoxNode::Data*>(node);
 
 			if (checkboxData && checkboxData->isChecked && checkboxData->name && checkboxData->value)
 			{
@@ -68,7 +62,7 @@ void FormNode::BuildAddressParameterList(Node* node, char* address, int& numPara
 		break;
 		case Node::Select:
 		{
-			SelectNode::Data* selectData = static_cast<SelectNode::Data*>(node->data);
+			SelectNode::Data* selectData = static_cast<SelectNode::Data*>(node);
 
 			if (selectData && selectData->selected)
 			{
@@ -86,7 +80,7 @@ void FormNode::BuildAddressParameterList(Node* node, char* address, int& numPara
 
 void FormNode::SubmitForm(Node* node)
 {
-	FormNode::Data* data = static_cast<FormNode::Data*>(node->data);
+	FormNode::Data* data = static_cast<FormNode::Data*>(node);
 	App& app = App::Get();
 
 	URL address(app.ui.addressBarURL);
@@ -98,7 +92,7 @@ void FormNode::SubmitForm(Node* node)
 			{
 				if(child->type == Node::TextField)
 				{
-					TextFieldNode::Data* fieldData = static_cast<TextFieldNode::Data*>(child->data);
+					TextFieldNode::Data* fieldData = static_cast<TextFieldNode::Data*>(child);
 					if (!strcmp(fieldData->name, "path"))
 					{
 						App::Get().BeginFileDownload(fieldData->buffer);

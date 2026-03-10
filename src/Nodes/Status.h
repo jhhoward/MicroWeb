@@ -16,9 +16,11 @@ public:
 		NumStatusTypes
 	};
 
-	class Data
+	class Data : public Node
 	{
 	public:
+		Data() : Node(Node::StatusBar) {}
+
 		struct Message
 		{
 			Message() 
@@ -37,7 +39,7 @@ public:
 		Message messages[NumStatusTypes];
 	};
 
-	static Node* Construct(Allocator& allocator);
+	static StatusBarNode::Data* Construct(Allocator& allocator);
 	virtual void Draw(DrawContext& context, Node* node) override;
 
 	static void SetStatus(Node* node, const char* message, StatusType type);

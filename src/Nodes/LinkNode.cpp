@@ -13,19 +13,14 @@ void LinkNode::ApplyStyle(Node* node)
 	node->SetStyle(style);
 }
 
-Node* LinkNode::Construct(Allocator& allocator, char* url)
+LinkNode::Data* LinkNode::Construct(Allocator& allocator, char* url)
 {
-	LinkNode::Data* data = allocator.Alloc<LinkNode::Data>(url);
-	if (data)
-	{
-		return allocator.Alloc<Node>(Node::Link, data);
-	}
-	return nullptr;
+	return allocator.Alloc<LinkNode::Data>(url);
 }
 
 bool LinkNode::HandleEvent(Node* node, const Event& event)
 {
-	LinkNode::Data* data = static_cast<LinkNode::Data*>(node->data);
+	LinkNode::Data* data = static_cast<LinkNode::Data*>(node);
 
 	switch (event.type)
 	{
@@ -53,9 +48,9 @@ bool LinkNode::HandleEvent(Node* node, const Event& event)
 			{
 				Node* leafNode = PickLeafChild(node, event.x, event.y);
 
-				if (leafNode && leafNode->type == Node::Image && (static_cast<ImageNode::Data*>(leafNode->data))->isMap)
+				if (leafNode && leafNode->type == Node::Image && (static_cast<ImageNode::Data*>(leafNode))->isMap)
 				{
-					ImageNode::Data* imageData = static_cast<ImageNode::Data*>(leafNode->data);
+					ImageNode::Data* imageData = static_cast<ImageNode::Data*>(leafNode);
 					int x = event.x - leafNode->anchor.x;
 					int y = event.y - leafNode->anchor.y;
 

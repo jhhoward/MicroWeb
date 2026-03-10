@@ -8,19 +8,14 @@
 #define BULLET_CHARACTER '\x95'
 #define BULLET_CHARACTER_STRING "\x95"
 
-Node* ListNode::Construct(Allocator& allocator)
+ListNode::Data* ListNode::Construct(Allocator& allocator)
 {
-	ListNode::Data* data = allocator.Alloc<ListNode::Data>();
-	if (data)
-	{
-		return allocator.Alloc<Node>(Node::List, data);
-	}
-	return nullptr;
+	return allocator.Alloc<ListNode::Data>();
 }
 
 void ListNode::BeginLayoutContext(Layout& layout, Node* node)
 {
-	ListNode::Data* data = static_cast<ListNode::Data*>(node->data);
+	ListNode::Data* data = static_cast<ListNode::Data*>(node);
 	Font* font = node->GetStyleFont();
 
 	layout.BreakNewLine();
@@ -31,7 +26,7 @@ void ListNode::BeginLayoutContext(Layout& layout, Node* node)
 
 void ListNode::EndLayoutContext(Layout& layout, Node* node)
 {
-	ListNode::Data* data = static_cast<ListNode::Data*>(node->data);
+	ListNode::Data* data = static_cast<ListNode::Data*>(node);
 	Font* font = node->GetStyleFont();
 
 	layout.PopLayout();
@@ -39,19 +34,14 @@ void ListNode::EndLayoutContext(Layout& layout, Node* node)
 	layout.PadVertical(font->glyphHeight / 2);
 }
 
-Node* ListItemNode::Construct(Allocator& allocator)
+ListItemNode::Data* ListItemNode::Construct(Allocator& allocator)
 {
-	ListItemNode::Data* data = allocator.Alloc<ListItemNode::Data>();
-	if (data)
-	{
-		return allocator.Alloc<Node>(Node::ListItem, data);
-	}
-	return nullptr;
+	return allocator.Alloc<ListItemNode::Data>();
 }
 
 void ListItemNode::Draw(DrawContext& context, Node* node)
 {
-	ListItemNode::Data* data = static_cast<ListItemNode::Data*>(node->data);
+	ListItemNode::Data* data = static_cast<ListItemNode::Data*>(node);
 	Font* font = node->GetStyleFont();
 	ElementStyle style = node->GetStyle();
 
@@ -65,7 +55,7 @@ void ListItemNode::Draw(DrawContext& context, Node* node)
 
 void ListItemNode::BeginLayoutContext(Layout& layout, Node* node)
 {
-	ListItemNode::Data* data = static_cast<ListItemNode::Data*>(node->data);
+	ListItemNode::Data* data = static_cast<ListItemNode::Data*>(node);
 
 	Font* font = node->GetStyleFont();
 
@@ -81,7 +71,7 @@ void ListItemNode::BeginLayoutContext(Layout& layout, Node* node)
 
 void ListItemNode::EndLayoutContext(Layout& layout, Node* node)
 {
-	ListItemNode::Data* data = static_cast<ListItemNode::Data*>(node->data);
+	ListItemNode::Data* data = static_cast<ListItemNode::Data*>(node);
 
 	layout.PopLayout();
 	layout.BreakNewLine();

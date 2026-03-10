@@ -18,14 +18,15 @@ public:
 		ErrorDownloading
 	};
 
-	class Data
+	class Data : public Node
 	{
 	public:
-		Data() : source(nullptr), altText(nullptr), state(WaitingToDownload), isMap(false) {}
+		Data() : Node(Node::Image), source(nullptr), altText(nullptr), state(WaitingToDownload), isMap(false) {}
 		bool HasDimensions() { return image.width > 0 && image.height > 0; }
 		bool AreDimensionsLocked() { return state == DownloadingContent || state == FinishedDownloadingContent || state == ErrorDownloading; }
 		bool IsBrokenImageWithoutDimensions();
-		Image image;
+
+		::Image image;
 		const char* source;
 		char* altText;
 		State state;
@@ -35,7 +36,7 @@ public:
 		ExplicitDimension explicitHeight;
 	};
 
-	static Node* Construct(Allocator& allocator);
+	static ImageNode::Data* Construct(Allocator& allocator);
 	virtual void Draw(DrawContext& context, Node* element) override;
 	virtual void BeginLayoutContext(Layout& layout, Node* node) override;
 	virtual void GenerateLayout(Layout& layout, Node* node) override;

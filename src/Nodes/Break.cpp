@@ -5,19 +5,14 @@
 #include "../App.h"
 #include "Break.h"
 
-Node* BreakNode::Construct(Allocator& allocator, int breakPadding, bool displayBreakLine, bool onlyPadEmptyLines)
+BreakNode::Data* BreakNode::Construct(Allocator& allocator, int breakPadding, bool displayBreakLine, bool onlyPadEmptyLines)
 {
-	BreakNode::Data* data = allocator.Alloc<BreakNode::Data>(breakPadding, displayBreakLine, onlyPadEmptyLines);
-	if (data)
-	{
-		return allocator.Alloc<Node>(Node::Break, data);
-	}
-	return nullptr;
+	return allocator.Alloc<BreakNode::Data>(breakPadding, displayBreakLine, onlyPadEmptyLines);
 }
 
 void BreakNode::Draw(DrawContext& context, Node* node)
 {
-	BreakNode::Data* data = static_cast<BreakNode::Data*>(node->data);
+	BreakNode::Data* data = static_cast<BreakNode::Data*>(node);
 
 	if (data->displayBreakLine)
 	{
@@ -29,7 +24,7 @@ void BreakNode::Draw(DrawContext& context, Node* node)
 
 void BreakNode::GenerateLayout(Layout& layout, Node* node)
 {
-	BreakNode::Data* data = static_cast<BreakNode::Data*>(node->data);
+	BreakNode::Data* data = static_cast<BreakNode::Data*>(node);
 
 	int lineHeight = layout.currentLineHeight;
 	layout.BreakNewLine();

@@ -93,7 +93,7 @@ void HTMLParser::PushContext(Node* node, const HTMLTagHandler* tag)
 
 	if (node->type == Node::Section)
 	{
-		SectionElement::Data* data = static_cast<SectionElement::Data*>(node->data);
+		SectionElement::Data* data = static_cast<SectionElement::Data*>(node);
 		contextStack.Top().parseSection = data->type;
 	}
 
@@ -358,12 +358,12 @@ void HTMLParser::FlushTextBuffer()
 
 				if (optionContext)
 				{
-					OptionNode::Data* option = static_cast<OptionNode::Data*>(optionContext->node->data);
+					OptionNode::Data* option = static_cast<OptionNode::Data*>(optionContext->node);
 					option->text = MemoryManager::pageAllocator.AllocString(textBuffer);
 				}
 				else if (buttonContext)
 				{
-					ButtonNode::Data* button = static_cast<ButtonNode::Data*>(buttonContext->node->data);
+					ButtonNode::Data* button = static_cast<ButtonNode::Data*>(buttonContext->node);
 					button->buttonText = MemoryManager::pageAllocator.AllocString(textBuffer);
 				}
 				else
@@ -1221,9 +1221,8 @@ bool HTMLParser::SetContentType(const char* contentType)
 		else if (!stricmp(contentTypeParser.Key(), "image/gif") || !stricmp(contentTypeParser.Key(), "image/png") || !stricmp(contentTypeParser.Key(), "image/jpeg"))
 		{
 			isSupportedFormat = true;
-			Node* imageNode = ImageNode::Construct(MemoryManager::pageAllocator);
-			ImageNode::Data* data = static_cast<ImageNode::Data*>(imageNode->data);
-			data->source = MemoryManager::pageAllocator.AllocString(page.pageURL.url);
+			ImageNode::Data* imageNode = ImageNode::Construct(MemoryManager::pageAllocator);
+			imageNode->source = MemoryManager::pageAllocator.AllocString(page.pageURL.url);
 			EmitNode(imageNode);
 			Finish();
 		}

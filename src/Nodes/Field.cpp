@@ -14,7 +14,7 @@
 
 void TextFieldNode::Draw(DrawContext& context, Node* node)
 {
-	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
+	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node);
 
 	Font* font = node->GetStyleFont();
 	uint8_t textColour = Platform::video->colourScheme.textColour;
@@ -91,7 +91,7 @@ void TextFieldNode::DrawPasswordString(DrawContext& context, Font* font, const c
 	}
 }
 
-Node* TextFieldNode::Construct(Allocator& allocator, const char* inValue, NodeCallbackFunction onSubmit)
+TextFieldNode::Data* TextFieldNode::Construct(Allocator& allocator, const char* inValue, NodeCallbackFunction onSubmit)
 {
 	char* buffer = (char*) allocator.Allocate(DEFAULT_TEXT_FIELD_BUFFER_SIZE);
 	if (!buffer)
@@ -111,26 +111,20 @@ Node* TextFieldNode::Construct(Allocator& allocator, const char* inValue, NodeCa
 		{
 			buffer[0] = '\0';
 		}
-		return allocator.Alloc<Node>(Node::TextField, data);
+		return data;
 	}
 
 	return nullptr;
 }
 
-Node* TextFieldNode::Construct(Allocator& allocator, char* buffer, int bufferLength, NodeCallbackFunction onSubmit)
+TextFieldNode::Data* TextFieldNode::Construct(Allocator& allocator, char* buffer, int bufferLength, NodeCallbackFunction onSubmit)
 {
-	TextFieldNode::Data* data = allocator.Alloc<TextFieldNode::Data>(buffer, bufferLength, onSubmit);
-	if (data)
-	{
-		return allocator.Alloc<Node>(Node::TextField, data);
-	}
-
-	return nullptr;
+	return allocator.Alloc<TextFieldNode::Data>(buffer, bufferLength, onSubmit);
 }
 
 void TextFieldNode::GenerateLayout(Layout& layout, Node* node)
 {
-	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
+	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node);
 	Font* font = node->GetStyleFont();
 
 	if (data->explicitWidth.IsSet())
@@ -159,7 +153,7 @@ void TextFieldNode::GenerateLayout(Layout& layout, Node* node)
 
 bool TextFieldNode::HandleEvent(Node* node, const Event& event)
 {
-	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
+	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node);
 	DrawContext context;
 	App::Get().pageRenderer.GenerateDrawContext(context, node);
 
@@ -380,7 +374,7 @@ bool TextFieldNode::HandleEvent(Node* node, const Event& event)
 
 int TextFieldNode::GetBufferPixelWidth(Node* node, int start, int end)
 {
-	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
+	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node);
 	Font* font = node->GetStyleFont();
 	int x = 0;
 
@@ -410,7 +404,7 @@ void TextFieldNode::DrawCursor(DrawContext& context, Node* node)
 	if (cursorPosition < 0)
 		return;
 
-	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
+	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node);
 	Font* font = node->GetStyleFont();
 
 	int x = node->anchor.x + LEFT_PADDING;
@@ -443,7 +437,7 @@ void TextFieldNode::MoveCursorPosition(Node* node, int newPosition)
 
 void TextFieldNode::DrawSelection(DrawContext& context, Node* node)
 {
-	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
+	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node);
 
 	Font* font = node->GetStyleFont();
 	int selectionX1 = GetBufferPixelWidth(node, shiftPosition, selectionStartPosition);
@@ -456,7 +450,7 @@ void TextFieldNode::DrawSelection(DrawContext& context, Node* node)
 
 void TextFieldNode::RedrawModified(Node* node, int position)
 {
-	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
+	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node);
 	Font* font = node->GetStyleFont();
 	DrawContext context;
 	uint8_t textColour = Platform::video->colourScheme.textColour;
@@ -517,7 +511,7 @@ void TextFieldNode::ShiftIntoView(Node* node)
 
 void TextFieldNode::DeleteSelectionContents(Node* node)
 {
-	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
+	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node);
 
 	strcpy(data->buffer + selectionStartPosition, data->buffer + selectionStartPosition + selectionLength);
 	cursorPosition = selectionStartPosition;
@@ -543,7 +537,7 @@ int TextFieldNode::PickPosition(Node* node, int x, int y)
 	x -= node->anchor.x + LEFT_PADDING;
 	int result = shiftPosition;
 
-	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node->data);
+	TextFieldNode::Data* data = static_cast<TextFieldNode::Data*>(node);
 	Font* font = node->GetStyleFont();
 
 	while(x > 0)

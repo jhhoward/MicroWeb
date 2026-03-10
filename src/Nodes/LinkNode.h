@@ -5,10 +5,10 @@
 class LinkNode : public NodeHandler
 {
 public:
-	class Data
+	class Data : public Node
 	{
 	public:
-		Data(char* inURL) : url(inURL) {}
+		Data(char* inURL) : Node(Node::Link), url(inURL) {}
 		char* url;
 	};
 
@@ -16,7 +16,7 @@ public:
 	virtual bool CanPick(Node* node) override { return true; }
 	virtual bool HandleEvent(Node* node, const Event& event) override;
 
-	static Node* Construct(Allocator& allocator, char* url);
+	static LinkNode::Data* Construct(Allocator& allocator, char* url);
 
 	void HighlightChildren(Node* node);
 

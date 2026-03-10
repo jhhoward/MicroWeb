@@ -287,7 +287,7 @@ void PageRenderer::Update()
 			// Render images bit by bit
 			const int imageLinesToRenderPerUpdate = 8;
 
-			ImageNode::Data* imageData = static_cast<ImageNode::Data*>(toRender->data);
+			ImageNode::Data* imageData = static_cast<ImageNode::Data*>(toRender);
 			if (imageData->state == ImageNode::FinishedDownloadingContent && imageData->image.lines.IsAllocated())
 			{
 				if (itemContext.clipBottom > itemContext.clipTop + imageLinesToRenderPerUpdate)

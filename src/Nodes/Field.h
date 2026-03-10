@@ -18,10 +18,10 @@ public:
 
 	}
 
-	class Data
+	class Data : public Node
 	{
 	public:
-		Data(char* inBuffer, int inBufferSize, NodeCallbackFunction inOnSubmit) : buffer(inBuffer), bufferSize(inBufferSize), name(NULL), isPassword(false), onSubmit(inOnSubmit) {}
+		Data(char* inBuffer, int inBufferSize, NodeCallbackFunction inOnSubmit) : Node(Node::TextField), buffer(inBuffer), bufferSize(inBufferSize), name(NULL), isPassword(false), onSubmit(inOnSubmit) {}
 		char* buffer;
 		int bufferSize;
 		char* name;
@@ -30,8 +30,8 @@ public:
 		ExplicitDimension explicitWidth;
 	};
 
-	static Node* Construct(Allocator& allocator, const char* text, NodeCallbackFunction onSubmit = NULL);
-	static Node* Construct(Allocator& allocator, char* buffer, int bufferLength, NodeCallbackFunction onSubmit = NULL);
+	static TextFieldNode::Data* Construct(Allocator& allocator, const char* text, NodeCallbackFunction onSubmit = NULL);
+	static TextFieldNode::Data* Construct(Allocator& allocator, char* buffer, int bufferLength, NodeCallbackFunction onSubmit = NULL);
 	virtual void GenerateLayout(Layout& layout, Node* node) override;
 	virtual void Draw(DrawContext& context, Node* node) override;
 	virtual bool CanPick(Node* node) override { return true; }

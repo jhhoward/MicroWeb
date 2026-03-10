@@ -7,11 +7,10 @@
 class TableCellNode : public NodeHandler
 {
 public:
-	class Data
+	class Data : public Node
 	{
 	public:
-		Data(bool inIsHeader) : node(nullptr), isHeader(inIsHeader), columnIndex(0), rowIndex(0), columnSpan(1), rowSpan(1), bgColour(TRANSPARENT_COLOUR_VALUE), nextCell(nullptr) {}
-		Node* node;
+		Data(bool inIsHeader) : Node(Node::TableCell), isHeader(inIsHeader), columnIndex(0), rowIndex(0), columnSpan(1), rowSpan(1), bgColour(TRANSPARENT_COLOUR_VALUE), nextCell(nullptr) {}
 		bool isHeader;
 		int columnIndex;
 		int rowIndex;
@@ -22,7 +21,7 @@ public:
 		ExplicitDimension explicitWidth;
 	};
 
-	static Node* Construct(Allocator& allocator, bool isHeader);
+	static TableCellNode::Data* Construct(Allocator& allocator, bool isHeader);
 	virtual void ApplyStyle(Node* node);
 	virtual void BeginLayoutContext(Layout& layout, Node* node) override;
 	virtual void EndLayoutContext(Layout& layout, Node* node) override;
@@ -32,18 +31,17 @@ public:
 class TableRowNode : public NodeHandler
 {
 public:
-	class Data
+	class Data : public Node
 	{
 	public:
-		Data() : node(nullptr), rowIndex(0), numCells(0), nextRow(nullptr), firstCell(nullptr) {}
-		Node* node;
+		Data() : Node(Node::TableRow), rowIndex(0), numCells(0), nextRow(nullptr), firstCell(nullptr) {}
 		int rowIndex;
 		int numCells;
 		TableRowNode::Data* nextRow;
 		TableCellNode::Data* firstCell;
 	};
 
-	static Node* Construct(Allocator& allocator);
+	static TableRowNode::Data* Construct(Allocator& allocator);
 	virtual void BeginLayoutContext(Layout& layout, Node* node) override;
 	virtual void EndLayoutContext(Layout& layout, Node* node) override;
 	virtual void ApplyStyle(Node* node);
@@ -52,7 +50,7 @@ public:
 class TableNode : public NodeHandler
 {
 public:
-	class Data
+	class Data : public Node
 	{
 	public:
 		struct ColumnInfo
@@ -76,7 +74,7 @@ public:
 			FinishedLayout
 		};
 
-		Data() : state(GeneratingLayout), numColumns(0), numRows(0), cellSpacing(2), cellPadding(2), border(0), columns(nullptr), firstRow(nullptr), cells(nullptr), bgColour(TRANSPARENT_COLOUR_VALUE), lastAvailableWidth(-1) {}
+		Data() : Node(Node::Table), state(GeneratingLayout), numColumns(0), numRows(0), cellSpacing(2), cellPadding(2), border(0), columns(nullptr), firstRow(nullptr), cells(nullptr), bgColour(TRANSPARENT_COLOUR_VALUE), lastAvailableWidth(-1) {}
 
 		bool IsGeneratingLayout() { return state == GeneratingLayout; }
 		bool HasGeneratedCellGrid() { return cells != nullptr;  }
@@ -96,7 +94,7 @@ public:
 		ExplicitDimension explicitWidth;
 	};
 
-	static Node* Construct(Allocator& allocator);
+	static TableNode::Data* Construct(Allocator& allocator);
 	virtual void BeginLayoutContext(Layout& layout, Node* node) override;
 	virtual void EndLayoutContext(Layout& layout, Node* node) override;
 	virtual void Draw(DrawContext& context, Node* node) override;

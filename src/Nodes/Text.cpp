@@ -8,16 +8,12 @@
 #include "../Interface.h"
 #include "../App.h"
 
-Node* TextElement::Construct(Allocator& allocator, const char* text)
+TextElement::Data* TextElement::Construct(Allocator& allocator, const char* text)
 {
 	MemBlockHandle textHandle = MemoryManager::pageBlockAllocator.AllocString(text);
 	if (textHandle.IsAllocated())
 	{
-		TextElement::Data* data = allocator.Alloc<TextElement::Data>(textHandle);
-		if (data)
-		{
-			return allocator.Alloc<Node>(Node::Text, data);
-		}
+		return allocator.Alloc<TextElement::Data>(textHandle);
 	}
 
 	return nullptr;
@@ -25,7 +21,7 @@ Node* TextElement::Construct(Allocator& allocator, const char* text)
 
 void TextElement::Draw(DrawContext& context, Node* node)
 {
-	TextElement::Data* data = static_cast<TextElement::Data*>(node->data);
+	TextElement::Data* data = static_cast<TextElement::Data*>(node);
 
 	if (!node->firstChild && data->text.IsAllocated())
 	{
@@ -59,7 +55,7 @@ void TextElement::Draw(DrawContext& context, Node* node)
 
 void TextElement::GenerateLayout(Layout& layout, Node* node)
 {
-	TextElement::Data* data = static_cast<TextElement::Data*>(node->data);
+	TextElement::Data* data = static_cast<TextElement::Data*>(node);
 	Font* font = node->GetStyleFont();
 	int lineHeight = font->glyphHeight;
 
@@ -100,7 +96,7 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 	// Clear out SubTextElement children if we are regenerating the layout
 	for (Node* child = node->firstChild; child; child = child->next)
 	{
-		SubTextElement::Data* childData = static_cast<SubTextElement::Data*>(child->data);
+		SubTextElement::Data* childData = static_cast<SubTextElement::Data*>(child);
 		childData->startIndex = 0;
 		childData->length = 0;
 		child->anchor = layout.GetCursor();
@@ -201,7 +197,7 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 			}
 			else
 			{
-				SubTextElement::Data* subTextData = static_cast<SubTextElement::Data*>(subTextNode->data);
+				SubTextElement::Data* subTextData = static_cast<SubTextElement::Data*>(subTextNode);
 				subTextData->startIndex = emitStartPosition;
 				subTextData->length = emitLength;
 			}
@@ -234,26 +230,20 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 	}
 }
 
-Node* SubTextElement::Construct(Allocator& allocator, int startIndex, int length)
+SubTextElement::Data* SubTextElement::Construct(Allocator& allocator, int startIndex, int length)
 {
-	SubTextElement::Data* data = allocator.Alloc<SubTextElement::Data>(startIndex, length);
-	if (data)
-	{
-		return allocator.Alloc<Node>(Node::SubText, data);
-	}
-
-	return nullptr;
+	return allocator.Alloc<SubTextElement::Data>(startIndex, length);
 }
 
 void SubTextElement::GenerateLayout(Layout& layout, Node* node)
 {
-	TextElement::Data* data = static_cast<TextElement::Data*>(node->data);
+	TextElement::Data* data = static_cast<TextElement::Data*>(node);
 }
 
 void SubTextElement::Draw(DrawContext& context, Node* node)
 {
-	TextElement::Data* textData = static_cast<TextElement::Data*>(node->parent->data);
-	SubTextElement::Data* subTextData = static_cast<SubTextElement::Data*>(node->data);
+	TextElement::Data* textData = static_cast<TextElement::Data*>(node->parent);
+	SubTextElement::Data* subTextData = static_cast<SubTextElement::Data*>(node);
 
 	if (textData && subTextData && textData->text.IsAllocated())
 	{
