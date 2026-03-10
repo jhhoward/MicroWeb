@@ -8,8 +8,10 @@
 #ifdef __DOS__
 #include <dos.h>
 #include "../DOS/EMS.h"
+#include "../DOS/XMS.h"
 
 EMSManager ems;
+XMSManager xms;
 #endif
 
 void* MemBlockHandle::GetPtr()
@@ -27,6 +29,10 @@ void* MemBlockHandle::GetPtr()
 	{
 		return ems.MapBlock(*this);
 	}
+	case MemBlockHandle::XMS:
+	{
+		return xms.MapBlock(*this);
+	}
 #endif
 	default:
 		
@@ -42,7 +48,12 @@ void MemBlockHandle::Commit()
 	case MemBlockHandle::DiskSwap:
 		MemoryManager::pageBlockAllocator.CommitSwap(*this);
 		break;
-	
+#ifdef __DOS__
+	case MemBlockHandle::XMS:
+		xms.Commit(*this);
+		break;
+#endif
+
 	}
 }
 
@@ -80,6 +91,10 @@ void MemBlockAllocator::Init()
 	{
 		ems.Init();
 	}
+	if (App::config.useXMS)
+	{
+		xms.Init();
+	}
 #endif
 }
 
@@ -87,6 +102,7 @@ void MemBlockAllocator::Shutdown()
 {
 #ifdef __DOS__
 	ems.Shutdown();
+	xms.Shutdown();
 #endif
 
 	if (swapFile)
@@ -116,6 +132,16 @@ MemBlockHandle MemBlockAllocator::Allocate(uint16_t size)
 	if (ems.IsAvailable())
 	{
 		result = ems.Allocate(size);
+		if (result.IsAllocated())
+		{
+			totalAllocated += size;
+			return result;
+		}
+	}
+
+	if (xms.IsAvailable())
+	{
+		result = xms.Allocate(size);
 		if (result.IsAllocated())
 		{
 			totalAllocated += size;

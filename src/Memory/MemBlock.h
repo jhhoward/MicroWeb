@@ -17,6 +17,7 @@ struct  MemBlockHandle
 		Unallocated,
 		Conventional,
 		EMS,
+		XMS,
 		DiskSwap
 	};
 
@@ -36,6 +37,7 @@ struct  MemBlockHandle
 	{
 		void* conventionalPointer;
 		long swapFilePosition;
+		long xmsPointer;
 
 		struct
 		{

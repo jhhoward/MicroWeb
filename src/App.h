@@ -69,6 +69,7 @@ struct AppConfig
 	bool invertScreen : 1;
 	bool useSwap : 1;
 	bool useEMS : 1;
+	bool useXMS : 1;
 };
 
 class App

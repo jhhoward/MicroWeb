@@ -1,7 +1,7 @@
 bin = MicroWeb.exe
 SRC_PATH = ..\..\src
 OBJDIR=obj
-objects = MicroWeb.obj App.obj Parser.obj Tags.obj Platform.obj Colour.obj Hercules.obj BIOSVid.obj VidModes.obj Font.obj Style.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj Layout.obj Node.obj Text.obj Table.obj ListItem.obj Section.obj ImgNode.obj Block.obj StyNode.obj LinkNode.obj Break.obj Render.obj Button.obj CheckBox.obj Select.obj Field.obj DataPack.obj Surf1bpp.obj Surf2bpp.obj Surf4bpp.obj Surf8bpp.obj Surf1512.obj Form.obj Status.obj Scroll.obj HTTP.obj Decoder.obj Gif.obj Jpeg.obj Png.obj MemBlock.obj Memory.obj EMS.obj
+objects = MicroWeb.obj App.obj Parser.obj Tags.obj Platform.obj Colour.obj Hercules.obj BIOSVid.obj VidModes.obj Font.obj Style.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj Layout.obj Node.obj Text.obj Table.obj ListItem.obj Section.obj ImgNode.obj Block.obj StyNode.obj LinkNode.obj Break.obj Render.obj Button.obj CheckBox.obj Select.obj Field.obj DataPack.obj Surf1bpp.obj Surf2bpp.obj Surf4bpp.obj Surf8bpp.obj Surf1512.obj Form.obj Status.obj Scroll.obj HTTP.obj Decoder.obj Gif.obj Jpeg.obj Png.obj MemBlock.obj Memory.obj EMS.obj XMS.obj
 memory_model = -ml
 CC = wpp
 CFLAGS = -zq -0 -os -bt=DOS -w2 $(memory_model) -fi=$(SRC_PATH)\Defines.h
@@ -29,7 +29,7 @@ tcp_compile_options += -i=$(tcp_h_dir)
 # end mTCP stuff
 
 $(bin): $(objects) $(tcpobjs)
-    $(LD) system dos name $@ file { $(objects) $(tcpobjs) } option map=map.map
+    $(LD) system dos name $@ file { $(objects) $(tcpobjs) } option map=map.map option verbose
 
 
 MicroWeb.obj: $(SRC_PATH)\MicroWeb.cpp
@@ -141,6 +141,9 @@ Memory.obj: $(SRC_PATH)\Memory\Memory.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 EMS.obj: $(SRC_PATH)\DOS\EMS.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+XMS.obj: $(SRC_PATH)\DOS\XMS.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 VidModes.obj: $(SRC_PATH)\VidModes.cpp

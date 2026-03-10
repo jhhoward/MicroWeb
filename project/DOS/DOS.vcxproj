@@ -106,6 +106,7 @@
     <ClCompile Include="..\..\src\DOS\Platform.cpp" />
     <ClCompile Include="..\..\src\DOS\Surf1512.cpp" />
     <ClCompile Include="..\..\src\DOS\Surf4bpp.cpp" />
+    <ClCompile Include="..\..\src\DOS\XMS.cpp" />
     <ClCompile Include="..\..\src\Draw\Surf1bpp.cpp" />
     <ClCompile Include="..\..\src\Font.cpp" />
     <ClCompile Include="..\..\src\Interface.cpp" />
@@ -130,6 +131,7 @@
     <ClInclude Include="..\..\src\DOS\Hercules.h" />
     <ClInclude Include="..\..\src\DOS\Surf1512.h" />
     <ClInclude Include="..\..\src\DOS\TextMode.h" />
+    <ClInclude Include="..\..\src\DOS\XMS.h" />
     <ClInclude Include="..\..\src\Image.h" />
     <ClInclude Include="..\..\src\Interface.h" />
     <ClInclude Include="..\..\src\KeyCodes.h" />

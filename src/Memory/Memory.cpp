@@ -4,7 +4,9 @@
 #ifdef _DOS
 #include <dos.h>
 #include "../DOS/EMS.h"
+#include "../DOS/XMS.h"
 extern EMSManager ems;
+extern XMSManager xms;
 
 unsigned int GetMemFreeKB(void);
 
@@ -35,14 +37,18 @@ void MemoryManager::GenerateMemoryReport(char* outString)
 //	DOSavailable = outreg.x.bx / 64;
 	int EMSallocated = ems.TotalAllocated() / 1024;
 	int EMSused = ems.TotalUsed() / 1024;
+	int XMSallocated = xms.TotalAllocated() / 1024;
+	int XMSused = xms.TotalUsed() / 1024;
 	int DOSavailable = GetConventionalMemoryAvailableKB();
 	int swapUsed = MemoryManager::pageBlockAllocator.SwapAllocated() / 1024;
-	snprintf(outString, 100, "Conv: Alloc: %dK Used: %dK DOS free: %dK EMS: Alloc: %dK Used: %dK Block: %dK Swap: %dK Err: %d\n", 
-			(int)(MemoryManager::pageAllocator.TotalAllocated() / 1024), 
+	snprintf(outString, 100, "Conv: %d/%dK DOS free: %dK EMS: %d/%dK XMS: %d/%dK Block: %dK Swap: %dK Err: %d\n", 
 			(int)(MemoryManager::pageAllocator.TotalUsed() / 1024), 
-			DOSavailable, 
-			EMSallocated, 
+			(int)(MemoryManager::pageAllocator.TotalAllocated() / 1024),
+			DOSavailable,
 			EMSused,
+			EMSallocated,
+			XMSused,
+			XMSallocated,
 			(int)(MemoryManager::pageBlockAllocator.TotalAllocated() / 1024),
 			swapUsed,
 			MemoryManager::pageAllocator.GetError());

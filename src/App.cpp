@@ -57,6 +57,7 @@ void App::Run(int argc, char* argv[])
 	config.dumpPage = false;
 	config.useSwap = false;
 	config.useEMS = true;
+	config.useXMS = true;
 
 	if (argc > 1)
 	{
@@ -86,6 +87,10 @@ void App::Run(int argc, char* argv[])
 			else if (!stricmp(argv[n], "-noems"))
 			{
 				config.useEMS = false;
+			}
+			else if (!stricmp(argv[n], "-noxms"))
+			{
+				config.useXMS = false;
 			}
 		}
 	}
