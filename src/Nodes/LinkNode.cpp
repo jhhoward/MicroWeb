@@ -15,7 +15,8 @@ void LinkNode::ApplyStyle(Node* node)
 
 LinkNode::Data* LinkNode::Construct(Allocator& allocator, char* url)
 {
-	return allocator.Alloc<LinkNode::Data>(url);
+	MemBlockHandle urlHandle = MemoryManager::pageBlockAllocator.AllocString(url);
+	return allocator.Alloc<LinkNode::Data>(urlHandle);
 }
 
 bool LinkNode::HandleEvent(Node* node, const Event& event)
@@ -27,16 +28,16 @@ bool LinkNode::HandleEvent(Node* node, const Event& event)
 		case Event::Focus:
 		{
 			HighlightChildren(node);
-			if (data->url)
+			if (data->GetURL())
 			{
-				App::Get().ui.SetStatusMessage(URL::GenerateFromRelative(App::Get().page.pageURL.url, data->url).url, StatusBarNode::HoverStatus);
+				App::Get().ui.SetStatusMessage(URL::GenerateFromRelative(App::Get().page.pageURL.url, data->GetURL()).url, StatusBarNode::HoverStatus);
 			}
 		}
 		return true;
 		case Event::Unfocus:
 		{
 			HighlightChildren(node);
-			if (data->url)
+			if (data->GetURL())
 			{
 				App::Get().ui.ClearStatusMessage(StatusBarNode::HoverStatus);
 			}
@@ -44,7 +45,7 @@ bool LinkNode::HandleEvent(Node* node, const Event& event)
 		return true;
 		case Event::MouseClick:
 		{
-			if (data->url)
+			if (data->GetURL())
 			{
 				Node* leafNode = PickLeafChild(node, event.x, event.y);
 
@@ -57,14 +58,14 @@ bool LinkNode::HandleEvent(Node* node, const Event& event)
 					x = ((long)x * imageData->image.sourceWidth) / leafNode->size.x;
 					y = ((long)y * imageData->image.sourceHeight) / leafNode->size.y;
 
-					char* buffer = (char*) URL::GenerateFromRelative(App::Get().page.pageURL.url, data->url).url;
+					char* buffer = (char*) URL::GenerateFromRelative(App::Get().page.pageURL.url, data->GetURL()).url;
 					size_t bufferSpace = MAX_URL_LENGTH - strlen(buffer) - 1;
 					snprintf(buffer + strlen(buffer), bufferSpace, "?%d,%d", x, y);
 					App::Get().OpenURL(HTTPRequest::Get, buffer);
 				}
 				else
 				{
-					App::Get().OpenURL(HTTPRequest::Get, URL::GenerateFromRelative(App::Get().page.pageURL.url, data->url).url);
+					App::Get().OpenURL(HTTPRequest::Get, URL::GenerateFromRelative(App::Get().page.pageURL.url, data->GetURL()).url);
 				}
 			}
 			return true;
@@ -73,9 +74,9 @@ bool LinkNode::HandleEvent(Node* node, const Event& event)
 		{
 			if (event.key == KEYCODE_ENTER)
 			{
-				if (data->url)
+				if (data->GetURL())
 				{
-					App::Get().OpenURL(HTTPRequest::Get, URL::GenerateFromRelative(App::Get().page.pageURL.url, data->url).url);
+					App::Get().OpenURL(HTTPRequest::Get, URL::GenerateFromRelative(App::Get().page.pageURL.url, data->GetURL()).url);
 				}
 				return true;
 			}

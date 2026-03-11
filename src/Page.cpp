@@ -164,7 +164,7 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 	case Node::Link:
 		{
 			LinkNode::Data* data = static_cast<LinkNode::Data*>(node);
-			printf("<%s> [%d,%d:%d,%d] %s\n", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y, data->url);
+			printf("<%s> [%d,%d:%d,%d] %s\n", nodeTypeNames[node->type], node->anchor.x, node->anchor.y, node->size.x, node->size.y, data->GetURL());
 		}
 		break;
 	case Node::Section:

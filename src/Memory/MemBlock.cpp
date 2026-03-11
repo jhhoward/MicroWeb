@@ -18,6 +18,8 @@ void* MemBlockHandle::GetPtr()
 {
 	switch (type)
 	{
+	case MemBlockHandle::Unallocated:
+		return nullptr;
 	case MemBlockHandle::Conventional:
 		return conventionalPointer;
 	case MemBlockHandle::DiskSwap:

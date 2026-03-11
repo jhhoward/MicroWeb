@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Node.h"
+#include "../Memory/MemBlock.h"
 
 class LinkNode : public NodeHandler
 {
@@ -8,8 +9,12 @@ public:
 	class Data : public Node
 	{
 	public:
-		Data(char* inURL) : Node(Node::Link), url(inURL) {}
-		char* url;
+		Data(MemBlockHandle& inURL) : Node(Node::Link), url(inURL) {}
+
+		const char* GetURL() { return url.Get<char*>(); }
+
+	private:
+		MemBlockHandle url;
 	};
 
 	virtual void ApplyStyle(Node* node) override;

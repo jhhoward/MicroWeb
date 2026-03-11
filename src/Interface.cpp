@@ -125,9 +125,9 @@ void AppInterface::Update()
 				Platform::input->SetMouseCursor(MouseCursor::Hand);
 				{
 					LinkNode::Data* linkData = static_cast<LinkNode::Data*>(hoverNode);
-					if (linkData->url)
+					if (linkData->GetURL())
 					{
-						SetStatusMessage(URL::GenerateFromRelative(app.page.pageURL.url, linkData->url).url, StatusBarNode::HoverStatus);
+						SetStatusMessage(URL::GenerateFromRelative(app.page.pageURL.url, linkData->GetURL()).url, StatusBarNode::HoverStatus);
 						hasHoverStatusMessage = true;
 					}
 				}
