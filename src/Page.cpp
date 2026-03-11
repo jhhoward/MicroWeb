@@ -146,7 +146,7 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 		break;
 	case Node::SubText:
 		{
-			TextElement::Data* data = static_cast<TextElement::Data*>(node->parent);
+			TextElement::Data* data = static_cast<TextElement::Data*>(node->parent.Get());
 			SubTextElement::Data* subData = static_cast<SubTextElement::Data*>(node);
 			char* text = data->text.Get<char*>() + subData->startIndex;
 			char temp = text[subData->length];
@@ -216,7 +216,7 @@ void Page::DebugDumpNodeGraph(Node* node, int depth)
 		break;
 	}
 
-	for (Node* child = node->firstChild; child; child = child->next)
+	for (Node* child = node->firstChild.Get(); child; child = child->next.Get())
 	{
 		DebugDumpNodeGraph(child, depth + 1);
 	}

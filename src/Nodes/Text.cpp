@@ -69,7 +69,7 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 		{
 			if (node->firstChild)
 			{
-				for (Node* child = node->firstChild; child; child = child->next)
+				for (Node* child = node->firstChild.Get(); child; child = child->next.Get())
 				{
 					child->anchor = layout.GetCursor(lineHeight);
 					layout.ProgressCursor(child, child->size.x, child->size.y);
@@ -94,7 +94,7 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 	
 
 	// Clear out SubTextElement children if we are regenerating the layout
-	for (Node* child = node->firstChild; child; child = child->next)
+	for (Node* child = node->firstChild.Get(); child; child = child->next.Get())
 	{
 		SubTextElement::Data* childData = static_cast<SubTextElement::Data*>(child);
 		childData->startIndex = 0;
@@ -111,7 +111,7 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 	int lastBreakPoint = 0;
 	int lastBreakPointWidth = 0;
 	int width = 0;
-	Node* subTextNode = node->firstChild;
+	Node* subTextNode = node->firstChild.Get();
 	bool hasModified = false;
 
 	for(charIndex = 0; ; charIndex++)
@@ -210,7 +210,7 @@ void TextElement::GenerateLayout(Layout& layout, Node* node)
 			width -= emitWidth;
 
 			layout.ProgressCursor(subTextNode, emitWidth, lineHeight);
-			subTextNode = subTextNode->next;
+			subTextNode = subTextNode->next.Get();
 
 			if (isEnd)
 			{
@@ -242,7 +242,7 @@ void SubTextElement::GenerateLayout(Layout& layout, Node* node)
 
 void SubTextElement::Draw(DrawContext& context, Node* node)
 {
-	TextElement::Data* textData = static_cast<TextElement::Data*>(node->parent);
+	TextElement::Data* textData = static_cast<TextElement::Data*>(node->parent.Get());
 	SubTextElement::Data* subTextData = static_cast<SubTextElement::Data*>(node);
 
 	if (textData && subTextData && textData->text.IsAllocated())

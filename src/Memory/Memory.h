@@ -1,6 +1,7 @@
 #ifndef _MEMORY_H_
 #define _MEMORY_H_
 
+#include <stdint.h>
 #include "Alloc.h"
 #include "LinAlloc.h"
 #include "MemBlock.h"

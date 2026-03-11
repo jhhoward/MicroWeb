@@ -90,7 +90,7 @@ bool LinkNode::HandleEvent(Node* node, const Event& event)
 
 void LinkNode::HighlightChildren(Node* node)
 {
-	Node* child = node->firstChild;
+	Node* child = node->firstChild.Get();
 	if (!child)
 		return;
 
@@ -105,7 +105,7 @@ void LinkNode::HighlightChildren(Node* node)
 			switch (child->type)
 			{
 			case Node::Text:
-				shouldHighlight = child->firstChild == nullptr;
+				shouldHighlight = child->firstChild.Get() == nullptr;
 				break;
 			case Node::Image:
 			case Node::SubText:
@@ -120,28 +120,28 @@ void LinkNode::HighlightChildren(Node* node)
 
 			if (child->firstChild)
 			{
-				child = child->firstChild;
+				child = child->firstChild.Get();
 			}
 			else if(child->next)
 			{
-				child = child->next;
+				child = child->next.Get();
 			}
 			else
 			{
 				isDescendingTree = false;
-				child = child->parent;
+				child = child->parent.Get();
 			}
 		}
 		else
 		{
 			if (child->next)
 			{
-				child = child->next;
+				child = child->next.Get();
 				isDescendingTree = true;
 			}
 			else
 			{
-				child = child->parent;
+				child = child->parent.Get();
 			}
 		}
 	}

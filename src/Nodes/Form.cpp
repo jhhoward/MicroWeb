@@ -72,7 +72,7 @@ void FormNode::BuildAddressParameterList(Node* node, char* address, int& numPara
 		break;
 	}
 
-	for (node = node->firstChild; node; node = node->next)
+	for (node = node->firstChild.Get(); node; node = node->next.Get())
 	{
 		BuildAddressParameterList(node, address, numParams, bufferLength);
 	}
@@ -88,7 +88,7 @@ void FormNode::SubmitForm(Node* node)
 	{
 		if (!strcmp(data->action, "download://"))
 		{
-			for (Node* child = node->firstChild; child; child = child->next)
+			for (Node* child = node->firstChild.Get(); child; child = child->next.Get())
 			{
 				if(child->type == Node::TextField)
 				{

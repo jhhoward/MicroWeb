@@ -8,6 +8,24 @@
 #include <malloc.h>
 #pragma warning(disable:4996)
 
+#ifdef _DOS
+#include <dos.h>
+
+inline void* NormalizeFarPointer(void* input)
+{
+	uint16_t seg = FP_SEG(input);
+	uint16_t off = FP_OFF(input);
+
+	uint16_t paragraphs = off >> 4;
+	uint16_t segOut = seg + paragraphs;
+	uint16_t offOut = off & 0x0F;
+
+	return MK_FP(segOut, offOut);
+}
+#else
+#define NormalizeFarPointer(x) (x)
+#endif
+
 class Allocator
 {
 public:
@@ -95,7 +113,7 @@ class MallocWrapper : public Allocator
 public:
 	virtual void* Allocate(size_t numBytes)
 	{
-		return malloc(numBytes);
+		return NormalizeFarPointer(malloc(numBytes));
 	}
 
 };

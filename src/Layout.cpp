@@ -52,7 +52,7 @@ void Layout::Update()
 
 		if (currentNodeToProcess->firstChild)
 		{
-			currentNodeToProcess = currentNodeToProcess->firstChild;
+			currentNodeToProcess = currentNodeToProcess->firstChild.Get();
 		}
 		else
 		{
@@ -65,13 +65,13 @@ void Layout::Update()
 
 			if (currentNodeToProcess->next)
 			{
-				currentNodeToProcess = currentNodeToProcess->next;
+				currentNodeToProcess = currentNodeToProcess->next.Get();
 			}
 			else if(currentNodeToProcess->parent)
 			{
 				while (currentNodeToProcess)
 				{
-					currentNodeToProcess = currentNodeToProcess->parent;
+					currentNodeToProcess = currentNodeToProcess->parent.Get();
 
 					if (currentNodeToProcess)
 					{
@@ -84,7 +84,7 @@ void Layout::Update()
 
 						if (currentNodeToProcess->next)
 						{
-							currentNodeToProcess = currentNodeToProcess->next;
+							currentNodeToProcess = currentNodeToProcess->next.Get();
 							break;
 						}
 					}
@@ -242,7 +242,7 @@ void Layout::RecalculateLayoutForNode(Node* targetNode)
 	targetNode->Handler().BeginLayoutContext(*this, targetNode);
 	targetNode->Handler().GenerateLayout(*this, targetNode);
 
-	for (Node* node = targetNode->firstChild; node; node = node->next)
+	for (Node* node = targetNode->firstChild.Get(); node; node = node->next.Get())
 	{
 		RecalculateLayoutForNode(node);
 	}

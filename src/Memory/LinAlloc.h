@@ -104,7 +104,7 @@ public:
 
 		totalBytesUsed += (long) numBytes;
 		allocOffset += numBytes;
-		return result;
+		return NormalizeFarPointer(result);
 	}
 
 	long TotalAllocated() { return numAllocatedChunks * sizeof(Chunk); }

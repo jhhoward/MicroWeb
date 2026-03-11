@@ -72,7 +72,7 @@ void Node::AddChild(Node* child)
 	else
 	{
 		Node* lastChild;
-		for(lastChild = firstChild; lastChild->next; lastChild = lastChild->next) {}
+		for(lastChild = firstChild.Get(); lastChild->next; lastChild = lastChild->next.Get()) {}
 		lastChild->next = child;
 	}
 }
@@ -104,16 +104,16 @@ void Node::CalculateEncapsulatingRect(Rect& rect)
 	{
 		if (checkChildren && node->firstChild)
 		{
-			node = node->firstChild;
+			node = node->firstChild.Get();
 		}
 		else if (node->next)
 		{
-			node = node->next;
+			node = node->next.Get();
 			checkChildren = true;
 		}
 		else
 		{
-			node = node->parent;
+			node = node->parent.Get();
 			if (node == this)
 			{
 				break;
@@ -165,12 +165,12 @@ bool Node::IsPointInsideChildren(int x, int y)
 		return false;
 	}
 
-	if (firstChild == nullptr)
+	if (firstChild.Get() == nullptr)
 	{
 		return IsPointInsideNode(x, y);
 	}
 
-	for (Node* it = firstChild; it; it = it->next)
+	for (Node* it = firstChild.Get(); it; it = it->next.Get())
 	{
 		if (it->IsPointInsideChildren(x, y))
 		{
@@ -200,7 +200,7 @@ Node* NodeHandler::Pick(Node* node, int x, int y)
 		return nullptr;
 	}
 
-	for (Node* it = node->firstChild; it; it = it->next)
+	for (Node* it = node->firstChild.Get(); it; it = it->next.Get())
 	{
 		Node* result = it->Handler().Pick(it, x, y);
 		if (result)
@@ -219,7 +219,7 @@ Node* NodeHandler::PickLeafChild(Node* node, int x, int y)
 		return nullptr;
 	}
 
-	for (Node* it = node->firstChild; it; it = it->next)
+	for (Node* it = node->firstChild.Get(); it; it = it->next.Get())
 	{
 		Node* result = it->Handler().PickLeafChild(it, x, y);
 		if (result)
@@ -242,7 +242,7 @@ void NodeHandler::EndLayoutContext(Layout& layout, Node* node)
 
 Node* Node::FindParentOfType(Node::Type searchType)
 {
-	for(Node* node = parent; node; node = node->parent)
+	for(Node* node = parent.Get(); node; node = node->parent.Get())
 	{
 		if (node->type == searchType)
 		{
@@ -269,10 +269,10 @@ Node* Node::GetPreviousInTree()
 	{
 		if (parent->firstChild == this)
 		{
-			return parent;
+			return parent.Get();
 		}
 
-		for (Node* child = parent->firstChild; child; child = child->next)
+		for (Node* child = parent->firstChild.Get(); child; child = child->next.Get())
 		{
 			if (child->next == this)
 			{
@@ -280,11 +280,11 @@ Node* Node::GetPreviousInTree()
 
 				while (node->firstChild)
 				{
-					node = node->firstChild;
+					node = node->firstChild.Get();
 
 					while (node->next)
 					{
-						node = node->next;
+						node = node->next.Get();
 					}
 				}
 
@@ -311,15 +311,15 @@ Node* Node::GetNextInTree()
 	{
 		if (checkChildren && node->firstChild)
 		{
-			return node->firstChild;
+			return node->firstChild.Get();
 		}
 		else if (node->next)
 		{
-			return node->next;
+			return node->next.Get();
 		}
 		else
 		{
-			node = node->parent;
+			node = node->parent.Get();
 			checkChildren = false;
 		}
 	}
@@ -329,7 +329,7 @@ Node* Node::GetNextInTree()
 
 bool Node::IsChildOf(Node* potentialParent)
 {
-	for(Node* node = parent; node; node = node->parent)
+	for(Node* node = parent.Get(); node; node = node->parent.Get())
 	{
 		if (node == potentialParent)
 		{

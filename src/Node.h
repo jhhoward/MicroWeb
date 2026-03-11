@@ -8,11 +8,61 @@
 #include "Defines.h"
 #include "Memory/Alloc.h"
 
+#define USE_COMPACT_NODE_PTR 1
+
 class App;
 class Page;
 class Node;
 class Layout;
 struct DrawContext;
+
+#pragma pack(push, 1)
+struct NodePtr
+{
+	NodePtr()
+	{
+		Set(nullptr);
+	}
+	NodePtr(Node* inPtr) 
+	{ 
+		Set(inPtr);
+	}
+
+	inline operator bool() const { return Get() != nullptr; }
+
+	inline Node* operator ->() const { return Get(); }
+
+#if defined(_DOS) && USE_COMPACT_NODE_PTR
+	inline void Set(Node* node)
+	{
+		segment = FP_SEG(node);
+		offset = (uint8_t)FP_OFF(node);
+	}
+	inline Node* Get() const
+	{
+		return (Node*) MK_FP(segment, offset);
+	}
+
+	uint16_t segment;
+	uint8_t offset;
+#else
+	inline void Set(Node* node)
+	{
+		ptr = node;
+	}
+	inline Node* Get() const
+	{ 
+		return ptr; 
+	}
+
+	Node* ptr;
+#endif
+};
+#pragma pack(pop)
+
+inline bool operator==(const NodePtr& lhs, const Node* rhs) {
+	return lhs.Get() == rhs;
+}
 
 class NodeHandler
 {
@@ -134,9 +184,9 @@ public:
 	Coord anchor;				// Top left page position
 	Coord size;					// Rectangle size that encapsulates node and its children
 
-	Node* parent;
-	Node* next;
-	Node* firstChild;
+	NodePtr parent;
+	NodePtr next;
+	NodePtr firstChild;
 
 protected:
 	static NodeHandler* nodeHandlers[Node::NumNodeTypes];

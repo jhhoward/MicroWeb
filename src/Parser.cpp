@@ -295,7 +295,7 @@ void HTMLParser::EmitNode(Node* node)
 
 	// Check if this is part of a table - if so, make sure we are in a cell
 	Node* tableContainer = nullptr;
-	for (Node* n = CurrentContext().node; n; n = n->parent)
+	for (Node* n = CurrentContext().node; n; n = n->parent.Get())
 	{
 		if (n->type == Node::Table)
 		{
@@ -307,7 +307,7 @@ void HTMLParser::EmitNode(Node* node)
 	{
 		bool isInCell = false;
 
-		for (Node* n = CurrentContext().node; n != tableContainer; n = n->parent)
+		for (Node* n = CurrentContext().node; n != tableContainer; n = n->parent.Get())
 		{
 			if (n->type == Node::TableCell)
 			{
