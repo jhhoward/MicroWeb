@@ -322,7 +322,7 @@ void HTTPRequest::Update()
 						WriteLine("GET %s HTTP/1.1", path);
 						break;
 					}
-					WriteLine("User-Agent: MicroWeb " __DATE__);
+					WriteLine("User-Agent: MicroWeb 2.1");
 					WriteLine("Host: %s", hostname);
 					WriteLine("Accept-Encoding: identity");
 			
