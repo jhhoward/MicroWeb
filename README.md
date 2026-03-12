@@ -49,7 +49,8 @@ MicroWeb supports a wide range of different video modes. You will be asked on st
 * 720x348 monochrome (Hercules)		
 * 640x400 monochrome (Olivetti M24)
 * 640x400 monochrome (Toshiba T3100)
-* 240x128 monochrome (HP 95LX)		
+* 240x128 monochrome (HP 95LX)
+* 640x400 16 colours (Amstrad PC1512)
 
 ## Command line options
 You can use a URL as an argument to load a specific page on startup. This can also be a path to a local html file. 
