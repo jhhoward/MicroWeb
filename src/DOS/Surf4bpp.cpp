@@ -123,6 +123,9 @@ void DrawSurface_4BPP::HLine(DrawContext& context, int x, int y, int count, uint
 	// Restore write mode 0
 	outp(GC_INDEX, GC_MODE);
 	outp(GC_DATA, 0x0);
+	// Restore bitmask
+	outp(GC_INDEX, GC_BITMASK);
+	outp(GC_DATA, 0xff);
 }
 
 void DrawSurface_4BPP::VLine(DrawContext& context, int x, int y, int count, uint8_t colour)
@@ -173,6 +176,9 @@ void DrawSurface_4BPP::VLine(DrawContext& context, int x, int y, int count, uint
 	// Restore write mode 0
 	outp(GC_INDEX, GC_MODE);
 	outp(GC_DATA, 0x0);
+	// Restore bitmask
+	outp(GC_INDEX, GC_BITMASK);
+	outp(GC_DATA, 0xff);
 }
 
 void DrawSurface_4BPP::FillRect(DrawContext& context, int x, int y, int width, int height, uint8_t colour)
@@ -263,6 +269,9 @@ void DrawSurface_4BPP::FillRect(DrawContext& context, int x, int y, int width, i
 	// Restore write mode 0
 	outp(GC_INDEX, GC_MODE);
 	outp(GC_DATA, 0x0);
+	// Restore bitmask
+	outp(GC_INDEX, GC_BITMASK);
+	outp(GC_DATA, 0xff);
 }
 
 void DrawSurface_4BPP::DrawString(DrawContext& context, Font* font, const char* text, int x, int y, uint8_t colour, FontStyle::Type style)
@@ -409,6 +418,9 @@ void DrawSurface_4BPP::DrawString(DrawContext& context, Font* font, const char* 
 	// Restore write mode 0
 	outp(GC_INDEX, GC_MODE);
 	outp(GC_DATA, 0x0);
+	// Restore bitmask
+	outp(GC_INDEX, GC_BITMASK);
+	outp(GC_DATA, 0xff);
 }
 
 static void BlitLineASM(uint8_t* srcPtr, uint8_t* destLine, uint8_t destMask, int count);
@@ -539,10 +551,6 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 			}
 #endif
 		}
-
-		// Restore write mode 0
-		outp(GC_INDEX, GC_MODE);
-		outp(GC_DATA, 0x0);
 	}
 	else
 	{
@@ -611,6 +619,13 @@ void DrawSurface_4BPP::BlitImage(DrawContext& context, Image* image, int x, int 
 			}
 		}
 	}
+
+	// Restore write mode 0
+	outp(GC_INDEX, GC_MODE);
+	outp(GC_DATA, 0x0);
+	// Restore bitmask
+	outp(GC_INDEX, GC_BITMASK);
+	outp(GC_DATA, 0xff);
 }
 
 
@@ -701,6 +716,9 @@ void DrawSurface_4BPP::InvertRect(DrawContext& context, int x, int y, int width,
 	// Restore write mode 0
 	outp(GC_INDEX, GC_MODE);
 	outp(GC_DATA, 0x0);
+	// Restore bitmask
+	outp(GC_INDEX, GC_BITMASK);
+	outp(GC_DATA, 0xff);
 }
 
 void DrawSurface_4BPP::VerticalScrollBar(DrawContext& context, int x, int y, int height, int position, int size)
@@ -766,6 +784,13 @@ void DrawSurface_4BPP::VerticalScrollBar(DrawContext& context, int x, int y, int
 	{
 		*(uint16_t*)(&lines[y++][x]) = inner;
 	}
+
+	// Restore write mode 0
+	outp(GC_INDEX, GC_MODE);
+	outp(GC_DATA, 0x0);
+	// Restore bitmask
+	outp(GC_INDEX, GC_BITMASK);
+	outp(GC_DATA, 0xff);
 }
 
 void DrawSurface_4BPP::Clear()
