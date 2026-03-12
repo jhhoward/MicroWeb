@@ -10,29 +10,29 @@ To run you will need:
 * A network interface (it is possible to use your machine's serial port with the EtherSLIP driver)
 * A mouse is desirable but not 100% required
 * 640K RAM is desirable but can run with less
-* EMS can be used if available and is recommended for loading heavier web pages and images
+* Extra memory via XMS or EMS can be used if available and is recommended for loading heavier web pages and images
 
 ## Limitations
 * HTTP only (See HTTPS limitations below)
 * Only GIF images are rendered, although PNG and JPEG dimensions are loaded for layout purposes
 * No CSS or Javascript
-* Very long pages may be truncated if there is not enough RAM available
+* Large or complex pages may be truncated if there is not enough RAM available
 * Mouse cursor is currently not visible in Hercules mode
 
 ## Keyboard shortcuts
-| Key				| Shortcut                                        |
-|-------------------|-------------------------------------------------|
-| Escape            | Exit                                            |
-| F2                | Invert screen (useful for old LCD displays)     |
-| F3                | Toggle title bar / status bar visibility        |
-| F5                | Reload page                                     |
-| F6 / Ctrl+L       | Focus address bar                               |
-| Tab / Shift+Tab   | Cycle through selectable page elements          |
-| Enter             | Follow link / press button                      |
-| Cursor up/down    | Scroll page                                     |
-| Page up/down      | Scroll page in large increments                 |
-| Home              | Jump to start of page                           |
-| End               | Jump to end of page                             |
+| Key				           | Shortcut                                                                    |
+|-------------------|-----------------------------------------------------------------------------|
+| Escape            | Exit                                                                        |
+| F2                | Invert screen colours in monochrome modes (useful for old LCD displays)     |
+| F3                | Toggle title bar / status bar visibility                                    |
+| F5                | Reload page                                                                 |
+| F6 / Ctrl+L       | Focus address bar                                                           |
+| Tab / Shift+Tab   | Cycle through selectable page elements                                      |
+| Enter             | Follow link / press button                                                  |
+| Cursor up/down    | Scroll page                                                                 |
+| Page up/down      | Scroll page in large increments                                             |
+| Home              | Jump to start of page                                                       |
+| End               | Jump to end of page                                                         |
 
 ## Supported video modes
 MicroWeb supports a wide range of different video modes. You will be asked on startup to select a mode and one will be suggested based on your detected hardware.
@@ -56,9 +56,12 @@ You can use a URL as an argument to load a specific page on startup. This can al
 
 | Option    | Effect
 |-----------|-------
-| -i        | Start with inverted screen colours (useful for some LCD monitors)
+| -invert   | Start monochrome modes with inverted screen colours (useful for some LCD monitors)
 | -noems    | Disable EMS memory usage
+| -noxms    | Disable XMS memory usage
 | -noimages | Disables image decoders - useful for very low memory setups
+| -useswap  | Experimental disk swapping mode to increase available memory
+| -video=#  | Skip the video mode selection menu and choose a mode ahead of time, e.g. -video=a
  
 For example `MICROWEB -noems http://68k.news` will load the 68k.news website on startup but disable the EMS routines
 
