@@ -714,10 +714,17 @@ void App::ShowDownloadDialogPage()
 	parser.Write("</b><hr>");
 	parser.Write("<form action=\"download://\">");
 	parser.Write("<input name=\"path\" type=\"text\" width=\"75%\" value=\"");
-	parser.Write(getcwd(NULL, 0));
-#ifdef _WIN32
-	parser.Write("\\");
-#endif
+
+	char* currentDirectory = getcwd(NULL, 0);
+	//Non-root folders has no \ at the end - let's add it!
+	const size_t currentDirStrLen = strlen(currentDirectory);
+	if (currentDirectory[currentDirStrLen-1] != '\\')
+	{
+		currentDirectory[currentDirStrLen] = '\\';
+	}
+	parser.Write(currentDirectory);
+	free(currentDirectory);
+
 	parser.Write(filename);
 	parser.Write("\"/><br>");
 	parser.Write("<br>");
