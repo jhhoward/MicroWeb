@@ -715,17 +715,23 @@ void App::ShowDownloadDialogPage()
 	parser.Write("<form action=\"download://\">");
 	parser.Write("<input name=\"path\" type=\"text\" width=\"75%\" value=\"");
 
-	char* currentDirectory = getcwd(NULL, 0);
-	//Non-root folders has no \ at the end - let's add it!
-	const size_t currentDirStrLen = strlen(currentDirectory);
-	if (currentDirectory[currentDirStrLen-1] != '\\')
+	char currentDirectory[PATH_MAX + 1];
+	if (getcwd(currentDirectory, (PATH_MAX + 1)) == NULL)
 	{
-		currentDirectory[currentDirStrLen] = '\\';
+		parser.Write("Can't get current path: ");
+		parser.Write(strerror(errno));
 	}
-	parser.Write(currentDirectory);
-	free(currentDirectory);
+	else
+	{
+		parser.Write(currentDirectory);
+		// Non-root folders has no \ at the end - let's add it!
+		if (currentDirectory[strlen(currentDirectory) - 1] != '\\')
+		{
+			parser.Write("\\");
+		}
+		parser.Write(filename);
+	}
 
-	parser.Write(filename);
 	parser.Write("\"/><br>");
 	parser.Write("<br>");
 	parser.Write("<input type=\"button\" value=\"Download\"/>");
