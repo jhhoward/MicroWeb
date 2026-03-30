@@ -1190,6 +1190,12 @@ bool HTMLParser::SetContentType(const char* contentType)
 	AttributeParser contentTypeParser(contentType, true);
 	bool isSupportedFormat = false;
 
+	if (strlen(contentType) == 0)
+	{
+		// If content type is absent, assume text/html
+		return true;
+	}
+
 	while (contentTypeParser.Parse())
 	{
 		if (!stricmp(contentTypeParser.Key(), "charset"))
