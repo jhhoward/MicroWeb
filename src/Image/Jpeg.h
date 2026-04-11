@@ -28,12 +28,12 @@ private:
 		ParseStartOfScan,
 		ParseScanComps,
 		ParseScanParams,
-		ParseMCUStart,
 		ParseMCU
 	};
 
 	enum MCUState
 	{
+		ProcessRestarts,
 		StartMCU,
 		DecodeMCU,
 		TransformMCU,
@@ -176,6 +176,7 @@ private:
 	int16_t GetExtendOffset(uint8_t i);
 	bool InitFrame();
 	void TransformBlock(uint8_t mcuBlock);
+	bool FindIntervalMarker();
 
 	void FillBitBuffer(uint8_t** data, size_t& length);
 	void SaveBitBufferState();
