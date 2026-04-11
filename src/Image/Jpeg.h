@@ -3,7 +3,7 @@
 
 #include "Decoder.h"
 
-#define JPEG_BIT_BUFFER_SIZE 32
+#define JPEG_BIT_BUFFER_SIZE 256
 
 class JpegDecoder : public ImageDecoder
 {

@@ -790,9 +790,19 @@ bool JpegDecoder::GetBit(uint8_t& output)
 
 			if (bitBuffer[nextPosition] != 0)
 			{
+				uint8_t nextNextPosition = (nextPosition + 1) & (JPEG_BIT_BUFFER_SIZE - 1);
+				if (nextNextPosition == bitBufferEnd)
+				{
+					// Data after escape code not yet in buffer
+					return false;
+				}
+
+				bitBufferStart = nextNextPosition;
+				bits = bitBuffer[bitBufferStart];
+
 				// TODO: handle this
-				DEBUG_MESSAGE("Unhandled escape code! %d\n", bitBuffer[nextPosition]);
-				return false;
+				//DEBUG_MESSAGE("Unhandled escape code! %d\n", bitBuffer[nextPosition]);
+				//return false;
 			}
 		}
 
@@ -971,6 +981,8 @@ bool JpegDecoder::FindIntervalMarker()
 		pos = next;
 	}
 
+	DEBUG_MESSAGE("Error: interval marker couldn't be found!");
+
 	return false;
 }
 
@@ -1091,8 +1103,7 @@ bool JpegDecoder::ProcessMCU()
 					{
 						//return PJPG_DECODE_ERROR;
 						DEBUG_MESSAGE("Error in decode\n");
-						state = ImageDecoder::Success;
-						//state = ImageDecoder::Error;
+						state = ImageDecoder::Error;
 						return false;
 					}
 
@@ -1931,60 +1942,158 @@ void JpegDecoder::BlitBlock()
 	int outY = mcuY * gMaxMCUYSize;
 	int outX = mcuX * gMaxMCUXSize;
 
-	if (outputImage->width == gImageXSize && outputImage->height == gImageYSize)
+	if (outputImage->bpp == 8)
 	{
-		for (int j = 0; j < gMaxMCUYSize; j += 8)
+		if (outputImage->width == gImageXSize && outputImage->height == gImageYSize)
 		{
-			const int by_limit = min(8, outputImage->height - (outY + j));
-
-			for (int i = 0; i < gMaxMCUXSize; i += 8)
+			for (int j = 0; j < gMaxMCUYSize; j += 8)
 			{
-				int src_ofs = (i * 8U) + (j * 16U);
-				const uint8_t* pSrcR = gMCUBufR + src_ofs;
-				const uint8_t* pSrcG = gMCUBufG + src_ofs;
-				const uint8_t* pSrcB = gMCUBufB + src_ofs;
+				const int by_limit = min(8, outputImage->height - (outY + j));
 
-				const int bx_limit = min(8, outputImage->width - (outX + i));
-
-				if (gScanType == PJPG_GRAYSCALE)
+				for (int i = 0; i < gMaxMCUXSize; i += 8)
 				{
-					/*	int bx, by;
+					int src_ofs = (i * 8U) + (j * 16U);
+					const uint8_t* pSrcR = gMCUBufR + src_ofs;
+					const uint8_t* pSrcG = gMCUBufG + src_ofs;
+					const uint8_t* pSrcB = gMCUBufB + src_ofs;
+
+					const int bx_limit = min(8, outputImage->width - (outX + i));
+
+					if (gScanType == PJPG_GRAYSCALE)
+					{
+						/*	int bx, by;
+							for (by = 0; by < by_limit; by++)
+							{
+								uint8* pDst = pDst_block;
+
+								for (bx = 0; bx < bx_limit; bx++)
+									*pDst++ = *pSrcR++;
+
+								pSrcR += (8 - bx_limit);
+
+								pDst_block += row_pitch;
+							}*/
+					}
+					else
+					{
+						int bx, by;
 						for (by = 0; by < by_limit; by++)
 						{
-							uint8* pDst = pDst_block;
+							MemBlockHandle* lines = outputImage->lines.Get<MemBlockHandle*>();
+							MemBlockHandle lineOutput = lines[outY + by + j];
+							uint8_t* output = lineOutput.Get<uint8_t*>();
+							uint8_t* pDst = output + outX + i;
 
 							for (bx = 0; bx < bx_limit; bx++)
-								*pDst++ = *pSrcR++;
+							{
+								uint8_t red = *pSrcR++;
+								uint8_t green = *pSrcG++;
+								uint8_t blue = *pSrcB++;
+
+								*pDst++ = Platform::video->paletteLUT[RGB332(red, green, blue)];
+							}
 
 							pSrcR += (8 - bx_limit);
+							pSrcG += (8 - bx_limit);
+							pSrcB += (8 - bx_limit);
 
-							pDst_block += row_pitch;
-						}*/
-				}
-				else
-				{
-					int bx, by;
-					for (by = 0; by < by_limit; by++)
-					{
-						MemBlockHandle* lines = outputImage->lines.Get<MemBlockHandle*>();
-						MemBlockHandle lineOutput = lines[outY + by];
-						uint8_t* output = lineOutput.Get<uint8_t*>();
-						uint8_t* pDst = output + outX + i;
-
-						for (bx = 0; bx < bx_limit; bx++)
-						{
-							uint8_t red = *pSrcR++;
-							uint8_t green = *pSrcG++;
-							uint8_t blue = *pSrcB++;
-
-							*pDst++ = Platform::video->paletteLUT[RGB332(red, green, blue)];
+							lineOutput.Commit();
 						}
+					}
+				}
+			}
+		}
+		else
+		{
+			// Image needs resizing
 
-						pSrcR += (8 - bx_limit);
-						pSrcG += (8 - bx_limit);
-						pSrcB += (8 - bx_limit);
+			for (int j = 0; j < gMaxMCUYSize; j += 8)
+			{
+				int outY1 = ((outY + j) * (long)outputImage->height) / gImageYSize;
+				int outY2 = ((outY + j + 8) * (long)outputImage->height) / gImageYSize;
+				if (outY2 > outputImage->height)
+					outY2 = outputImage->height;
+				if (outY1 >= outY2)
+					break;
 
-						lineOutput.Commit();
+				const int by_limit = min(8, outputImage->height - (outY + j));
+				const int outH = outY2 - outY1;
+
+				for (int i = 0; i < gMaxMCUXSize; i += 8)
+				{
+					int outX1 = ((outX + i) * (long)outputImage->width) / gImageXSize;
+					int outX2 = ((outX + i + 8) * (long)outputImage->width) / gImageXSize;
+					if (outX2 > outputImage->width)
+						outX2 = outputImage->width;
+					if (outX1 >= outX2)
+						break;
+
+					int src_ofs = (i * 8U) + (j * 16U);
+					const uint8_t* pSrcR = gMCUBufR + src_ofs;
+					const uint8_t* pSrcG = gMCUBufG + src_ofs;
+					const uint8_t* pSrcB = gMCUBufB + src_ofs;
+
+					const int bx_limit = min(8, outputImage->width - (outX + i));
+					const int outW = outX2 - outX1;
+
+					if (gScanType == PJPG_GRAYSCALE)
+					{
+						/*	int bx, by;
+							for (by = 0; by < by_limit; by++)
+							{
+								uint8* pDst = pDst_block;
+
+								for (bx = 0; bx < bx_limit; bx++)
+									*pDst++ = *pSrcR++;
+
+								pSrcR += (8 - bx_limit);
+
+								pDst_block += row_pitch;
+							}*/
+					}
+					else
+					{
+						int vertDiffA = 16;
+						int vertDiffB = outH << 1;
+						int vertD = vertDiffA - outH;
+
+						for (int by = outY1; by < outY2; by++)
+						{
+							MemBlockHandle* lines = outputImage->lines.Get<MemBlockHandle*>();
+							MemBlockHandle lineOutput = lines[by];
+							uint8_t* pDst = lineOutput.Get<uint8_t*>() + outX1;
+
+							int horizDiffA = 16;
+							int horizDiffB = outW << 1;
+							int D = horizDiffA - outW;
+							int idx = 0;
+
+							for (int bx = outX1; bx < outX2; bx++)
+							{
+								uint8_t red = pSrcR[idx];
+								uint8_t green = pSrcG[idx];
+								uint8_t blue = pSrcB[idx];
+								*pDst++ = Platform::video->paletteLUT[RGB332(red, green, blue)];
+
+								while (D > 0)
+								{
+									idx++;
+									D -= horizDiffB;
+								}
+								D += horizDiffA;
+							}
+
+							lineOutput.Commit();
+
+							while (vertD > 0)
+							{
+								pSrcR += 8;
+								pSrcG += 8;
+								pSrcB += 8;
+								vertD -= vertDiffB;
+							}
+							vertD += vertDiffA;
+						}
 					}
 				}
 			}
@@ -1992,98 +2101,7 @@ void JpegDecoder::BlitBlock()
 	}
 	else
 	{
-		// Image needs resizing
-
-		for (int j = 0; j < gMaxMCUYSize; j += 8)
-		{
-			int outY1 = ((outY + j) * (long)outputImage->height) / gImageYSize;
-			int outY2 = ((outY + j + 8) * (long)outputImage->height) / gImageYSize;
-			if (outY2 > outputImage->height)
-				outY2 = outputImage->height;
-			if (outY1 >= outY2)
-				break;
-
-			const int by_limit = min(8, outputImage->height - (outY + j));
-			const int outH = outY2 - outY1;
-
-			for (int i = 0; i < gMaxMCUXSize; i += 8)
-			{
-				int outX1 = ((outX + i) * (long)outputImage->width) / gImageXSize;
-				int outX2 = ((outX + i + 8) * (long)outputImage->width) / gImageXSize;
-				if (outX2 > outputImage->width)
-					outX2 = outputImage->width;
-				if (outX1 >= outX2)
-					break;
-
-				int src_ofs = (i * 8U) + (j * 16U);
-				const uint8_t* pSrcR = gMCUBufR + src_ofs;
-				const uint8_t* pSrcG = gMCUBufG + src_ofs;
-				const uint8_t* pSrcB = gMCUBufB + src_ofs;
-
-				const int bx_limit = min(8, outputImage->width - (outX + i));
-				const int outW = outX2 - outX1;
-
-				if (gScanType == PJPG_GRAYSCALE)
-				{
-					/*	int bx, by;
-						for (by = 0; by < by_limit; by++)
-						{
-							uint8* pDst = pDst_block;
-
-							for (bx = 0; bx < bx_limit; bx++)
-								*pDst++ = *pSrcR++;
-
-							pSrcR += (8 - bx_limit);
-
-							pDst_block += row_pitch;
-						}*/
-				}
-				else
-				{
-					int vertDiffA = 16;
-					int vertDiffB = outH << 1;
-					int vertD = vertDiffA - outH;
-
-					for (int by = outY1; by < outY2; by++)
-					{
-						MemBlockHandle* lines = outputImage->lines.Get<MemBlockHandle*>();
-						MemBlockHandle lineOutput = lines[by];
-						uint8_t* pDst = lineOutput.Get<uint8_t*>() + outX1;
-
-						int horizDiffA = 16;
-						int horizDiffB = outW << 1;
-						int D = horizDiffA - outW;
-						int idx = 0;
-
-						for (int bx = outX1; bx < outX2; bx++)
-						{
-							uint8_t red = pSrcR[idx];
-							uint8_t green = pSrcG[idx];
-							uint8_t blue = pSrcB[idx];
-							*pDst++ = Platform::video->paletteLUT[RGB332(red, green, blue)];
-
-							while (D > 0)
-							{
-								idx++;
-								D -= horizDiffB;
-							}
-							D += horizDiffA;
-						}
-
-						lineOutput.Commit();
-
-						while (vertD > 0)
-						{
-							pSrcR += 8;
-							pSrcG += 8;
-							pSrcB += 8;
-							vertD -= vertDiffB;
-						}
-						vertD += vertDiffA;
-					}
-				}
-			}
-		}
+		// TODO
 	}
 
 	mcuX++;
