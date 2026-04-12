@@ -70,7 +70,7 @@ public:
 
 	void MarkNodeLayoutComplete(Node* node);
 	void MarkPageLayoutComplete();
-	void MarkNodeDirty(Node* node);
+	void MarkNodeDirty(Node* node, int nodeDirtyTop = -1, int nodeDirtyBottom = -1);
 
 	void InvertNode(Node* node);
 
