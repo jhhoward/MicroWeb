@@ -91,6 +91,10 @@ private:
 	uint8_t gMCUBufG[256];
 	uint8_t gMCUBufB[256];
 
+	uint8_t gMCUBufY[256];
+	uint8_t gMCUBufCr[256];
+	uint8_t gMCUBufCb[256];
+
 	// 256 bytes
 	int16_t gQuant0[8 * 8];
 	int16_t gQuant1[8 * 8];
@@ -196,6 +200,11 @@ private:
 	void upsampleCb(uint8_t srcOfs, uint8_t dstOfs);
 	void idctCols(void);
 	void idctRows(void);
+
+	void CopyValues(uint8_t* dest);
+	void UpsampleValues(int srcOfs, uint8_t* dest);
+	void UpsampleValuesH(int srcOfs, uint8_t* dest);
+	void UpsampleValuesV(int srcOfs, uint8_t* dest);
 
 	void BlitBlock();
 

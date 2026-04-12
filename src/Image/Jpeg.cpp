@@ -202,7 +202,6 @@ void JpegDecoder::Process(uint8_t* data, size_t dataLength)
 					return;
 				}
 
-				outputImage->bpp = 8;
 				outputImage->pitch = outputImage->width;
 				outputImage->lines = MemoryManager::pageBlockAllocator.Allocate(sizeof(MemBlockHandle) * outputImage->height);
 				if (!outputImage->lines.IsAllocated())
@@ -238,7 +237,7 @@ void JpegDecoder::Process(uint8_t* data, size_t dataLength)
 					if (pixels)
 					{
 						//memset(pixels, TRANSPARENT_COLOUR_VALUE, outputImage->pitch);
-						memset(pixels, 4, outputImage->pitch);
+						memset(pixels, outputImage->bpp == 1 ? 0xff : 0xf, outputImage->pitch);
 						line.Commit();
 					}
 				}
@@ -1177,6 +1176,14 @@ bool JpegDecoder::InitFrame()
 		}
 
 		gScanType = PJPG_GRAYSCALE;
+		if (outputImage->bpp != 1)
+		{
+			for (int n = 0; n < 256; n++)
+			{
+				gMCUBufCr[n] = 128;
+				gMCUBufCb[n] = 128;
+			}
+		}
 
 		gMaxBlocksPerMCU = 1;
 		gMCUOrg[0] = 0;
@@ -1788,11 +1795,240 @@ void JpegDecoder::convertCr(uint8_t dstOfs)
 	}
 }
 
+void JpegDecoder::CopyValues(uint8_t* dest)
+{
+	int16_t* src = gCoeffBuf;
+
+	for (int i = 64; i > 0; i--)
+	{
+		uint8_t c = (uint8_t)*src++;
+
+		*dest++ = c;
+	}
+}
+
+void JpegDecoder::UpsampleValuesH(int srcOfs, uint8_t* dest)
+{
+	uint8_t x, y;
+	int16_t* pSrc = gCoeffBuf + srcOfs;
+	for (y = 0; y < 8; y++)
+	{
+		for (x = 0; x < 4; x++)
+		{
+			uint8_t value = (uint8_t)*pSrc++;
+
+			dest[0] = value;
+			dest[1] = value;
+
+			dest += 2;
+		}
+
+		pSrc = pSrc - 4 + 8;
+	}
+}
+
+void JpegDecoder::UpsampleValuesV(int srcOfs, uint8_t* dest)
+{
+	uint8_t x, y;
+	int16_t* pSrc = gCoeffBuf + srcOfs;
+	for (y = 0; y < 4; y++)
+	{
+		for (x = 0; x < 8; x++)
+		{
+			uint8_t value = (uint8_t)*pSrc++;
+
+			dest[0] = value;
+			dest[8] = value;
+			dest++;
+		}
+
+		dest = dest - 8 + 16;
+	}
+}
+
+void JpegDecoder::UpsampleValues(int srcOfs, uint8_t* dest)
+{
+	uint8_t x, y;
+	int16_t* pSrc = gCoeffBuf + srcOfs;
+	for (y = 0; y < 4; y++)
+	{
+		for (x = 0; x < 4; x++)
+		{
+			uint8_t value = (uint8_t)*pSrc++;
+
+			dest[0] = value;
+			dest[1] = value;
+			dest[8] = value;
+			dest[9] = value;
+
+			dest += 2;
+		}
+
+		pSrc = pSrc - 4 + 8;
+		dest = dest - 8 + 16;
+	}
+}
+
+
 void JpegDecoder::TransformBlock(uint8_t mcuBlock)
 {
-	idctRows();
-	idctCols();
+	// Only process chroma blocks if writing out a colour image
+	if (outputImage->bpp == 8 || mcuBlock == 0)
+	{
+		idctRows();
+		idctCols();
+	}
 
+	switch (gScanType)
+	{
+		case PJPG_GRAYSCALE:
+		{
+			// MCU size: 1, 1 block per MCU
+			CopyValues(gMCUBufY);
+			break;
+		}
+
+		case PJPG_YH1V1:
+		{
+			// MCU size: 8x8, 3 blocks per MCU
+			switch (mcuBlock)
+			{
+				case 0:
+				{
+					CopyValues(gMCUBufY);
+					break;
+				}
+				case 1:
+				{
+					CopyValues(gMCUBufCb);
+					break;
+				}
+				case 2:
+				{
+					CopyValues(gMCUBufCr);
+					break;
+				}
+			}
+			break;
+		}
+
+		case PJPG_YH1V2:
+		{
+			// MCU size: 8x16, 4 blocks per MCU
+			switch (mcuBlock)
+			{
+				case 0:
+				{
+					CopyValues(gMCUBufY);
+					break;
+				}
+				case 1:
+				{
+					CopyValues(gMCUBufY + 128);
+					break;
+				}
+				case 2:
+				{
+					UpsampleValuesV(0, gMCUBufCb);
+					UpsampleValuesV(4 * 8, gMCUBufCb + 128);
+					break;
+				}
+				case 3:
+				{
+					UpsampleValuesV(0, gMCUBufCr);
+					UpsampleValuesV(4 * 8, gMCUBufCr + 128);
+					break;
+				}
+			}
+			break;
+		}
+
+		case PJPG_YH2V1:
+		{
+			// MCU size: 16x8, 4 blocks per MCU
+			switch (mcuBlock)
+			{
+				case 0:
+				{
+					CopyValues(gMCUBufY);
+					break;
+				}
+				case 1:
+				{
+					CopyValues(gMCUBufY + 64);
+					break;
+				}
+				case 2:
+				{
+					UpsampleValuesH(0, gMCUBufCb);
+					UpsampleValuesH(4, gMCUBufCb + 64);
+					break;
+				}
+				case 3:
+				{
+					UpsampleValuesH(0, gMCUBufCr);
+					UpsampleValuesH(4, gMCUBufCr + 64);
+					break;
+				}
+			}
+
+			break;
+		}
+
+		case PJPG_YH2V2:
+		{
+			// MCU size: 16x16, 6 blocks per MCU
+			switch (mcuBlock)
+			{
+				case 0:
+				{
+					CopyValues(gMCUBufY);
+					break;
+				}
+				case 1:
+				{
+					CopyValues(gMCUBufY + 64);
+					break;
+				}
+				case 2:
+				{
+					CopyValues(gMCUBufY + 128);
+					break;
+				}
+				case 3:
+				{
+					CopyValues(gMCUBufY + 192);
+					break;
+				}
+				case 4:
+				{
+					UpsampleValues(0, gMCUBufCb);
+					UpsampleValues(4, gMCUBufCb + 64);
+					UpsampleValues(4 * 8, gMCUBufCb + 128);
+					UpsampleValues(4 + 4 * 8, gMCUBufCb + 192);
+					break;
+				}
+				case 5:
+				{
+					UpsampleValues(0, gMCUBufCr);
+					UpsampleValues(4, gMCUBufCr + 64);
+					UpsampleValues(4 * 8, gMCUBufCr + 128);
+					UpsampleValues(4 + 4 * 8, gMCUBufCr + 192);
+					break;
+				}
+			}
+
+			break;
+		}
+
+		default:
+		{
+			DEBUG_MESSAGE("Unsupported format!");
+			break;
+		}
+	}
+
+#if 0
 	switch (gScanType)
 	{
 	case PJPG_GRAYSCALE:
@@ -1933,6 +2169,7 @@ void JpegDecoder::TransformBlock(uint8_t mcuBlock)
 		break;
 	}
 	}
+#endif
 }
 
 void JpegDecoder::BlitBlock()
@@ -1953,52 +2190,47 @@ void JpegDecoder::BlitBlock()
 				for (int i = 0; i < gMaxMCUXSize; i += 8)
 				{
 					int src_ofs = (i * 8U) + (j * 16U);
-					const uint8_t* pSrcR = gMCUBufR + src_ofs;
-					const uint8_t* pSrcG = gMCUBufG + src_ofs;
-					const uint8_t* pSrcB = gMCUBufB + src_ofs;
+					const uint8_t* pSrcY = gMCUBufY + src_ofs;
 
 					const int bx_limit = min(8, outputImage->width - (outX + i));
+					const uint8_t* pSrcCb = gMCUBufCb + src_ofs;
+					const uint8_t* pSrcCr = gMCUBufCr + src_ofs;
 
-					if (gScanType == PJPG_GRAYSCALE)
+					int bx, by;
+					for (by = 0; by < by_limit; by++)
 					{
-						/*	int bx, by;
-							for (by = 0; by < by_limit; by++)
-							{
-								uint8* pDst = pDst_block;
+						const int8_t* ditherPattern = colourDitherMatrix + 4 * (by & 3);
+						int ditherIndex = 0;
+						MemBlockHandle* lines = outputImage->lines.Get<MemBlockHandle*>();
+						MemBlockHandle lineOutput = lines[outY + by + j];
+						uint8_t* output = lineOutput.Get<uint8_t*>();
+						uint8_t* pDst = output + outX + i;
 
-								for (bx = 0; bx < bx_limit; bx++)
-									*pDst++ = *pSrcR++;
-
-								pSrcR += (8 - bx_limit);
-
-								pDst_block += row_pitch;
-							}*/
-					}
-					else
-					{
-						int bx, by;
-						for (by = 0; by < by_limit; by++)
+						for (bx = 0; bx < bx_limit; bx++)
 						{
-							MemBlockHandle* lines = outputImage->lines.Get<MemBlockHandle*>();
-							MemBlockHandle lineOutput = lines[outY + by + j];
-							uint8_t* output = lineOutput.Get<uint8_t*>();
-							uint8_t* pDst = output + outX + i;
+							int Y = *pSrcY++;
+							uint8_t Cb = *pSrcCb++;
+							uint8_t Cr = *pSrcCr++;
 
-							for (bx = 0; bx < bx_limit; bx++)
-							{
-								uint8_t red = *pSrcR++;
-								uint8_t green = *pSrcG++;
-								uint8_t blue = *pSrcB++;
+							int8_t offset = ditherPattern[ditherIndex];
+							ditherIndex = (ditherIndex + 1) & 3;
+							Y += offset;
 
-								*pDst++ = Platform::video->paletteLUT[RGB332(red, green, blue)];
-							}
+							if (Y < 0)
+								Y = 0;
+							if (Y > 255)
+								Y = 255;
 
-							pSrcR += (8 - bx_limit);
-							pSrcG += (8 - bx_limit);
-							pSrcB += (8 - bx_limit);
+							int YCbCr = ((Y & 0xe0) << 1) | ((Cb & 0xe0) >> 2) | (Cr >> 5);
 
-							lineOutput.Commit();
+							*pDst++ = Platform::video->paletteLUT[YCbCrToRGB[YCbCr]];
 						}
+
+						pSrcY += (8 - bx_limit);
+						pSrcCb += (8 - bx_limit);
+						pSrcCr += (8 - bx_limit);
+
+						lineOutput.Commit();
 					}
 				}
 			}
@@ -2029,71 +2261,65 @@ void JpegDecoder::BlitBlock()
 						break;
 
 					int src_ofs = (i * 8U) + (j * 16U);
-					const uint8_t* pSrcR = gMCUBufR + src_ofs;
-					const uint8_t* pSrcG = gMCUBufG + src_ofs;
-					const uint8_t* pSrcB = gMCUBufB + src_ofs;
+					const uint8_t* pSrcY = gMCUBufY + src_ofs;
+					const uint8_t* pSrcCb = gMCUBufCb + src_ofs;
+					const uint8_t* pSrcCr = gMCUBufCr + src_ofs;
 
 					const int bx_limit = min(8, outputImage->width - (outX + i));
 					const int outW = outX2 - outX1;
 
-					if (gScanType == PJPG_GRAYSCALE)
+					int vertDiffA = 16;
+					int vertDiffB = outH << 1;
+					int vertD = vertDiffA - outH;
+
+					for (int by = outY1; by < outY2; by++)
 					{
-						/*	int bx, by;
-							for (by = 0; by < by_limit; by++)
-							{
-								uint8* pDst = pDst_block;
+						MemBlockHandle* lines = outputImage->lines.Get<MemBlockHandle*>();
+						MemBlockHandle lineOutput = lines[by];
+						uint8_t* pDst = lineOutput.Get<uint8_t*>() + outX1;
 
-								for (bx = 0; bx < bx_limit; bx++)
-									*pDst++ = *pSrcR++;
+						const int8_t* ditherPattern = colourDitherMatrix + 4 * (by & 3);
 
-								pSrcR += (8 - bx_limit);
+						int horizDiffA = 16;
+						int horizDiffB = outW << 1;
+						int D = horizDiffA - outW;
+						int idx = 0;
 
-								pDst_block += row_pitch;
-							}*/
-					}
-					else
-					{
-						int vertDiffA = 16;
-						int vertDiffB = outH << 1;
-						int vertD = vertDiffA - outH;
-
-						for (int by = outY1; by < outY2; by++)
+						for (int bx = outX1; bx < outX2; bx++)
 						{
-							MemBlockHandle* lines = outputImage->lines.Get<MemBlockHandle*>();
-							MemBlockHandle lineOutput = lines[by];
-							uint8_t* pDst = lineOutput.Get<uint8_t*>() + outX1;
+							int Y = pSrcY[idx];
+							uint8_t Cb = pSrcCb[idx];
+							uint8_t Cr = pSrcCr[idx];
 
-							int horizDiffA = 16;
-							int horizDiffB = outW << 1;
-							int D = horizDiffA - outW;
-							int idx = 0;
+							int8_t offset = ditherPattern[bx & 3];
+							Y += offset;
 
-							for (int bx = outX1; bx < outX2; bx++)
+							if (Y < 0)
+								Y = 0;
+							if (Y > 255)
+								Y = 255;
+
+							int YCbCr = ((Y & 0xe0) << 1) | ((Cb & 0xe0) >> 2) | (Cr >> 5);
+							*pDst++ = Platform::video->paletteLUT[YCbCrToRGB[YCbCr]];
+
+							while (D > 0)
 							{
-								uint8_t red = pSrcR[idx];
-								uint8_t green = pSrcG[idx];
-								uint8_t blue = pSrcB[idx];
-								*pDst++ = Platform::video->paletteLUT[RGB332(red, green, blue)];
-
-								while (D > 0)
-								{
-									idx++;
-									D -= horizDiffB;
-								}
-								D += horizDiffA;
+								idx++;
+								D -= horizDiffB;
 							}
-
-							lineOutput.Commit();
-
-							while (vertD > 0)
-							{
-								pSrcR += 8;
-								pSrcG += 8;
-								pSrcB += 8;
-								vertD -= vertDiffB;
-							}
-							vertD += vertDiffA;
+							D += horizDiffA;
 						}
+
+						lineOutput.Commit();
+
+						while (vertD > 0)
+						{
+							pSrcY += 8;
+							pSrcCr += 8;
+							pSrcCb += 8;
+							vertD -= vertDiffB;
+						}
+						vertD += vertDiffA;
 					}
 				}
 			}
@@ -2101,7 +2327,136 @@ void JpegDecoder::BlitBlock()
 	}
 	else
 	{
-		// TODO
+		// 1BPP output
+		if (outputImage->width == gImageXSize && outputImage->height == gImageYSize)
+		{
+			for (int j = 0; j < gMaxMCUYSize; j += 8)
+			{
+				const int by_limit = min(8, outputImage->height - (outY + j));
+
+				for (int i = 0; i < gMaxMCUXSize; i += 8)
+				{
+					int src_ofs = (i * 8U) + (j * 16U);
+					const uint8_t* pSrcY = gMCUBufY + src_ofs;
+
+					const int bx_limit = min(8, outputImage->width - (outX + i));
+
+					int bx, by;
+					for (by = 0; by < by_limit; by++)
+					{
+						const uint8_t* ditherPattern = greyDitherMatrix + 16 * (by & 15);
+						MemBlockHandle* lines = outputImage->lines.Get<MemBlockHandle*>();
+						MemBlockHandle lineOutput = lines[outY + by + j];
+						uint8_t* output = lineOutput.Get<uint8_t*>() + (outX >> 3);
+						uint8_t mask = 0x80;
+						uint8_t result = 0;
+
+						for (bx = 0; bx < bx_limit; bx++)
+						{
+							int Y = *pSrcY++;
+
+							if (Y >= ditherPattern[bx & 15])
+							{
+								result |= mask;
+							}
+
+							mask >>= 1;
+						}
+
+						*output = result;
+
+						pSrcY += (8 - bx_limit);
+
+						lineOutput.Commit();
+					}
+				}
+			}
+		}
+		else 
+		{
+			// Image needs resizing
+
+			for (int j = 0; j < gMaxMCUYSize; j += 8)
+			{
+				int outY1 = ((outY + j) * (long)outputImage->height) / gImageYSize;
+				int outY2 = ((outY + j + 8) * (long)outputImage->height) / gImageYSize;
+				if (outY2 > outputImage->height)
+					outY2 = outputImage->height;
+				if (outY1 >= outY2)
+					break;
+
+				const int by_limit = min(8, outputImage->height - (outY + j));
+				const int outH = outY2 - outY1;
+
+				for (int i = 0; i < gMaxMCUXSize; i += 8)
+				{
+					int outX1 = ((outX + i) * (long)outputImage->width) / gImageXSize;
+					int outX2 = ((outX + i + 8) * (long)outputImage->width) / gImageXSize;
+					if (outX2 > outputImage->width)
+						outX2 = outputImage->width;
+					if (outX1 >= outX2)
+						break;
+
+					int src_ofs = (i * 8U) + (j * 16U);
+					const uint8_t* pSrcY = gMCUBufY + src_ofs;
+
+					const int bx_limit = min(8, outputImage->width - (outX + i));
+					const int outW = outX2 - outX1;
+
+					int vertDiffA = 16;
+					int vertDiffB = outH << 1;
+					int vertD = vertDiffA - outH;
+
+					for (int by = outY1; by < outY2; by++)
+					{
+						MemBlockHandle* lines = outputImage->lines.Get<MemBlockHandle*>();
+						MemBlockHandle lineOutput = lines[by];
+						uint8_t* line = lineOutput.Get<uint8_t*>();
+
+						const uint8_t* ditherPattern = greyDitherMatrix + 16 * (by & 15);
+
+						int horizDiffA = 16;
+						int horizDiffB = outW << 1;
+						int D = horizDiffA - outW;
+						int idx = 0;
+
+						uint8_t mask = 0x80 >> (outX1 & 7);
+
+						for (int bx = outX1; bx < outX2; bx++)
+						{
+							int Y = pSrcY[idx];
+
+							if (Y < ditherPattern[bx & 15])
+							{
+								uint8_t pixels = line[bx >> 3];
+								pixels &= ~mask;
+								line[bx >> 3] = pixels;
+							}
+
+							mask >>= 1;
+							if (!mask)
+								mask = 0x80;
+
+							while (D > 0)
+							{
+								idx++;
+								D -= horizDiffB;
+							}
+							D += horizDiffA;
+						}
+
+						lineOutput.Commit();
+
+						while (vertD > 0)
+						{
+							pSrcY += 8;
+							vertD -= vertDiffB;
+						}
+						vertD += vertDiffA;
+					}
+				}
+			}
+		}
 	}
 
 	mcuX++;

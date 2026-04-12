@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <math.h>
 
+#define RGB332(red, green, blue) (((red) & 0xe0) | (((green) & 0xe0) >> 3) | (((blue) & 0xc0) >> 6))
+
 const RGBQUAD egaPalette[] =
 {
 	{ 0x00, 0x00, 0x00 }, // Entry 0 - Black
@@ -200,6 +202,63 @@ void GeneratePaletteLUT(FILE* fs, const char* name, const RGBQUAD* palette, int 
 	fprintf(fs, "\n};\n");
 }
 
+void GenerateYCbCrLUT(FILE* fs)
+{
+	fprintf(fs, "uint8_t YCbCrToRGB[] = {\n\t");
+	
+	for (int n = 0; n < 512; n++)
+	{
+		int YBits = n >> 6;
+		int CbBits = (n >> 3) & 7;
+		int CrBits = n & 7;
+
+		int Y = (YBits * 255) / 7;
+		int Cb = (CbBits * 255) / 7;
+		int Cr = (CrBits * 255) / 7;
+
+		// Handle unsaturated colours better
+		if (CbBits == 0x4)
+			Cb = 128;
+		if (CrBits == 0x4)
+			Cr = 128;
+
+		float cbSigned = (float)Cb - 128.0f;
+		float crSigned = (float)Cr - 128.0f;
+
+		int R = (int)((float)Y + 1.402f * crSigned);
+		int G = (int)((float)Y - 0.344136f * cbSigned - 0.714136f * crSigned);
+		int B = (int)((float)Y + 1.772f * cbSigned);
+
+		if (R < 0)
+			R = 0;
+		if (R > 255)
+			R = 255;
+		if (G < 0)
+			G = 0;
+		if (G > 255)
+			G = 255;
+		if (B < 0)
+			B = 0;
+		if (B > 255)
+			B = 255;
+
+		int rgb332 = RGB332(R, G, B);
+
+		fprintf(fs, "%d", rgb332);
+		if (n != 511)
+		{
+			fprintf(fs, ", ");
+			if ((n % 16) == 15)
+			{
+				fprintf(fs, "\n\t");
+			}
+		}
+	}
+
+	fprintf(fs, "\n};\n");
+}
+
+
 void GeneratePaletteLUTs(const char* filename)
 {
 	FILE* fs;
@@ -209,6 +268,7 @@ void GeneratePaletteLUTs(const char* filename)
 		GeneratePaletteLUT(fs, "egaPaletteLUT", egaPalette, 16, false);
 		GeneratePaletteLUT(fs, "cgaPaletteLUT", cgaPalette, 4, true);
 		GeneratePaletteLUT(fs, "compositeCgaPaletteLUT", cgaCompositePalette, 16, true);
+		GenerateYCbCrLUT(fs);
 
 		fclose(fs);
 	}

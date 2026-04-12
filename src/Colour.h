@@ -32,5 +32,7 @@ extern ColourScheme colourScheme666;
 extern uint8_t cgaPaletteLUT[];
 extern uint8_t egaPaletteLUT[];
 extern uint8_t compositeCgaPaletteLUT[];
+extern uint8_t YCbCrToRGB[];
+
 
 #endif
