@@ -51,13 +51,11 @@ void BIOSVideoDriver::Init(VideoModeInfo* inVideoModeInfo)
 	if (videoMode->biosVideoMode == CGA_COMPOSITE_MODE)
 	{
 		SetScreenMode(6);
+		// Enable colour burst for composite CGA mode
 		outp(0x3D8, 0x1a);
-		Assets.LoadPreset(videoMode->dataPackIndex);
 	}
-	else
-	{
-		Assets.LoadPreset(videoMode->dataPackIndex);
-	}
+
+	Assets.LoadPreset(videoMode->dataPackIndex);
 
 	int screenPitch = 0;
 

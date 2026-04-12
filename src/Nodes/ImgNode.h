@@ -48,6 +48,9 @@ public:
 	virtual bool CanPick(Node* node) override { return true; }
 
 	void ImageLoadError(Node* node);
+
+private:
+	int lastLinesDecoded;
 };
 
 #endif

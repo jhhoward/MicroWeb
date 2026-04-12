@@ -263,29 +263,29 @@ void PageRenderer::Update()
 	if (isPaused)
 		return;
 
-	int itemsToRender = 30;
+	clock_t startTime = clock();
+	clock_t maxRenderTime = startTime + (CLOCKS_PER_SEC / 10);		// Max 100ms render time
 
 	DrawContext itemContext;
 	InitContext(itemContext);
 	itemContext.drawOffsetX = -app.ui.GetScrollPositionX();
 	itemContext.drawOffsetY = GetDrawOffsetY();
 
-	while(renderQueue.Size() && itemsToRender)
-	{
-		itemsToRender--;
+	Platform::input->HideMouse();
 
+	while(renderQueue.Size())
+	{
 		RenderQueue::Item* item = &renderQueue.items[renderQueue.head];
 		Node* toRender = item->node;
 		bool finishedRendering = true;
 
-		Platform::input->HideMouse();
 		itemContext.clipTop = item->upperClip;
 		itemContext.clipBottom = item->lowerClip;
 		
 		if (toRender->type == Node::Image)
 		{
 			// Render images bit by bit
-			const int imageLinesToRenderPerUpdate = 8;
+			const int imageLinesToRenderPerUpdate = 16;
 
 			ImageNode::Data* imageData = static_cast<ImageNode::Data*>(toRender);
 			if (imageData->state == ImageNode::FinishedDownloadingContent && imageData->image.lines.IsAllocated())
@@ -301,8 +301,6 @@ void PageRenderer::Update()
 
 		toRender->Handler().Draw(itemContext, toRender);
 
-		Platform::input->ShowMouse();
-
 		if (finishedRendering)
 		{
 			renderQueue.Dequeue();
@@ -313,12 +311,15 @@ void PageRenderer::Update()
 				break;
 			}
 		}
-		else
+
+		if (clock() > maxRenderTime)
 		{
 			break;
 		}
 	}
-}	
+
+	Platform::input->ShowMouse();
+}
 
 void PageRenderer::AddToQueue(Node* node, int upperClip, int lowerClip)
 {
@@ -496,7 +497,7 @@ void PageRenderer::MarkNodeLayoutComplete(Node* node)
 	}
 }
 
-void PageRenderer::MarkNodeDirty(Node* dirtyNode)
+void PageRenderer::MarkNodeDirty(Node* dirtyNode, int nodeDirtyTop, int nodeDirtyBottom)
 {
 	// Check this is in a completed layout
 	if (!app.page.layout.IsFinished())
@@ -516,8 +517,22 @@ void PageRenderer::MarkNodeDirty(Node* dirtyNode)
 	int minWinY = windowRect.y;
 	int maxWinY = windowRect.y + windowRect.height;
 
-	int nodeTop = dirtyNode->anchor.y + drawOffsetY;
-	int nodeBottom = nodeTop + dirtyNode->size.y;
+	int nodeTop, nodeBottom;
+
+	if (nodeDirtyTop >= 0 && nodeDirtyBottom >= 0)
+	{
+		if (nodeDirtyBottom > dirtyNode->size.y)
+			nodeDirtyBottom = dirtyNode->size.y;
+
+		nodeTop = dirtyNode->anchor.y + nodeDirtyTop + drawOffsetY;
+		nodeBottom = dirtyNode->anchor.y + nodeDirtyBottom + drawOffsetY;
+	}
+	else
+	{
+		nodeTop = dirtyNode->anchor.y + drawOffsetY;
+		nodeBottom = nodeTop + dirtyNode->size.y;
+	}
+
 	bool outsideOfWindow = (nodeTop > maxWinY) || (nodeBottom < minWinY);
 
 	if (!outsideOfWindow)
@@ -537,7 +552,15 @@ void PageRenderer::MarkNodeDirty(Node* dirtyNode)
 		clearContext.clipBottom = windowRect.y + windowRect.height;
 		clearContext.drawOffsetX = -app.ui.GetScrollPositionX();
 		clearContext.drawOffsetY = windowRect.y - app.ui.GetScrollPositionY();
-		clearContext.surface->FillRect(clearContext, dirtyNode->anchor.x, dirtyNode->anchor.y, dirtyNode->size.x, dirtyNode->size.y, app.page.colourScheme.pageColour);
+		
+		if (nodeDirtyTop >= 0 && nodeDirtyBottom >= 0)
+		{
+			clearContext.surface->FillRect(clearContext, dirtyNode->anchor.x, dirtyNode->anchor.y + nodeDirtyTop, dirtyNode->size.x, nodeDirtyBottom - nodeDirtyTop, app.page.colourScheme.pageColour);
+		}
+		else
+		{
+			clearContext.surface->FillRect(clearContext, dirtyNode->anchor.x, dirtyNode->anchor.y, dirtyNode->size.x, dirtyNode->size.y, app.page.colourScheme.pageColour);
+		}
 
 		Platform::input->ShowMouse();
 	}

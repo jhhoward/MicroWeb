@@ -63,11 +63,12 @@ public:
 		Jpeg
 	};
 
-	ImageDecoder() : outputImage(NULL), state(Stopped), structFillPosition(0) {}
+	ImageDecoder() : outputImage(NULL), state(Stopped), structFillPosition(0), linesDecoded(0) {}
 	
 	void Begin(Image* image, bool dimensionsOnly);
 	virtual void Process(uint8_t* data, size_t dataLength) = 0;
 	State GetState() { return state; }
+	int GetLinesDecoded() { return linesDecoded; }
 	
 	static void Allocate();
 	static ImageDecoder* Get();
@@ -86,6 +87,7 @@ protected:
 	}
 	bool SkipBytes(uint8_t** data, size_t& dataLength, size_t size);
 	size_t structFillPosition;
+	int linesDecoded;
 
 	void CalculateImageDimensions(int sourceWidth, int sourceHeight);
 

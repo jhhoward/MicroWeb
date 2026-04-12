@@ -549,6 +549,11 @@ void GifDecoder::ProcessLineBuffer()
 		{
 			EmitLine(y);
 		}
+
+		if (!(imageDescriptor.fields & GIF_INTERLACE_BIT))
+		{
+			linesDecoded = last;
+		}
 	}
 
 	linesProcessed++;
@@ -563,10 +568,10 @@ void GifDecoder::EmitLine(int y)
 	if (outputImage->bpp == 8)
 	{
 		bool useColourDithering = true;
-		//if (Platform::video->paletteLUT == compositeCgaPaletteLUT)
-		//{
-		//	useColourDithering = false;
-		//}
+		if (Platform::video->paletteLUT == compositeCgaPaletteLUT)
+		{
+			//useColourDithering = false;
+		}
 
 		if (useColourDithering)
 		{
@@ -608,9 +613,9 @@ void GifDecoder::EmitLine(int y)
 			}
 			else
 			{
-				int dy = lineBufferSize;
-				int dx = outputImage->width;
-				int D = 2 * dy - dx;
+				int dy = lineBufferSize << 1;
+				int dx = outputImage->width << 1;
+				int D = dy - outputImage->width;
 				int x = 0;
 
 				for (int i = 0; i < outputImage->width; i++)
@@ -647,9 +652,9 @@ void GifDecoder::EmitLine(int y)
 					while (D > 0)
 					{
 						x++;
-						D -= 2 * dx;
+						D -= dx;
 					}
-					D += 2 * dy;
+					D += dy;
 				}
 			}
 
@@ -665,9 +670,9 @@ void GifDecoder::EmitLine(int y)
 			}
 			else
 			{
-				int dy = lineBufferSize;
-				int dx = outputImage->width;
-				int D = 2 * dy - dx;
+				int dy = lineBufferSize << 1;
+				int dx = outputImage->width << 1;
+				int D = dy - outputImage->width;
 				int x = 0;
 
 				for (int i = 0; i < outputImage->width; i++)
@@ -676,9 +681,9 @@ void GifDecoder::EmitLine(int y)
 					while (D > 0)
 					{
 						x++;
-						D -= 2 * dx;
+						D -= dx;
 					}
-					D += 2 * dy;
+					D += dy;
 				}
 			}
 		}
@@ -721,9 +726,9 @@ void GifDecoder::EmitLine(int y)
 		else
 		{
 			
-			int dy = lineBufferSize;
-			int dx = outputImage->width;
-			int D = 2 * dy - dx;
+			int dy = lineBufferSize << 1;
+			int dx = outputImage->width << 1;
+			int D = dy - outputImage->width;
 			int x = 0;
 
 			for (int i = 0; i < outputImage->width; i++)
@@ -749,9 +754,9 @@ void GifDecoder::EmitLine(int y)
 				while (D > 0)
 				{
 					x++;
-					D -= 2 * dx;
+					D -= dx;
 				}
-				D += 2 * dy;
+				D += dy;
 			}
 			
 			if (mask != 0x80)

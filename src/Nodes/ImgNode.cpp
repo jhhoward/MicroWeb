@@ -20,6 +20,17 @@ void ImageNode::Draw(DrawContext& context, Node* node)
 	{
 		context.surface->BlitImage(context, &data->image, node->anchor.x, node->anchor.y);
 	}
+	else if (data->state == ImageNode::DownloadingContent && ImageDecoder::Get()->GetLinesDecoded() > 0)
+	{
+		context.surface->HLine(context, node->anchor.x, node->anchor.y, node->size.x, outlineColour);
+		context.surface->HLine(context, node->anchor.x, node->anchor.y + node->size.y - 1, node->size.x, outlineColour);
+		context.surface->VLine(context, node->anchor.x, node->anchor.y + 1, node->size.y - 2, outlineColour);
+		context.surface->VLine(context, node->anchor.x + node->size.x - 1, node->anchor.y + 1, node->size.y - 2, outlineColour);
+
+		DrawContext croppedContext = context;
+		croppedContext.Restrict(node->anchor.x, node->anchor.y, node->anchor.x + node->size.x, node->anchor.y + ImageDecoder::Get()->GetLinesDecoded());
+		context.surface->BlitImage(context, &data->image, node->anchor.x, node->anchor.y);
+	}
 	else
 	{
 		Image* image = data->state == ImageNode::ErrorDownloading ? Assets.brokenImageIcon : Assets.imageIcon;
@@ -202,6 +213,7 @@ bool ImageNode::ParseContent(Node* node, char* buffer, size_t count)
 		{
 			ImageDecoder::Get()->Begin(&data->image, loadDimensionsOnly);
 			data->state = loadDimensionsOnly ? ImageNode::DownloadingDimensions : ImageNode::DownloadingContent;
+			lastLinesDecoded = 0;
 		}
 		else
 		{
@@ -223,7 +235,7 @@ bool ImageNode::ParseContent(Node* node, char* buffer, size_t count)
 		else
 		{
 			data->state = ImageNode::FinishedDownloadingContent;
-			App::Get().pageRenderer.MarkNodeDirty(node);
+			App::Get().pageRenderer.MarkNodeDirty(node, lastLinesDecoded, node->size.y);
 		}
 
 		// Loop through image nodes in case this image is used multiple times
@@ -249,7 +261,16 @@ bool ImageNode::ParseContent(Node* node, char* buffer, size_t count)
 			}
 		}
 	}
-	else if (decoder->GetState() != ImageDecoder::Decoding)
+	else if (decoder->GetState() == ImageDecoder::Decoding)
+	{
+		int linesDecoded = decoder->GetLinesDecoded();
+		if (linesDecoded > lastLinesDecoded)
+		{
+			App::Get().pageRenderer.MarkNodeDirty(node, lastLinesDecoded, linesDecoded);
+			lastLinesDecoded = linesDecoded;
+		}
+	}
+	else
 	{
 		ImageLoadError(node);
 	}

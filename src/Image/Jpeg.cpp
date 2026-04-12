@@ -1873,11 +1873,31 @@ void JpegDecoder::UpsampleValues(int srcOfs, uint8_t* dest)
 void JpegDecoder::TransformBlock(uint8_t mcuBlock)
 {
 	// Only process chroma blocks if writing out a colour image
-	if (outputImage->bpp == 8 || mcuBlock == 0)
+	if (outputImage->bpp == 1)
 	{
-		idctRows();
-		idctCols();
+		switch (gScanType)
+		{
+			case PJPG_YH1V1:
+				if (mcuBlock > 0)
+					return;
+				else break;
+			case PJPG_YH1V2:
+				if (mcuBlock > 1)
+					return;
+				else break;
+			case PJPG_YH2V1:
+				if (mcuBlock > 1)
+					return;
+				else break;
+			case PJPG_YH2V2:
+				if (mcuBlock > 3)
+					return;
+				else break;
+		}
 	}
+
+	idctRows();
+	idctCols();
 
 	switch (gScanType)
 	{
@@ -2178,6 +2198,7 @@ void JpegDecoder::BlitBlock()
 	int col_blocks_per_mcu = gMaxMCUYSize >> 3;
 	int outY = mcuY * gMaxMCUYSize;
 	int outX = mcuX * gMaxMCUXSize;
+	int lowestLine = outY;
 
 	if (outputImage->bpp == 8)
 	{
@@ -2186,6 +2207,7 @@ void JpegDecoder::BlitBlock()
 			for (int j = 0; j < gMaxMCUYSize; j += 8)
 			{
 				const int by_limit = min(8, outputImage->height - (outY + j));
+				lowestLine = outY + j + by_limit;
 
 				for (int i = 0; i < gMaxMCUXSize; i += 8)
 				{
@@ -2247,6 +2269,8 @@ void JpegDecoder::BlitBlock()
 					outY2 = outputImage->height;
 				if (outY1 >= outY2)
 					break;
+
+				lowestLine = outY2;
 
 				const int by_limit = min(8, outputImage->height - (outY + j));
 				const int outH = outY2 - outY1;
@@ -2333,6 +2357,7 @@ void JpegDecoder::BlitBlock()
 			for (int j = 0; j < gMaxMCUYSize; j += 8)
 			{
 				const int by_limit = min(8, outputImage->height - (outY + j));
+				lowestLine = outY + j + by_limit;
 
 				for (int i = 0; i < gMaxMCUXSize; i += 8)
 				{
@@ -2353,6 +2378,13 @@ void JpegDecoder::BlitBlock()
 
 						for (bx = 0; bx < bx_limit; bx++)
 						{
+							if (bx == 8)
+							{
+								*output = result;
+								mask = 0x80;
+								result = 0;
+							}
+
 							int Y = *pSrcY++;
 
 							if (Y >= ditherPattern[bx & 15])
@@ -2384,6 +2416,8 @@ void JpegDecoder::BlitBlock()
 					outY2 = outputImage->height;
 				if (outY1 >= outY2)
 					break;
+
+				lowestLine = outY2;
 
 				const int by_limit = min(8, outputImage->height - (outY + j));
 				const int outH = outY2 - outY1;
@@ -2464,5 +2498,6 @@ void JpegDecoder::BlitBlock()
 	{
 		mcuX = 0;
 		mcuY++;
+		linesDecoded = lowestLine;
 	}
 }
