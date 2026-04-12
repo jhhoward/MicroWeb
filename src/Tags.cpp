@@ -171,7 +171,7 @@ void LiTagHandler::Close(class HTMLParser& parser) const
 void ATagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
 	AttributeParser attributes(attributeStr);
-	char* url = NULL;
+	char* url = "";
 
 	while(attributes.Parse())
 	{
