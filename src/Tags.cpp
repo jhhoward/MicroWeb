@@ -171,7 +171,7 @@ void LiTagHandler::Close(class HTMLParser& parser) const
 void ATagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 {
 	AttributeParser attributes(attributeStr);
-	char* url = "";
+	char* url = nullptr;
 
 	while(attributes.Parse())
 	{
@@ -181,7 +181,7 @@ void ATagHandler::Open(class HTMLParser& parser, char* attributeStr) const
 		}
 	}
 
-	parser.PushContext(LinkNode::Construct(MemoryManager::pageAllocator, url), this);
+	parser.PushContext(LinkNode::Construct(MemoryManager::pageAllocator, url ? url : ""), this);
 }
 
 void ATagHandler::Close(class HTMLParser& parser) const

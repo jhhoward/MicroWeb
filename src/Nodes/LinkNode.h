@@ -21,7 +21,7 @@ public:
 	virtual bool CanPick(Node* node) override { return true; }
 	virtual bool HandleEvent(Node* node, const Event& event) override;
 
-	static LinkNode::Data* Construct(Allocator& allocator, char* url);
+	static LinkNode::Data* Construct(Allocator& allocator, const char* url);
 
 	void HighlightChildren(Node* node);
 

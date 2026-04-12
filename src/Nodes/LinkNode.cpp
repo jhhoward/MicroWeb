@@ -13,7 +13,7 @@ void LinkNode::ApplyStyle(Node* node)
 	node->SetStyle(style);
 }
 
-LinkNode::Data* LinkNode::Construct(Allocator& allocator, char* url)
+LinkNode::Data* LinkNode::Construct(Allocator& allocator, const char* url)
 {
 	MemBlockHandle urlHandle = MemoryManager::pageBlockAllocator.AllocString(url);
 	return allocator.Alloc<LinkNode::Data>(urlHandle);
