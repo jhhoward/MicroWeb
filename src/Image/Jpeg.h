@@ -79,6 +79,7 @@ private:
 	uint8_t quantizationTablePrecision;
 
 	FrameHeader frameHeader;
+	bool isProgressive;
 
 	uint8_t gValidHuffTables;
 	uint8_t gValidQuantTables;

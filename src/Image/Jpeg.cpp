@@ -248,9 +248,17 @@ void JpegDecoder::Process(uint8_t* data, size_t dataLength)
 
 				uint8_t codingMode = marker.type.lowByte;
 
-				if (codingMode != SOF0)
+				if (codingMode == SOF0)
 				{
-					// Only baseline is supported
+					isProgressive = false;
+				}
+				else if (codingMode == SOF2)
+				{
+					isProgressive = true;
+				}
+				else
+				{
+					// Only baseline or limited progressive mode is supported
 					DEBUG_MESSAGE("Unsupported coding mode: %2x\n", codingMode);
 					state = ImageDecoder::Error;
 					return;
@@ -545,18 +553,21 @@ void JpegDecoder::Process(uint8_t* data, size_t dataLength)
 			}
 			else if (SkipBytes(&data, dataLength, marker.length))
 			{
-				if (CheckHuffTables())
+				if (!isProgressive)
 				{
-					DEBUG_MESSAGE("Bad huff tables\n");
-					state = ImageDecoder::Error;
-					return;
-				}
+					if (CheckHuffTables())
+					{
+						DEBUG_MESSAGE("Bad huff tables\n");
+						state = ImageDecoder::Error;
+						return;
+					}
 
-				if (CheckQuantTables())
-				{
-					DEBUG_MESSAGE("Bad quant tables\n");
-					state = ImageDecoder::Error;
-					return;
+					if (CheckQuantTables())
+					{
+						DEBUG_MESSAGE("Bad quant tables\n");
+						state = ImageDecoder::Error;
+						return;
+					}
 				}
 
 				gLastDC[0] = 0;
@@ -1052,9 +1063,16 @@ bool JpegDecoder::ProcessMCU()
 			//printf("%x %x\n", s, dc);
 
 			gCoeffBuf[0] = dc * pQ[0];
-
 			mcuCounter = 1;
-			mcuState = DecodeMCU;
+
+			if (isProgressive)
+			{
+				mcuState = TransformMCU;
+			}
+			else
+			{
+				mcuState = DecodeMCU;
+			}
 			break;
 		}
 
