@@ -973,6 +973,7 @@ bool JpegDecoder::FindIntervalMarker()
 			{
 				// Skip over
 				bitBufferStart = (next + 1) & (JPEG_BIT_BUFFER_SIZE - 1);
+				bitBufferMask = 0x80;
 				return true;
 			}
 		}
