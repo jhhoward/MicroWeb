@@ -30,6 +30,7 @@
 
 #define MAX_PAGE_HISTORY_BUFFER_SIZE MAX_URL_LENGTH
 #define APP_LOAD_BUFFER_SIZE 256
+#define UPDATE_TIME_SLICE (CLOCKS_PER_SEC / 5)		// 200ms time slices for rendering / parsing content buffers
 
 class HTTPRequest;
 struct HTTPOptions;

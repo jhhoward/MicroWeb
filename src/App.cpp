@@ -151,23 +151,29 @@ void App::Run(int argc, char* argv[])
 				requestedNewPage = false;
 			}
 
-			size_t bytesRead = pageLoadTask.GetContent(loadBuffer, APP_LOAD_BUFFER_SIZE);
-			if (bytesRead)
+			clock_t loadEndTime = clock() + UPDATE_TIME_SLICE;
+			do 
 			{
-				if (pageLoadTask.downloadFile)
+				size_t bytesRead = pageLoadTask.GetContent(loadBuffer, APP_LOAD_BUFFER_SIZE);
+				if (bytesRead)
 				{
-					fwrite(loadBuffer, 1, bytesRead, pageLoadTask.downloadFile);
-				}
-				else
-				{
-					if (pageLoadTask.debugDumpFile)
+					if (pageLoadTask.downloadFile)
 					{
-						fwrite(loadBuffer, 1, bytesRead, pageLoadTask.debugDumpFile);
+						fwrite(loadBuffer, 1, bytesRead, pageLoadTask.downloadFile);
 					}
+					else
+					{
+						if (pageLoadTask.debugDumpFile)
+						{
+							fwrite(loadBuffer, 1, bytesRead, pageLoadTask.debugDumpFile);
+						}
 
-					parser.Parse(loadBuffer, bytesRead);
+						parser.Parse(loadBuffer, bytesRead);
+					}
 				}
-			}
+				else break;
+			} while (clock() < loadEndTime && !Platform::input->HasInputPending());
+			
 		}
 		else
 		{
@@ -222,15 +228,20 @@ void App::Run(int argc, char* argv[])
 
 		if (pageContentLoadTask.HasContent())
 		{
-			size_t bytesRead = pageContentLoadTask.GetContent(loadBuffer, APP_LOAD_BUFFER_SIZE);
-			if (bytesRead)
+			clock_t contentLoadEndTime = clock() + UPDATE_TIME_SLICE;
+			do
 			{
-				bool stillProcessing = loadTaskTargetNode->Handler().ParseContent(loadTaskTargetNode, loadBuffer, bytesRead);
-				if (!stillProcessing)
+				size_t bytesRead = pageContentLoadTask.GetContent(loadBuffer, APP_LOAD_BUFFER_SIZE);
+				if (bytesRead)
 				{
-					pageContentLoadTask.Stop();
+					bool stillProcessing = loadTaskTargetNode->Handler().ParseContent(loadTaskTargetNode, loadBuffer, bytesRead);
+					if (!stillProcessing)
+					{
+						pageContentLoadTask.Stop();
+					}
 				}
-			}
+				else break;
+			} while (clock() < contentLoadEndTime && !Platform::input->HasInputPending());
 		}
 		else if(!pageContentLoadTask.IsBusy())
 		{

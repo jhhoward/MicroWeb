@@ -263,8 +263,7 @@ void PageRenderer::Update()
 	if (isPaused)
 		return;
 
-	clock_t startTime = clock();
-	clock_t maxRenderTime = startTime + (CLOCKS_PER_SEC / 10);		// Max 100ms render time
+	clock_t maxRenderTime = clock() + UPDATE_TIME_SLICE;
 
 	DrawContext itemContext;
 	InitContext(itemContext);
