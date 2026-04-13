@@ -30,7 +30,7 @@ void TextElement::Draw(DrawContext& context, Node* node)
 		uint8_t textColour = node->GetStyle().fontColour;
 		char* text = data->text.Get<char*>();
 
-		if (textColour == App::Get().page.colourScheme.pageColour)
+		if (textColour == App::Get().page.colourScheme.pageColour && !App::Get().ui.IsInterfaceNode(node))
 		{
 			if (context.surface->format == DrawSurface::Format_1BPP)
 			{
