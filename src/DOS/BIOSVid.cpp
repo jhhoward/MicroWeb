@@ -27,11 +27,51 @@
 #include "../Draw/Surf4bpp.h"
 #include "../Draw/Surf8bpp.h"
 #include "Surf1512.h"
+#include "SurfVESA.h"
 #include "../VidModes.h"
 
 BIOSVideoDriver::BIOSVideoDriver()
 {
 	startingScreenMode = -1;
+}
+
+void BIOSVideoDriver::GeneratePalette()
+{
+	paletteLUT = new uint8_t[256];
+	if (!paletteLUT)
+	{
+		Platform::FatalError("Could not allocate memory for paletteLUT");
+	}
+
+	for (int n = 0; n < 256; n++)
+	{
+		int r = (n & 0xe0);
+		int g = (n & 0x1c) << 3;
+		int b = (n & 3) << 6;
+
+		int rgbBlue = ((long)b * 255) / 0xc0;
+		int rgbGreen = ((long)g * 255) / 0xe0;
+		int rgbRed = ((long)r * 255) / 0xe0;
+
+		paletteLUT[n] = RGB666(rgbRed, rgbGreen, rgbBlue);
+	}
+
+	// Set palette to RGB666
+	outp(0x03C6, 0xff);
+	outp(0x03C8, 16);
+
+	for (int r = 0; r < 6; r++)
+	{
+		for (int g = 0; g < 6; g++)
+		{
+			for (int b = 0; b < 6; b++)
+			{
+				outp(0x03C9, (r * 63) / 5);
+				outp(0x03C9, (g * 63) / 5);
+				outp(0x03C9, (b * 63) / 5);
+			}
+		}
+	}
 }
 
 void BIOSVideoDriver::Init(VideoModeInfo* inVideoModeInfo)
@@ -92,43 +132,14 @@ void BIOSVideoDriver::Init(VideoModeInfo* inVideoModeInfo)
 		drawSurface = new DrawSurface_8BPP(screenWidth, screenHeight);
 		screenPitch = screenWidth;
 		colourScheme = colourScheme666;
-		paletteLUT = new uint8_t[256];
-		if (!paletteLUT)
-		{
-			Platform::FatalError("Could not allocate memory for paletteLUT");
-		}
-
-		for (int n = 0; n < 256; n++)
-		{
-			int r = (n & 0xe0);
-			int g = (n & 0x1c) << 3;
-			int b = (n & 3) << 6;
-
-			int rgbBlue = ((long)b * 255) / 0xc0;
-			int rgbGreen = ((long)g * 255) / 0xe0;
-			int rgbRed = ((long)r * 255) / 0xe0;
-
-			paletteLUT[n] = RGB666(rgbRed, rgbGreen, rgbBlue);
-		}
-
-		// Set palette to RGB666
-		outp(0x03C6, 0xff);
-		outp(0x03C8, 16);
-
-		for (int r = 0; r < 6; r++)
-		{
-			for (int g = 0; g < 6; g++)
-			{
-				for (int b = 0; b < 6; b++)
-				{
-					outp(0x03C9, (r * 63) / 5);
-					outp(0x03C9, (g * 63) / 5);
-					outp(0x03C9, (b * 63) / 5);
-				}
-			}
-		}
+		GeneratePalette();
 		break;
-
+	case DrawSurface::Format_8BPP_VESA:
+		drawSurface = new DrawSurface_8BPP_VESA(screenWidth, screenHeight);
+		screenPitch = screenWidth;
+		colourScheme = colourScheme666;
+		GeneratePalette();
+		break;
 	case DrawSurface::Format_4BPP_PC1512:
 		drawSurface = new DrawSurface_4BPP_PC1512(screenWidth, screenHeight);
 		screenPitch = screenWidth / 8;
@@ -141,43 +152,46 @@ void BIOSVideoDriver::Init(VideoModeInfo* inVideoModeInfo)
 		break;
 	}
 
-	if (!drawSurface || !drawSurface->lines)
+	if (!drawSurface || (!drawSurface->lines && drawSurface->format != DrawSurface::Format_8BPP_VESA))
 	{
 		Platform::FatalError("Could not allocate memory for draw surface");
 	}
 
-	if (videoMode->vramPage3)
+	if (drawSurface->lines)
 	{
-		// 4 page interlaced memory layout
-		int offset = 0;
-		for (int y = 0; y < screenHeight; y += 4)
+		if (videoMode->vramPage3)
 		{
-			drawSurface->lines[y] = (uint8_t*) MK_FP(videoMode->vramPage1, offset);
-			drawSurface->lines[y + 1] = (uint8_t*) MK_FP(videoMode->vramPage2, offset);
-			drawSurface->lines[y + 2] = (uint8_t*) MK_FP(videoMode->vramPage3, offset);
-			drawSurface->lines[y + 3] = (uint8_t*) MK_FP(videoMode->vramPage4, offset);
-			offset += screenPitch;
+			// 4 page interlaced memory layout
+			int offset = 0;
+			for (int y = 0; y < screenHeight; y += 4)
+			{
+				drawSurface->lines[y] = (uint8_t*)MK_FP(videoMode->vramPage1, offset);
+				drawSurface->lines[y + 1] = (uint8_t*)MK_FP(videoMode->vramPage2, offset);
+				drawSurface->lines[y + 2] = (uint8_t*)MK_FP(videoMode->vramPage3, offset);
+				drawSurface->lines[y + 3] = (uint8_t*)MK_FP(videoMode->vramPage4, offset);
+				offset += screenPitch;
+			}
 		}
-	}
-	else if (videoMode->vramPage2)
-	{
-		// 2 page interlaced memory layout
-		int offset = 0;
-		for (int y = 0; y < screenHeight; y += 2)
+		else if (videoMode->vramPage2)
 		{
-			drawSurface->lines[y] = (uint8_t*)MK_FP(videoMode->vramPage1, offset);
-			drawSurface->lines[y + 1] = (uint8_t*)MK_FP(videoMode->vramPage2, offset);
-			offset += screenPitch;
+			// 2 page interlaced memory layout
+			int offset = 0;
+			for (int y = 0; y < screenHeight; y += 2)
+			{
+				drawSurface->lines[y] = (uint8_t*)MK_FP(videoMode->vramPage1, offset);
+				drawSurface->lines[y + 1] = (uint8_t*)MK_FP(videoMode->vramPage2, offset);
+				offset += screenPitch;
+			}
 		}
-	}
-	else
-	{
-		// No interlacing
-		int offset = 0;
-		for (int y = 0; y < screenHeight; y++)
+		else
 		{
-			drawSurface->lines[y] = (uint8_t*)MK_FP(videoMode->vramPage1, offset);
-			offset += screenPitch;
+			// No interlacing
+			int offset = 0;
+			for (int y = 0; y < screenHeight; y++)
+			{
+				drawSurface->lines[y] = (uint8_t*)MK_FP(videoMode->vramPage1, offset);
+				offset += screenPitch;
+			}
 		}
 	}
 }
@@ -203,12 +217,26 @@ int BIOSVideoDriver::GetScreenMode()
 bool BIOSVideoDriver::SetScreenMode(int screenMode)
 {
 	union REGS inreg, outreg;
-	inreg.h.ah = 0;
-	inreg.h.al = (unsigned char)screenMode;
 
-	int86(0x10, &inreg, &outreg);
+	if (screenMode >= 256)
+	{
+		// this is a VESA mode
+		inreg.x.ax = 0x4f02;
+		inreg.x.bx = screenMode;
 
-	return GetScreenMode() == screenMode;
+		int86(0x10, &inreg, &outreg);
+
+		return outreg.x.ax == 0x4f;
+	}
+	else
+	{
+		inreg.h.ah = 0;
+		inreg.h.al = (unsigned char)screenMode;
+
+		int86(0x10, &inreg, &outreg);
+
+		return GetScreenMode() == screenMode;
+	}
 }
 
 

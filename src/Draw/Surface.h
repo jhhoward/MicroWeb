@@ -46,6 +46,7 @@ public:
 		Format_8BPP,
 		Format_4BPP_EGA,
 		Format_4BPP_PC1512,
+		Format_8BPP_VESA
 	};
 
 	DrawSurface(int inWidth, int inHeight) : width(inWidth), height(inHeight) {}

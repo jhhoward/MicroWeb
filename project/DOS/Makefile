@@ -1,7 +1,7 @@
 bin = MicroWeb.exe
 SRC_PATH = ..\..\src
 OBJDIR=obj
-objects = MicroWeb.obj App.obj Parser.obj Tags.obj Platform.obj Colour.obj Hercules.obj BIOSVid.obj VidModes.obj Font.obj Style.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj Layout.obj Node.obj Text.obj Table.obj ListItem.obj Section.obj ImgNode.obj Block.obj StyNode.obj LinkNode.obj Break.obj Render.obj Button.obj CheckBox.obj Select.obj Field.obj DataPack.obj Surf1bpp.obj Surf2bpp.obj Surf4bpp.obj Surf8bpp.obj Surf1512.obj Form.obj Status.obj Scroll.obj HTTP.obj Decoder.obj Gif.obj Jpeg.obj Png.obj MemBlock.obj Memory.obj EMS.obj XMS.obj
+objects = MicroWeb.obj App.obj Parser.obj Tags.obj Platform.obj Colour.obj Hercules.obj BIOSVid.obj VidModes.obj Font.obj Style.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj Layout.obj Node.obj Text.obj Table.obj ListItem.obj Section.obj ImgNode.obj Block.obj StyNode.obj LinkNode.obj Break.obj Render.obj Button.obj CheckBox.obj Select.obj Field.obj DataPack.obj Surf1bpp.obj Surf2bpp.obj Surf4bpp.obj Surf8bpp.obj Surf1512.obj SurfVESA.obj Form.obj Status.obj Scroll.obj HTTP.obj Decoder.obj Gif.obj Jpeg.obj Png.obj MemBlock.obj Memory.obj EMS.obj XMS.obj
 memory_model = -ml
 CC = wpp
 CFLAGS = -zq -0 -os -bt=DOS -w2 $(memory_model) -fi=$(SRC_PATH)\Defines.h
@@ -177,6 +177,9 @@ Surf8bpp.obj: $(SRC_PATH)\Draw\Surf8bpp.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 Surf1512.obj: $(SRC_PATH)\DOS\Surf1512.cpp
+	 $(CC) -fo=$@ $(CFLAGS) $<
+
+SurfVESA.obj: $(SRC_PATH)\DOS\SurfVESA.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
 
 clean: .symbolic

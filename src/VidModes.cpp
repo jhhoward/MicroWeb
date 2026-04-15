@@ -20,6 +20,9 @@ VideoModeInfo VideoModeList[] =
 	{ "640x400 monochrome (Toshiba T3100)",				0x74,			640,		400,		DrawSurface::Format_1BPP,			100,		100,		DataPack::Default,	0xb800,		0xba00,		0xbc00,		0xbe00   },
 	{ "240x128 monochrome (HP 95LX)",					0x20,			240,		128,		DrawSurface::Format_1BPP,			100,		50,			DataPack::Lowres,	0xb000,										 },
 	{ "640x200 16 colours (Amstrad PC1512)",			6,				640,		200,		DrawSurface::Format_4BPP_PC1512,	240,		100,		DataPack::CGA,		0xb800,		0xba00							 },
+	{ "640x480 256 colours (VESA SVGA)",				0x0101,			640,		480,		DrawSurface::Format_8BPP_VESA,		100,		100,		DataPack::Default,	0xa000,										 },
+	{ "800x600 256 colours (VESA SVGA)",				0x0103,			800,		600,		DrawSurface::Format_8BPP_VESA,		100,		100,		DataPack::Default,	0xa000,										 },
+	{ "1024x768 256 colours (VESA SVGA)",				0x0105,			1024,		768,		DrawSurface::Format_8BPP_VESA,		100,		100,		DataPack::Default,	0xa000,										 },
 #ifdef _WIN32
 	{ "640x480 256 colours zoomed",						0x12,			640,		480,		DrawSurface::Format_8BPP,			100,		80,			DataPack::Default,	0xa000,									},
 	{ "800x600 256 colours",							0x12,			800,		600,		DrawSurface::Format_8BPP,			100,		100,		DataPack::Default,	0xa000,									},

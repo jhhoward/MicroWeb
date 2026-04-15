@@ -31,6 +31,8 @@ private:
 	int GetScreenMode();
 	bool SetScreenMode(int screenMode);
 
+	void GeneratePalette();
+
 	int startingScreenMode;
 };
 
