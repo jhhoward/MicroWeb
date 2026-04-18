@@ -539,7 +539,7 @@ void EncodeFont(const char* basePath, const char* imageFilename, vector<uint8_t>
 		glyphTops.push_back((uint8_t) top);
 		glyphBottoms.push_back((uint8_t) bottom);
 
-		cout << "Glyph " << n << " top: " << top << " bottom: " << bottom << endl;
+		//cout << "Glyph " << n << " top: " << top << " bottom: " << bottom << endl;
 
 		for (unsigned int y = top; y <= bottom; y++)
 		{
