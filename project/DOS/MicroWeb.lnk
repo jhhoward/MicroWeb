@@ -1,0 +1,80 @@
+# General Options
+system dos
+option MAP=map.map
+option VERBOSE
+
+# Always loaded
+file MicroWeb.obj 
+file App.obj 
+file Parser.obj 
+file Tags.obj 
+file Platform.obj 
+file Colour.obj 
+file VidModes.obj 
+file Font.obj 
+file Style.obj 
+file Interface.obj 
+file DOSInput.obj 
+file DOSNet.obj 
+file Page.obj 
+file Layout.obj 
+file Node.obj 
+file Text.obj 
+file Table.obj 
+file ListItem.obj 
+file Section.obj 
+file ImgNode.obj 
+file Block.obj 
+file StyNode.obj 
+file LinkNode.obj 
+file Break.obj 
+file Render.obj 
+file Button.obj 
+file CheckBox.obj 
+file Select.obj 
+file Field.obj 
+file DataPack.obj 
+file Form.obj 
+file Status.obj 
+file Scroll.obj 
+file HTTP.obj 
+file Decoder.obj 
+file Gif.obj 
+file Jpeg.obj 
+file Png.obj 
+file MemBlock.obj 
+file Memory.obj 
+file EMS.obj 
+file XMS.obj
+
+# mTCP files
+file packet.obj 
+file arp.obj 
+file eth.obj 
+file ip.obj 
+file tcp.obj 
+file tcpsockm.obj 
+file udp.obj 
+file utils.obj 
+file dns.obj 
+file timer.obj 
+file ipasm.obj 
+file trace.obj
+
+# Overlay section for using BIOS routines vs Hercules direct I/O
+begin
+	autosection
+	file Hercules.obj 
+	file BIOSVid.obj 
+end
+
+# Overlay section for different screen formats
+begin
+	autosection
+	file Surf1bpp.obj
+	file Surf2bpp.obj 
+	file Surf4bpp.obj 
+	file Surf8bpp.obj 
+	file Surf1512.obj 
+	file SurfVESA.obj 
+end

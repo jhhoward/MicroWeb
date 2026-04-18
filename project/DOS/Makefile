@@ -4,9 +4,10 @@ OBJDIR=obj
 objects = MicroWeb.obj App.obj Parser.obj Tags.obj Platform.obj Colour.obj Hercules.obj BIOSVid.obj VidModes.obj Font.obj Style.obj Interface.obj DOSInput.obj DOSNet.obj Page.obj Layout.obj Node.obj Text.obj Table.obj ListItem.obj Section.obj ImgNode.obj Block.obj StyNode.obj LinkNode.obj Break.obj Render.obj Button.obj CheckBox.obj Select.obj Field.obj DataPack.obj Surf1bpp.obj Surf2bpp.obj Surf4bpp.obj Surf8bpp.obj Surf1512.obj SurfVESA.obj Form.obj Status.obj Scroll.obj HTTP.obj Decoder.obj Gif.obj Jpeg.obj Png.obj MemBlock.obj Memory.obj EMS.obj XMS.obj
 memory_model = -ml
 CC = wpp
-CFLAGS = -zq -0 -os -bt=DOS -w2 $(memory_model) -fi=$(SRC_PATH)\Defines.h
+CFLAGS = -zq -0 -os -oh -ok -ol+ -oi+ -ob -s -bt=DOS -w2 $(memory_model) -fi=$(SRC_PATH)\Defines.h
 # CFLAGS = -zq -0 -oh -ok -ot -oa -s -ei -ol+ -oi+  -bt=DOS -w2 $(memory_model) -fi=$(SRC_PATH)\Defines.h
 LD = wlink
+LNK_SCRIPT = MicroWeb.lnk
 
 # begin mTCP stuff
 tcp_h_dir = ..\..\lib\mTCP\TCPINC\
@@ -29,8 +30,8 @@ tcp_compile_options += -i=$(tcp_h_dir)
 # end mTCP stuff
 
 $(bin): $(objects) $(tcpobjs)
-    $(LD) system dos name $@ file { $(objects) $(tcpobjs) } option map=map.map option verbose
-
+    $(LD) name $@ @$(LNK_SCRIPT) 
+#    $(LD) system dos name $@ file { $(objects) $(tcpobjs) } option map=map.map option verbose
 
 MicroWeb.obj: $(SRC_PATH)\MicroWeb.cpp
 	 $(CC) -fo=$@ $(CFLAGS) $<
