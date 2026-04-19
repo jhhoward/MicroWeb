@@ -765,20 +765,50 @@ uint8_t JpegDecoder::CheckQuantTables(void)
 	return 0;
 }
 
-
 void JpegDecoder::FillBitBuffer(uint8_t** data, size_t& length)
 {
-	while (length > 0)
+	if (bitBufferEnd >= bitBufferStart)
 	{
-		uint8_t bitBufferNext = (bitBufferEnd + 1) & (JPEG_BIT_BUFFER_SIZE - 1);
-		if (bitBufferNext != bitBufferStart)
+		size_t fill;
+		
+		if (bitBufferStart == 0)
 		{
-			bitBuffer[bitBufferEnd] = **data;
-			(*data)++;
-			bitBufferEnd = bitBufferNext;
-			length--;
+			fill = (JPEG_BIT_BUFFER_SIZE - 1) - bitBufferEnd;
 		}
-		else break;
+		else
+		{
+			fill = JPEG_BIT_BUFFER_SIZE - bitBufferEnd;
+		}
+
+		if (fill > length)
+		{
+			fill = length;
+		}
+
+		if (fill > 0)
+		{
+			memcpy(bitBuffer + bitBufferEnd, *data, fill);
+			length -= fill;
+			*data += fill;
+			bitBufferEnd = (bitBufferEnd + fill) & (JPEG_BIT_BUFFER_SIZE - 1);
+		}
+	}
+
+	if (bitBufferEnd < bitBufferStart)
+	{
+		size_t fill = (bitBufferStart - bitBufferEnd) - 1;
+		if (fill > length)
+		{
+			fill = length;
+		}
+
+		if (fill > 0)
+		{
+			memcpy(bitBuffer + bitBufferEnd, *data, fill);
+			length -= fill;
+			*data += fill;
+			bitBufferEnd += fill;
+		}
 	}
 }
 
