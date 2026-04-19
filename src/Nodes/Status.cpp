@@ -30,11 +30,18 @@ void StatusBarNode::SetStatus(Node* node, const char* message, StatusType type)
 
 	if (message)
 	{
-		strncpy(data->messages[type].message, message, MAX_STATUS_BAR_MESSAGE_LENGTH);
+		if (strncmp(message, data->messages[type].message, MAX_STATUS_BAR_MESSAGE_LENGTH))
+		{
+			strncpy(data->messages[type].message, message, MAX_STATUS_BAR_MESSAGE_LENGTH);
+			node->Redraw();
+		}
 	}
 	else
 	{
-		data->messages[type].Clear();
+		if (data->messages[type].HasMessage())
+		{
+			data->messages[type].Clear();
+			node->Redraw();
+		}
 	}
-	node->Redraw();
 }

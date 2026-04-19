@@ -30,6 +30,7 @@ public:
 	virtual void SetMousePosition(int x, int y);
 	virtual bool GetMouseButtonPress(int& x, int& y);
 	virtual bool GetMouseButtonRelease(int& x, int& y);
+	virtual void RefreshMouse();
 
 	virtual InputButtonCode GetKeyPress();
 	virtual bool HasInputPending();
@@ -39,8 +40,10 @@ private:
 	bool mouseVisible;
 	bool hasMouse;
 	int mouseHideCount;
+	bool useMouseDriverCursor;
 
 	int queuedPressX, queuedPressY;
+	int lastMouseX, lastMouseY;
 };
 
 #endif

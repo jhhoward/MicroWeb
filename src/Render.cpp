@@ -260,7 +260,7 @@ void PageRenderer::Update()
 	//if (rand() % 256)
 	//	return;
 #endif
-	if (isPaused)
+	if (isPaused || renderQueue.Size() == 0)
 		return;
 
 	clock_t maxRenderTime = clock() + UPDATE_TIME_SLICE;

@@ -95,6 +95,8 @@ public:
 	virtual bool GetMouseButtonPress(int& x, int& y) = 0;
 	virtual bool GetMouseButtonRelease(int& x, int& y) = 0;
 
+	virtual void RefreshMouse() {}
+
 	virtual InputButtonCode GetKeyPress() { return 0; }
 	virtual bool HasInputPending() { return false; }
 };

@@ -21,6 +21,8 @@
 #include "DOSInput.h"
 #include "../Keycodes.h"
 #include "../DataPack.h"
+#include "../Draw/Surface.h"
+#include "../VidModes.h"
 
 void DOSInputDriver::Init()
 {
@@ -33,8 +35,29 @@ void DOSInputDriver::Init()
 	SetMouseCursor(MouseCursor::Pointer);
 	mouseHideCount = 1;
 
+	useMouseDriverCursor = Platform::video->GetVideoModeInfo()->useMouseDriverCursor;
 	queuedPressX = -1;
 	queuedPressY = -1;
+
+	// Set Horizontal Range
+	int horizontalRange = Platform::video->screenWidth;
+	if (horizontalRange == 320) horizontalRange = 640;			// Due some strangeness of how DOS mouse drivers work
+	inreg.w.ax = 0x7;
+	inreg.w.cx = 0;          // Minimum X
+	inreg.w.dx = horizontalRange - 1;  // Maximum X 
+	int86(0x33, &inreg, &outreg);
+
+	// Set Vertical Range 
+	inreg.w.ax = 0x8;
+	inreg.w.cx = 0;          // Minimum Y
+	inreg.w.dx = Platform::video->screenHeight - 1;  // Maximum Y 
+	int86(0x33, &inreg, &outreg);
+
+	// Set mouse mickey ratio
+	//inreg.w.ax = 0xf;
+	//inreg.w.cx = 8;
+	//inreg.w.dx = 16;
+	//int86(0x33, &inreg, &outreg);
 
 	ShowMouse();
 }
@@ -53,9 +76,15 @@ void DOSInputDriver::ShowMouse()
 	if (mouseHideCount > 0)
 		return;
 
-	union REGS inreg, outreg;
-	inreg.x.ax = 1;
-	int86(0x33, &inreg, &outreg);
+	if (useMouseDriverCursor)
+	{
+		union REGS inreg, outreg;
+		inreg.x.ax = 1;
+		int86(0x33, &inreg, &outreg);
+	}
+
+	lastMouseX = -1;
+	mouseVisible = true;
 }
 
 void DOSInputDriver::SetMousePosition(int x, int y)
@@ -128,10 +157,19 @@ void DOSInputDriver::HideMouse()
 	if (mouseHideCount > 1)
 		return;
 
-	union REGS inreg, outreg;
-	inreg.x.ax = 2;
-	int86(0x33, &inreg, &outreg);
+	if (useMouseDriverCursor)
+	{
+		union REGS inreg, outreg;
+		inreg.x.ax = 2;
+		int86(0x33, &inreg, &outreg);
+	}
+	else
+	{
+		Platform::video->drawSurface->HideCursor();
+	}
+
 	mouseVisible = false;
+	lastMouseX = -1;
 }
 
 static void SetMouseCursorASM(unsigned short far* data, uint16_t hotSpotX, uint16_t hotSpotY);
@@ -150,30 +188,11 @@ void DOSInputDriver::SetMouseCursor(MouseCursor::Type type)
 	{
 		return;
 	}
+
 	MouseCursorData* cursor = Assets.GetMouseCursorData(type);
-	if (cursor)
+	if (cursor && useMouseDriverCursor)
 	{
 		SetMouseCursorASM(cursor->data, cursor->hotSpotX, cursor->hotSpotY);
-	}
-	else
-	{
-		union REGS inreg, outreg;
-		inreg.x.ax = 0xa;
-		inreg.x.bx = 0;
-		inreg.x.cx = 0xff00;
-		switch (type)
-		{
-		case MouseCursor::Pointer:
-			inreg.x.dx = 0x00db;
-			break;
-		case MouseCursor::Hand:
-			inreg.x.dx = 0x00b1;
-			break;
-		case MouseCursor::TextSelect:
-			inreg.x.dx = 0x00b3;
-			break;
-		}
-		int86(0x33, &inreg, &outreg);
 	}
 
 	currentCursor = type;
@@ -229,4 +248,20 @@ bool DOSInputDriver::HasInputPending()
 	}
 
 	return false;
+}
+
+void DOSInputDriver::RefreshMouse()
+{
+	if(mouseVisible && !useMouseDriverCursor)
+	{
+		int mouseButtons, mouseX, mouseY;
+		GetMouseStatus(mouseButtons, mouseX, mouseY);
+
+		if (mouseX != lastMouseX || mouseY != lastMouseY)
+		{
+			Platform::video->drawSurface->DrawCursor(Assets.GetMouseCursorData(currentCursor), mouseX, mouseY);
+			lastMouseX = mouseX;
+			lastMouseY = mouseY;
+		}
+	}
 }

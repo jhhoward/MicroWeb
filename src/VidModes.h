@@ -18,6 +18,7 @@ struct VideoModeInfo
 	int aspectRatio;
 	int zoom;
 	DataPack::Preset dataPackIndex : 8;
+	bool useMouseDriverCursor;
 	uint16_t vramPage1;
 	uint16_t vramPage2;
 	uint16_t vramPage3;

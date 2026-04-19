@@ -16,6 +16,7 @@ DrawSurface_8BPP_VESA::DrawSurface_8BPP_VESA(int inWidth, int inHeight)
 	format = DrawSurface::Format_8BPP_VESA;
 	VESAlines = new VESAPtr[height];
 	copyBuffer = new uint8_t[width];
+	cursorBufferX = -1;
 
 	uint32_t linearAddress = 0;
 
@@ -632,4 +633,151 @@ void DrawSurface_8BPP_VESA::ScrollScreen(int top, int bottom, int width, int amo
 			}
 		}
 	}
+}
+
+void DrawSurface_8BPP_VESA::DrawCursor(struct MouseCursorData* cursor, int x, int y)
+{
+	HideCursor();
+
+	x -= cursor->hotSpotX;
+	y -= cursor->hotSpotY;
+
+	// First save screen state to the cursor buffer
+	{
+		cursorBufferX = x;
+		if (cursorBufferX < 0)
+		{
+			cursorBufferX = 0;
+		}
+		if (cursorBufferX > width - 16)
+		{
+			cursorBufferX = width - 16;
+		}
+		cursorBufferY = y;
+		if (cursorBufferY < 0)
+		{
+			cursorBufferY = 0;
+		}
+		if (cursorBufferY > height - 16)
+		{
+			cursorBufferY = height - 16;
+		}
+
+		uint16_t boundary = 65536UL - 16;
+		uint8_t* bufferPtr = cursorBuffer;
+		for (int j = 0; j < 16; j++)
+		{
+			VESAPtr ptr = VESAlines[cursorBufferY + j] + cursorBufferX;
+
+			if (ptr.offset > boundary)
+			{
+				size_t diff = 65536UL - ptr.offset;
+				memcpy(bufferPtr, ptr.Get(), diff);
+				bufferPtr += diff;
+				ptr += diff;
+				memcpy(bufferPtr, ptr.Get(), 16 - diff);
+				bufferPtr += 16 - diff;
+			}
+			else
+			{
+				memcpy(bufferPtr, ptr.Get(), 16);
+				bufferPtr += 16;
+			}
+		}
+	}
+
+	int cursorHeight = 16;
+	uint16_t* cursorData = cursor->data;
+
+	int shiftX = 0;
+	if (x < 0)
+	{
+		shiftX = -x;
+		x = 0;
+	}
+
+	while (cursorHeight--)
+	{
+		if (y >= height)
+			break;
+		if (y >= 0)
+		{
+			VESAPtr ptr = VESAlines[y] + x;
+
+			uint16_t mask = 0x8000;
+			uint16_t cursorMask = cursorData[0];
+			uint16_t cursorColour = cursorData[16];
+			int outX = x;
+			int skipX = shiftX;
+
+			for (int i = 0; i < 16; i++)
+			{
+				if (outX >= width)
+					break;
+
+				if (skipX)
+				{
+					skipX--;
+				}
+				else
+				{
+					if (outX >= 0)
+					{
+						if (!(cursorMask & mask))
+						{
+							if ((cursorColour & mask))
+							{
+								ptr.Set(0xf);
+							}
+							else
+							{
+								ptr.Set(0x0);
+							}
+						}
+					}
+
+					outX++;
+					ptr++;
+				}
+
+				mask >>= 1;
+			}
+		}
+
+		cursorData++;
+		y++;
+	}
+}
+
+void DrawSurface_8BPP_VESA::HideCursor()
+{
+	if (cursorBufferX < 0)
+	{
+		// Already hidden
+		return;
+	}
+
+	uint16_t boundary = 65536UL - 16;
+	uint8_t* bufferPtr = cursorBuffer;
+	for (int j = 0; j < 16; j++)
+	{
+		VESAPtr ptr = VESAlines[cursorBufferY + j] + cursorBufferX;
+
+		if (ptr.offset > boundary)
+		{
+			size_t diff = 65536UL - ptr.offset;
+			memcpy(ptr.Get(), bufferPtr, diff);
+			bufferPtr += diff;
+			ptr += diff;
+			memcpy(ptr.Get(), bufferPtr, 16 - diff);
+			bufferPtr += 16 - diff;
+		}
+		else
+		{
+			memcpy(ptr.Get(), bufferPtr, 16);
+			bufferPtr += 16;
+		}
+	}
+
+	cursorBufferX = -1;
 }

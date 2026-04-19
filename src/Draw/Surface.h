@@ -60,6 +60,9 @@ public:
 	virtual void VerticalScrollBar(DrawContext& context, int x, int y, int height, int position, int size) = 0;
 	virtual void ScrollScreen(int top, int bottom, int width, int amount) {}
 
+	virtual void DrawCursor(struct MouseCursorData* cursor, int x, int y) {}
+	virtual void HideCursor() {}
+
 	uint8_t** lines;
 	int width, height;
 	Format format;

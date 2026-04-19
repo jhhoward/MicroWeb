@@ -119,6 +119,7 @@ void App::Run(int argc, char* argv[])
 	while (running)
 	{
 		Platform::Update();
+		Platform::input->RefreshMouse();
 
 		if (pageLoadTask.HasContent())
 		{
@@ -172,6 +173,8 @@ void App::Run(int argc, char* argv[])
 					}
 				}
 				else break;
+
+				Platform::input->RefreshMouse();
 			} while (clock() < loadEndTime && !Platform::input->HasInputPending());
 			
 		}
@@ -241,6 +244,8 @@ void App::Run(int argc, char* argv[])
 					}
 				}
 				else break;
+
+				Platform::input->RefreshMouse();
 			} while (clock() < contentLoadEndTime && !Platform::input->HasInputPending());
 		}
 		else if(!pageContentLoadTask.IsBusy())
