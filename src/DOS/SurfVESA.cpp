@@ -1,4 +1,5 @@
 #include <memory.h>
+#include <string.h>
 #include "SurfVESA.h"
 #include "../Font.h"
 #include "../Image/Image.h"
@@ -43,17 +44,25 @@ void DrawSurface_8BPP_VESA::HLine(DrawContext& context, int x, int y, int count,
 	{
 		count = context.clipRight - x;
 	}
-	if (count < 0)
+	if (count <= 0)
 	{
 		return;
 	}
 	
-	VESAPtr VRAMptr = VESAlines[y];
-	VRAMptr += x;
+	VESAPtr VRAMptr = VESAlines[y] + x;
+	uint16_t boundary = 65536UL - count;
 
-	while (count--)
+	if (VRAMptr.offset > boundary)
 	{
-		*VRAMptr++ = colour;
+		int16_t first = 65536UL - VRAMptr.offset;
+		int16_t second = count - first;
+		memset(VRAMptr.Get(), colour, first);
+		VRAMptr += first;
+		memset(VRAMptr.Get(), colour, second);
+	}
+	else
+	{
+		memset(VRAMptr.Get(), colour, count);
 	}
 }
 
@@ -86,9 +95,8 @@ void DrawSurface_8BPP_VESA::VLine(DrawContext& context, int x, int y, int count,
 
 	while (count--)
 	{
-		VESAPtr ptr = VESAlines[y];
-		ptr += x;
-		*ptr = colour;
+		VESAPtr ptr = VESAlines[y] + x;
+		ptr.Set(colour);
 		y++;
 	}
 }
@@ -125,25 +133,19 @@ void DrawSurface_8BPP_VESA::FillRect(DrawContext& context, int x, int y, int wid
 
 	while (height)
 	{
-		VESAPtr VRAMptr = VESAlines[y];
-		VRAMptr += x;
+		VESAPtr VRAMptr = VESAlines[y] + x;
 
-		//if (VRAMptr.offset > boundary)
-		//{
-		//	memset((uint8_t*)VRAMptr, colour, boundary);
-		//	VRAMptr += boundary;
-		//	memset((uint8_t*)VRAMptr, colour, width - boundary);
-		//}
-		//else
-		//{
-		//	memset((uint8_t*)VRAMptr, colour, width);
-		//}
-
-		int count = width;
-		
-		while (count--)
+		if (VRAMptr.offset > boundary)
 		{
-			*VRAMptr++ = colour;
+			int16_t first = 65536UL - VRAMptr.offset;
+			int16_t second = width - first;
+			memset(VRAMptr.Get(), colour, first);
+			VRAMptr += first;
+			memset(VRAMptr.Get(), colour, second);
+		}
+		else
+		{
+			memset(VRAMptr.Get(), colour, width);
 		}
 
 		height--;
@@ -228,8 +230,7 @@ void DrawSurface_8BPP_VESA::DrawString(DrawContext& context, Font* font, const c
 			break;
 		}
 
-		VESAPtr VRAMptr = VESAlines[outY];
-		VRAMptr += x;
+		VESAPtr VRAMptr = VESAlines[outY] + x;
 
 		if (x >= 0)
 		{
@@ -237,7 +238,7 @@ void DrawSurface_8BPP_VESA::DrawString(DrawContext& context, Font* font, const c
 			{
 				if ((style & FontStyle::Italic) && j < (font->glyphHeight >> 1))
 				{
-					VRAMptr++;
+					++VRAMptr;
 				}
 
 				uint8_t boldCarry = 0;
@@ -264,15 +265,14 @@ void DrawSurface_8BPP_VESA::DrawString(DrawContext& context, Font* font, const c
 					{
 						if (glyphPixels & (0x80 >> k))
 						{
-							*VRAMptr = colour;
+							VRAMptr.Set(colour);
 						}
-						VRAMptr++;
+						++VRAMptr;
 					}
 				}
 
 				outY++;
-				VRAMptr = VESAlines[outY];
-				VRAMptr += x;
+				VRAMptr = VESAlines[outY] + x;
 			}
 		}
 
@@ -345,8 +345,7 @@ void DrawSurface_8BPP_VESA::BlitImage(DrawContext& context, Image* image, int x,
 			MemBlockHandle* imageLines = image->lines.Get<MemBlockHandle*>();
 			MemBlockHandle imageLine = imageLines[srcY + j];
 			uint8_t* src = imageLine.Get<uint8_t*>() + srcX;
-			VESAPtr destRow = VESAlines[y + j];
-			destRow += x;
+			VESAPtr destRow = VESAlines[y + j] + x;
 
 			for (int i = 0; i < destWidth; i++)
 			{
@@ -354,9 +353,9 @@ void DrawSurface_8BPP_VESA::BlitImage(DrawContext& context, Image* image, int x,
 
 				if (pixel != TRANSPARENT_COLOUR_VALUE)
 				{
-					*destRow = pixel;
+					destRow.Set(pixel);
 				}
-				destRow++;
+				++destRow++;
 			}
 		}
 	}
@@ -369,8 +368,7 @@ void DrawSurface_8BPP_VESA::BlitImage(DrawContext& context, Image* image, int x,
 			MemBlockHandle imageLine = imageLines[srcY + j];
 			uint8_t* src = imageLine.Get<uint8_t*>() + (srcX >> 3);
 			uint8_t srcMask = 0x80 >> (srcX & 7);
-			VESAPtr destRow = VESAlines[y + j];
-			destRow += x;
+			VESAPtr destRow = VESAlines[y + j] + x;
 			uint8_t black = 0;
 			uint8_t white = 0xf;
 			uint8_t buffer = *src++;
@@ -379,11 +377,13 @@ void DrawSurface_8BPP_VESA::BlitImage(DrawContext& context, Image* image, int x,
 			{
 				if (buffer & srcMask)
 				{
-					*destRow++ = white;
+					destRow.Set(white);
+					++destRow;
 				}
 				else
 				{
-					*destRow++ = black;
+					destRow.Set(black);
+					++destRow;
 				}
 				srcMask >>= 1;
 				if (!srcMask)
@@ -427,13 +427,14 @@ void DrawSurface_8BPP_VESA::InvertRect(DrawContext& context, int x, int y, int w
 
 	while (height)
 	{
-		VESAPtr VRAMptr = VESAlines[y];
-		VRAMptr += x;
+		VESAPtr VRAMptr = VESAlines[y] + x;
 		int count = width;
 
 		while (count--)
-		{
-			*VRAMptr++ ^= 0xff;
+		{	
+			uint8_t* ptr = VRAMptr.Get();
+			*ptr ^= 0xff;
+			++VRAMptr;
 		}
 
 		height--;
@@ -468,12 +469,19 @@ static uint8_t grab[16] =
 
 void DrawSurface_8BPP_VESA::DrawScrollWidgetPart(uint8_t* pixels, int x, int y)
 {
-	VESAPtr ptr = VESAlines[y];
-	ptr += x;
+	VESAPtr ptr = VESAlines[y] + x;
 
-	for (int n = 0; n < 16; n++)
+	if (ptr.offset <= (65536L - 16))
 	{
-		*ptr++ = *pixels++;
+		memcpy(ptr.Get(), pixels, 16);
+	}
+	else
+	{
+		for (int n = 0; n < 16; n++)
+		{
+			ptr.Set(*pixels++);
+			++ptr;
+		}
 	}
 }
 
@@ -528,13 +536,27 @@ void DrawSurface_8BPP_VESA::VerticalScrollBar(DrawContext& context, int x, int y
 
 void DrawSurface_8BPP_VESA::Clear()
 {
+	uint8_t colour = Platform::video->colourScheme.pageColour;
+
 	for (int y = 0; y < height; y++)
 	{
-		VESAPtr ptr = VESAlines[y];
-		for (int x = 0; x < width; x++)
+		VESAPtr VRAMptr = VESAlines[y];
+		uint16_t boundary = 65536UL - width;
+
+		if (VRAMptr.offset > boundary)
 		{
-			*ptr++ = Platform::video->colourScheme.pageColour;
+			int16_t first = 65536UL - VRAMptr.offset;
+			int16_t second = width - first;
+			memset(VRAMptr.Get(), colour, first);
+			VRAMptr += first;
+			memset(VRAMptr.Get(), colour, second);
 		}
+		else
+		{
+			memset(VRAMptr.Get(), colour, width);
+		}
+
+		VRAMptr += width;
 	}
 }
 
@@ -553,26 +575,26 @@ void DrawSurface_8BPP_VESA::ScrollScreen(int top, int bottom, int width, int amo
 			{
 				// Crosses a bank
 				uint16_t diff = 65536UL - src.offset;
-				memcpy(copyBuffer, (uint8_t*)src, diff);
+				memcpy(copyBuffer, src.Get(), diff);
 				src += diff;
-				memcpy(copyBuffer + diff, (uint8_t*)src, width - diff);
+				memcpy(copyBuffer + diff, src.Get(), width - diff);
 			}
 			else
 			{
-				memcpy(copyBuffer, (uint8_t*)src, width);
+				memcpy(copyBuffer, src.Get(), width);
 			}
 
 			if (dest.offset > boundary)
 			{
 				// Crosses a bank
 				uint16_t diff = 65536UL - dest.offset;
-				memcpy((uint8_t*)dest, copyBuffer, diff);
+				memcpy(dest.Get(), copyBuffer, diff);
 				dest += diff;
-				memcpy((uint8_t*)dest, copyBuffer + diff, width - diff);
+				memcpy(dest.Get(), copyBuffer + diff, width - diff);
 			}
 			else
 			{
-				memcpy((uint8_t*)dest, copyBuffer, width);
+				memcpy(dest.Get(), copyBuffer, width);
 			}
 		}
 	}
@@ -583,33 +605,30 @@ void DrawSurface_8BPP_VESA::ScrollScreen(int top, int bottom, int width, int amo
 			VESAPtr src = VESAlines[y + amount];
 			VESAPtr dest = VESAlines[y];
 
-			//memcpy(copyBuffer, (uint8_t*)src, width);
-			//memcpy((uint8_t*)dest, copyBuffer, width);
-
 			if (src.offset > boundary)
 			{
 				// Crosses a bank
 				uint16_t diff = 65536UL - src.offset;
-				memcpy(copyBuffer, (uint8_t*)src, diff);
+				memcpy(copyBuffer, src.Get(), diff);
 				src += diff;
-				memcpy(copyBuffer + diff, (uint8_t*)src, width - diff);
+				memcpy(copyBuffer + diff, src.Get(), width - diff);
 			}
 			else
 			{
-				memcpy(copyBuffer, (uint8_t*)src, width);
+				memcpy(copyBuffer, src.Get(), width);
 			}
 
 			if (dest.offset > boundary)
 			{
 				// Crosses a bank
 				uint16_t diff = 65536UL - dest.offset;
-				memcpy((uint8_t*)dest, copyBuffer, diff);
+				memcpy(dest.Get(), copyBuffer, diff);
 				dest += diff;
-				memcpy((uint8_t*)dest, copyBuffer + diff, width - diff);
+				memcpy(dest.Get(), copyBuffer + diff, width - diff);
 			}
 			else
 			{
-				memcpy((uint8_t*)dest, copyBuffer, width);
+				memcpy(dest.Get(), copyBuffer, width);
 			}
 		}
 	}

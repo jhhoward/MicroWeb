@@ -28,7 +28,7 @@ struct VESAPtr
 		};
 	};
 
-	operator uint8_t* () const 
+	uint8_t* Get() const
 	{
 		if (CurrentVESABank != bank)
 		{
@@ -36,6 +36,17 @@ struct VESAPtr
 			SetVESABank(bank);
 		}
 		return (uint8_t*)MK_FP(0xA000, offset);
+	}
+
+	void Set(uint8_t value) const
+	{
+		if (CurrentVESABank != bank)
+		{
+			CurrentVESABank = bank;
+			SetVESABank(bank);
+		}
+		uint8_t* ptr = (uint8_t*) MK_FP(0xA000, offset);
+		*ptr = value;
 	}
 
 	VESAPtr& operator++() 
