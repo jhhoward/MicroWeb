@@ -11,6 +11,7 @@ DrawSurface_1BPP::DrawSurface_1BPP(int inWidth, int inHeight)
 {
 	lines = new uint8_t * [height];
 	format = DrawSurface::Format_1BPP;
+	cursorBufferX = -1;
 }
 
 void DrawSurface_1BPP::HLine(DrawContext& context, int x, int y, int count, uint8_t colour)
@@ -657,3 +658,135 @@ void DrawSurface_1BPP::ScrollScreen(int top, int bottom, int width, int amount)
 	}
 }
 
+
+void DrawSurface_1BPP::DrawCursor(struct MouseCursorData* cursor, int x, int y)
+{
+	HideCursor();
+
+	x -= cursor->hotSpotX;
+	y -= cursor->hotSpotY;
+
+	// First save screen state to the cursor buffer
+	{
+		cursorBufferX = x;
+		if (cursorBufferX < 0)
+		{
+			cursorBufferX = 0;
+		}
+		if (cursorBufferX > width - 24)
+		{
+			cursorBufferX = width - 24;
+		}
+		cursorBufferX >>= 3;
+
+		cursorBufferY = y;
+		if (cursorBufferY < 0)
+		{
+			cursorBufferY = 0;
+		}
+		if (cursorBufferY > height - 16)
+		{
+			cursorBufferY = height - 16;
+		}
+
+		uint8_t* bufferPtr = cursorBuffer;
+		for (int j = 0; j < 16; j++)
+		{
+			uint8_t* ptr = lines[cursorBufferY + j] + cursorBufferX;
+
+			*bufferPtr++ = *ptr++;
+			*bufferPtr++ = *ptr++;
+			*bufferPtr++ = *ptr++;
+		}
+	}
+
+	int cursorHeight = 16;
+	uint16_t* cursorData = cursor->data;
+
+	int shiftRight = x & 7;
+	int shiftLeft = 8 - shiftRight;
+	int addressOffset;
+
+	if (x < 0)
+	{
+		addressOffset = 0;
+	}
+	else
+	{
+		addressOffset = x >> 3;
+	}
+
+	while (cursorHeight--)
+	{
+		if (y >= height)
+			break;
+		if (y >= 0)
+		{
+			uint8_t* ptr = (lines[y] + addressOffset);
+			uint8_t* cursorMask = (uint8_t*)cursorData;
+			uint8_t* cursorColour = (uint8_t*)(cursorData + 16);
+
+			if (shiftRight)
+			{
+				if (x >= 0)
+				{
+					*ptr &= (0xff << shiftLeft) | (cursorMask[1] >> shiftRight);
+					*ptr |= (cursorColour[1] >> shiftRight);
+					ptr++;
+				}
+				if (x < width - 8)
+				{
+					*ptr &= (0xff >> shiftRight) | (cursorMask[1] << shiftLeft);
+					*ptr |= (cursorColour[1] << (8 - shiftRight));
+					*ptr &= (0xff << shiftLeft) | (cursorMask[0] >> shiftRight);
+					*ptr |= (cursorColour[0] >> shiftRight);
+				}
+				if (x < width - 16)
+				{
+					ptr++;
+					*ptr &= (0xff >> shiftRight) | (cursorMask[0] << shiftLeft);
+					*ptr |= (cursorColour[0] << (8 - shiftRight));
+				}
+			}
+			else
+			{
+				if (x >= 0)
+				{
+					*ptr &= (cursorMask[1] >> shiftRight);
+					*ptr |= (cursorColour[1] >> shiftRight);
+				}
+
+				if (x < width - 8)
+				{
+					ptr++;
+					*ptr &= (cursorMask[0] >> shiftRight);
+					*ptr |= (cursorColour[0] >> shiftRight);
+				}
+			}
+		}
+
+		cursorData++;
+		y++;
+	}
+}
+
+void DrawSurface_1BPP::HideCursor()
+{
+	if (cursorBufferX < 0)
+	{
+		// Already hidden
+		return;
+	}
+
+	uint8_t* bufferPtr = cursorBuffer;
+	for (int j = 0; j < 16; j++)
+	{
+		uint8_t* ptr = lines[cursorBufferY + j] + cursorBufferX;
+
+		*ptr++ = *bufferPtr++;
+		*ptr++ = *bufferPtr++;
+		*ptr++ = *bufferPtr++;
+	}
+
+	cursorBufferX = -1;
+}

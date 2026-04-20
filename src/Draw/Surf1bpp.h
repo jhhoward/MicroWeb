@@ -18,6 +18,13 @@ public:
 	virtual void InvertRect(DrawContext& context, int x, int y, int width, int height);
 	virtual void VerticalScrollBar(DrawContext& context, int x, int y, int height, int position, int size);
 	virtual void ScrollScreen(int top, int bottom, int width, int amount);
+	virtual void DrawCursor(struct MouseCursorData* cursor, int x, int y);
+	virtual void HideCursor();
+
+private:
+	uint8_t cursorBuffer[3*16];
+	int cursorBufferX, cursorBufferY;
+
 };
 
 #endif
