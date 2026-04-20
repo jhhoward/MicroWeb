@@ -88,12 +88,30 @@ bool DetectHercules();
 	modify [ax cx dx] \
 	value [al]
 
+/* 
+	On an Amstrad PC1512 this returns the ROS version in AX (BH = Release, BL = Issue)
+	returns 0 if not an Amstrad PC1512
+ */
+unsigned int GetAmstradROSVersion(void);
+
+#pragma aux GetAmstradROSVersion = \
+    "clc"            /* Clear carry flag */ \
+    "xor bx, bx"     /* Set BX to 0 */      \
+    "mov ah, 6"      /* Enhanced Sub-Function 6 */      \
+    "int 15h"        /* Call Enhanced Function IRQ */   \
+    "jnc done"		 /* If Carry is clear, return version in BX */  \
+    "xor bx, bx"     /* Carry set: not an Amstrad, clear BX to zero */    \
+    "done:"                                             \
+    value [bx]                                          \
+    modify [ax bx];
+
 static const int HP95LX = 13;
 static const int Hercules = 10;
 static const int CGA = 0;
 static const int CGAPalmtop = 1;
 static const int EGA = 6;
 static const int VGA = 8;
+static const int Amstrad = 14;
 
 static int AutoDetectVideoMode()
 {
@@ -131,6 +149,12 @@ static int AutoDetectVideoMode()
 	if (outreg.h.bl < 4)
 	{
 		return EGA;
+	}
+
+	// Check if an Amstrad PC1512
+	if (GetAmstradROSVersion() != 0)
+	{
+		return Amstrad;
 	}
 
 	// Attempt to detect CGA
