@@ -272,6 +272,7 @@ void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* 
 	}
 
 	uint8_t bold = (style & FontStyle::Bold) ? 1 : 0;
+	uint8_t originalColour = colour;
 
 	if (App::config.invertScreen)
 		colour = !colour;
@@ -414,7 +415,7 @@ void DrawSurface_1BPP::DrawString(DrawContext& context, Font* font, const char* 
 
 	if ((style & FontStyle::Underline) && y - firstLine + font->glyphHeight - 1 < context.clipBottom)
 	{
-		HLine(context, startX - context.drawOffsetX, y - firstLine + font->glyphHeight - 1 - context.drawOffsetY, x - startX, colour);
+		HLine(context, startX - context.drawOffsetX, y - firstLine + font->glyphHeight - 1 - context.drawOffsetY, x - startX, originalColour);
 	}
 
 }
