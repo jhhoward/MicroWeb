@@ -134,22 +134,29 @@ void DOSNetworkDriver::DestroyRequest(HTTPRequest* request)
 // Returns zero on success, negative number is error
 int DOSNetworkDriver::ResolveAddress(const char* name, NetworkAddress address, bool sendRequest)
 {
-	return Dns::resolve(name, address, sendRequest ? 1 : 0);
+	if (isConnected)
+	{
+		return Dns::resolve(name, address, sendRequest ? 1 : 0);
+	}
+	return -1;
 }
 
 NetworkTCPSocket* DOSNetworkDriver::CreateSocket()
 {
-	for (int n = 0; n < MAX_CONCURRENT_HTTP_REQUESTS; n++)
+	if (isConnected)
 	{
-		if (sockets[n]->GetSock() == NULL)
+		for (int n = 0; n < MAX_CONCURRENT_HTTP_REQUESTS; n++)
 		{
-			TcpSocket* sock = TcpSocketMgr::getSocket();
-			if (sock)
+			if (sockets[n]->GetSock() == NULL)
 			{
-				sockets[n]->SetSock(sock);
-				return sockets[n];
+				TcpSocket* sock = TcpSocketMgr::getSocket();
+				if (sock)
+				{
+					sockets[n]->SetSock(sock);
+					return sockets[n];
+				}
+				return NULL;
 			}
-			return NULL;
 		}
 	}
 
