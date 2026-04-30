@@ -66,6 +66,8 @@ public:
 private:
 	enum InternalStatus
 	{
+		InvalidState,
+
 		// Errors
 		InvalidPort,
 		InvalidProtocol,

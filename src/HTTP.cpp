@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "HTTP.h"
 
-HTTPRequest::HTTPRequest() : status(HTTPRequest::Stopped), sock(NULL), requestOptions(NULL), requestType(HTTPRequest::Get)
+HTTPRequest::HTTPRequest() : status(HTTPRequest::Stopped), internalStatus(HTTPRequest::InvalidState), sock(NULL), requestOptions(NULL), requestType(HTTPRequest::Get)
 {
 	contentType[0] = '\0';
 }
@@ -232,9 +232,14 @@ void HTTPRequest::MarkError(InternalStatus statusError)
 
 void HTTPRequest::Update()
 {
+	if (status == HTTPRequest::Stopped)
+	{
+		return;
+	}
+
 	if ((status == HTTPRequest::Connecting || status == HTTPRequest::Downloading) && clock() > timeout)
 	{
-		//MarkError(TimedOut);
+		MarkError(TimedOut);
 		return;
 	}
 
@@ -611,8 +616,22 @@ const char* HTTPRequest::GetStatusString()
 			return "Receiving content";
 		}
 		break;
+
+	case HTTPRequest::Stopped:
+		return "Stopped";
+
+	case HTTPRequest::Downloading:
+		if (internalStatus == ReceiveContent)
+		{
+			return "Receiving content";
+		}
+		return "Downloading?";
+	case HTTPRequest::Finished:
+		return "Finished";
+	case HTTPRequest::UnsupportedHTTPS:
+		return "Unsupported HTTPS";
 	default:
 		break;
 	}
-	return "";
+	return "Unknown state";
 }
