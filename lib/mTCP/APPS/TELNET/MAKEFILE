@@ -31,7 +31,7 @@
 # Note: Unicode support is standard now.  Delete the next two lines if you don't want it.
 
 extra_objs = unicode.obj
-extra_opts = -DFILEXFER -DRLE_GRAPHICS -DTELNET_UNICODE
+extra_opts = -DFILEXFER -DRLE_GRAPHICS -DTELNET_UNICODE -DSIXEL_GRAPHICS
 
 
 tcp_h_dir = ..\..\TCPINC\

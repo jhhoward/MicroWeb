@@ -1,7 +1,7 @@
 /*
 
    mTCP Ftp.cpp
-   Copyright (C) 2009-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2009-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -369,7 +369,7 @@ const char NoMatches_msg[] = "No names on the remote server matched.";
 const char Spaces[] = "                                        ";
 
 
-static char CopyrightMsg[] = "mTCP FTP by M Brutman (mbbrutman@gmail.com) (C)opyright 2008-2023\nVersion: " __DATE__ "\n";
+static char CopyrightMsg[] = "mTCP FTP by M Brutman (mbbrutman@gmail.com) (C)opyright 2008-2025\nVersion: " __DATE__ "\n";
 
 int main( int argc, char *argv[] ) {
 

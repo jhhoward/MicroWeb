@@ -1,7 +1,7 @@
 /*
 
    mTCP Utils.H
-   Copyright (C) 2006-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2006-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -166,6 +166,17 @@ extern uint8_t mTCP_releaseTimesliceEnabled;
 
 
 
+// Experimental: Useful for figuring out how much heap you are using and
+// how often you call malloc.  But I've not tested all of the programs with
+// this so don't enable it by default.
+
+#ifdef MALLOC_TRACE
+void *mTCP_malloc( size_t size, const char *tag );
+#else
+#define mTCP_malloc( x, y ) malloc( x ) 
+#endif
+
+
 
 //-----------------------------------------------------------------------------
 //
@@ -218,7 +229,8 @@ class Utils {
     // of the sockets are closed and all buffers are returned before calling
     // this.  But it should be safe even if you did not.
     //
-    static void     endStack( void );
+    static inline void endStack( void ) { endStack2( false ); }
+    static void        endStack2( bool ignoreTracing );
 
 
     // Dump stats for TCP, IP, and the Packet layer
@@ -236,8 +248,13 @@ class Utils {
 
     // Used by the DHCP client to set the desired packet software interrupt
     // because the DHCP client does not use Utils::parseEnv which would set it.
-    //
-    static void      setPacketInt( uint8_t packetInt_p ) { packetInt = packetInt_p; }
+    // This must be set for the packet driver gets initialized.
+    static void      setPacketInts( uint8_t p1, uint8_t p2 ) { packetInt = p1; packetInt2 = p2; }
+
+    // Get the two possible configured software interrupts.  One will be chosen
+    // to be used to connect to the packet driver.
+    static uint8_t   getPacketInt( void ) { return packetInt; }
+    static uint8_t   getPacketInt2( void ) { return packetInt2; }
 
 
     // Temporary buffers - make them public so DHCP can use them too.
@@ -246,8 +263,8 @@ class Utils {
 
   private:
 
-    // The packet interrupt to use specified in the configuration file.
-    static uint8_t packetInt;
+    // The two possible packet interrupts specified in the configuration file.
+    static uint8_t packetInt, packetInt2;
 
     static FILE    *CfgFile;
     static char    *CfgFilenamePtr;  // This points into our environment!

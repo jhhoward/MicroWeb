@@ -1,7 +1,7 @@
 /*
 
    mTCP Packet.cpp
-   Copyright (C) 2005-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2005-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -145,7 +145,7 @@ int8_t Buffer_init( void ) {
   // We are using malloc here, which allows us to allocate up to 64K of
   // data in a single call.  (The parameter to it is an unsigned int.)
 
-  uint8_t *tmp = (uint8_t *)(malloc( PACKET_BUFFERS * PACKET_BUFFER_LEN ));
+  uint8_t *tmp = (uint8_t *)(mTCP_malloc( PACKET_BUFFERS * PACKET_BUFFER_LEN, "LIB_Packet_bufs") );
   if ( tmp == NULL ) {
     return -1;
   }
@@ -282,9 +282,9 @@ void Buffer_stop( void ) { if ( BufferMemPtr) free( BufferMemPtr ); }
 
 uint32_t Packets_dropped = 0;       // Packets lost due to lack of buffer space
 uint32_t Packets_received = 0;      // Packets received
-uint32_t Packets_sent = 0;          // Packets sent
-uint32_t Packets_send_errs = 0;     // Failures even after multiple retries
-uint32_t Packets_send_retries = 0;  // Retry attempts
+uint32_t Packets_sent = 0;          // Calls to Packet_send_pkt, not actual packets sent.
+uint32_t Packets_send_errs = 0;     // Calls to Packet_send_pkt where no packet ever got sent even with retries.
+uint32_t Packets_send_retries = 0;  // Number of times Packet_send_pkt retried a send after getting a bad code.
 
 
 // Visible for anyting that wants to use it.
@@ -429,6 +429,10 @@ _asm {
 // from it.
 
 int8_t Packet_init( uint8_t packetInt ) {
+  return Packet_init2( packetInt, FP_SEG( receiver ), FP_OFF( receiver ) );
+}
+
+int8_t Packet_init2( uint8_t packetInt, uint16_t recv_seg, uint16_t recv_off ) {
 
   uint16_t far *intVector = (uint16_t far *)MK_FP( 0x0, packetInt * 4 );
 
@@ -440,7 +444,7 @@ int8_t Packet_init( uint8_t packetInt ) {
   eyeCatcher += 3; // Skip three bytes of executable code
 
   if ( _fmemcmp( PKT_DRVR_EYE_CATCHER, eyeCatcher, 8 ) != 0 ) {
-    TRACE_WARN(( "Packet: eye catcher not found at %x\n", packetInt ));
+    TRACE_WARN(( "Packet: eye catcher not found at 0x%X\n", packetInt ));
     return -1;
   }
 
@@ -452,17 +456,17 @@ int8_t Packet_init( uint8_t packetInt ) {
   inregs.h.al = 0x1;                 // Interface class (ethernet)
   inregs.x.bx = 0xFFFF;              // Interface type (card/mfg)
   inregs.h.dl = 0;                   // Interface number (assume 0)
-  segregs.ds = FP_SEG( NULL );       // Match all EtherTypes
-  inregs.x.si = FP_OFF( NULL );
-  inregs.x.cx = 0;
-  segregs.es = FP_SEG( receiver );   // Receiver function
-  inregs.x.di = FP_OFF( receiver );
+  segregs.ds =  0;                   // Match all EtherTypes (DS:SI = 0)
+  inregs.x.si = 0;
+  inregs.x.cx = 0;                   // Length of EtherTypes to match if not matching all
+  segregs.es = recv_seg;             // Receiver segment
+  inregs.x.di = recv_off;            // Receiver offset
 
   int86x( packetInt, &inregs, &outregs, &segregs );
 
   if ( outregs.x.cflag ) {
     TRACE_WARN(( "Packet: %u error on access_type call\n", outregs.h.dh ));
-    return outregs.h.dh;
+    return -2;
   }
 
   Packet_int = packetInt;
@@ -471,6 +475,7 @@ int8_t Packet_init( uint8_t packetInt ) {
   return 0;
 
 }
+
 
 
 int8_t Packet_release_type( void ) {
@@ -522,6 +527,8 @@ void Packet_get_addr( uint8_t *target ) {
 
 void Packet_send_pkt( void *buffer, uint16_t bufferLen ) {
 
+  // This is more like "attempts to send a packet".  To get the actual
+  // number of packets sent you have to subtract Packets_send_errs.
   Packets_sent++;
 
   #ifdef TORTURE_TEST_PACKET_LOSS
@@ -539,14 +546,24 @@ void Packet_send_pkt( void *buffer, uint16_t bufferLen ) {
   #endif
 
 
-  // Hate to do this but ...
+  // Ethernet has a minimum frame size of 64 bytes, which includes the four
+  // byte CRC at the end of the packet.  Therefore, the minimum that bufferLen
+  // should be is 60 bytes.  Some drivers such as the Intel Gigabit drivers
+  // reject runt packets, so we have to do this.
   //
-  // Some drivers reject runt packets.  Intel Gigabit drivers are
-  // an example.  We might wind up transmitting junk, but I don't really care.
-  // (Yes, it's a possible security leak.  Quite a long shot though.)
+  // In the real world this will cause junk bytes to be sent which is a
+  // possible security leak, but honestly, we're on DOS - don't use this
+  // for banking.
 
   if ( bufferLen < 60 ) bufferLen = 60;
 
+  // Temporary debug code for bad packet drivers - only transmit an even number of bytes.
+  //
+  // if ( bufferLen & 0x1 ) {
+  //   ((uint8_t *)buffer)[bufferLen] = 0;
+  //   bufferLen++;
+  //   TRACE_WARN(( "Packet: Rounded buffer to be an even number of bytes: %u\n", bufferLen ));
+  // }
 
   // There are a wide variety of cards out there and some are not as capable
   // as others.  If we send packets too fast we might overrun the card.  Retry
@@ -557,23 +574,39 @@ void Packet_send_pkt( void *buffer, uint16_t bufferLen ) {
   struct SREGS segregs;
 
   inregs.h.ah = 0x4;
-
   inregs.x.cx = bufferLen;
-
   inregs.x.si = FP_OFF( buffer );
   segregs.ds = FP_SEG( buffer );
 
   uint8_t attempts = 0;
 
   while ( attempts < 5 ) {
+
     int86x( Packet_int, &inregs, &outregs, &segregs);
     if ( !outregs.x.cflag ) return;
+
     attempts++;
+
+    // Update this as we go instead of at the end just in case one of
+    // the retries does work.  (We have an early return above ...)
+    Packets_send_retries++;
+
+    // The hardware rejected our attempt but it doesn't tell us why.  On
+    // classic hardware it is usually collision related, so try a small
+    // randomized delay and do it again.
+    //
+    // rand() will return a value between 0 and RAND_MAX (32767)
+    volatile uint16_t dl = rand() + 32000;
+    while ( dl > 0 ) { dl--; }
   }
 
-  TRACE_WARN(( "Packet: send error\n" ));
+  // Off-by-one - we broke out of the loop before we tried another retry.
+  Packets_send_retries--;
+
   Packets_send_errs++;
 
+  TRACE_WARN(( "Packet: Failed to send, send errors: %lu, send retries: %lu\n",
+               Packets_send_errs, Packets_send_retries ));
 
   // Be careful with the early returns ...
 }
@@ -685,3 +718,7 @@ uint8_t  Packet_getSoftwareInt( void ) { return Packet_int; }
 // only pkttool.cpp needs to do this.
 
 uint16_t Packet_getHandle( void ) { return Packet_handle; }
+
+void Packet_setHandle( uint16_t h ) { Packet_handle = h; }
+
+void Packet_setInt( uint8_t i ) { Packet_int = i; }

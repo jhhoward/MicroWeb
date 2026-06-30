@@ -1,7 +1,7 @@
 /*
 
    mTCP Telnet.cpp
-   Copyright (C) 2009-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2009-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -154,7 +154,11 @@ static void     processNonCSIEscSeq( uint8_t ch );
 static uint16_t processSocket_RLE( uint8_t *recvBuffer, uint16_t len );
 #endif
 
-       int16_t  processTelnetCmds( uint8_t *cmdStr, uint8_t cmdSize );
+#ifdef SIXEL_GRAPHICS
+static uint16_t processSocket_Sixel( uint8_t *recvBuffer, uint16_t len );
+#endif
+
+extern int16_t  processTelnetCmds( uint8_t *cmdStr, uint8_t cmdSize );
 static int16_t  processSingleTelnetCmd( uint8_t *cmdStr, uint8_t inputBufLen, uint8_t *outputBuf, uint16_t *outputBufLen );
 
 static uint8_t  processUserInput_TelnetLocal( Key_t key );
@@ -219,7 +223,7 @@ TelnetOpts MyTelnetOpts;
 
 Screen s;
 
-enum StreamStates { Normal = 0, ESC_SEEN, CSI_SEEN, IAC_SEEN, RLE, UTF_START, UTF_MORE };
+enum StreamStates { Normal = 0, ESC_SEEN, CSI_SEEN, IAC_SEEN, RLE, SIXEL, UTF_START, UTF_MORE };
 StreamStates StreamState;
 
 
@@ -345,7 +349,7 @@ static char tmpBuf[160];
 
 
 
-static char CopyrightMsg1[] = "mTCP Telnet by M Brutman (mbbrutman@gmail.com) (C)opyright 2009-2023\r\n";
+static char CopyrightMsg1[] = "mTCP Telnet by M Brutman (mbbrutman@gmail.com) (C)opyright 2009-2025\r\n";
 static char CopyrightMsg2[] = "Version: " __DATE__ "\r\n\r\n";
 
 int main( int argc, char *argv[] ) {
@@ -539,6 +543,11 @@ int main( int argc, char *argv[] ) {
           bytesInBuffer = processSocket_RLE( recvBuffer, bytesInBuffer );
         }
         #endif
+        #ifdef SIXEL_GRAPHICS
+        else if ( SocketInputMode == SocketInputMode_t::Sixel ) {
+          bytesInBuffer = processSocket_Sixel( recvBuffer, bytesInBuffer );
+        }
+        #endif
 
       } else {
         break;
@@ -566,6 +575,11 @@ int main( int argc, char *argv[] ) {
       #ifdef RLE_GRAPHICS
       else if ( SocketInputMode == SocketInputMode_t::RLE ) {
         bytesInBuffer = processSocket_RLE( recvBuffer, bytesInBuffer );
+      }
+      #endif
+      #ifdef SIXEL_GRAPHICS
+      else if ( SocketInputMode == SocketInputMode_t::Sixel ) {
+        bytesInBuffer = processSocket_Sixel( recvBuffer, bytesInBuffer );
       }
       #endif
     }
@@ -600,7 +614,13 @@ int main( int argc, char *argv[] ) {
       s.updateVidBufPtr( );
     }
 
-    if ( UserInputMode == UserInputMode_t::Telnet ) { gotoxy( s.cursor_x, s.cursor_y ); }
+    if ( UserInputMode == UserInputMode_t::Telnet ) {
+      // This isn't strictly necessary but it makes things look more like Putty.  Without
+      // it the cursor doesn't hang in the last column when you write to the last column.
+      uint16_t tmp_x = s.cursor_x;
+      if ( tmp_x == s.terminalCols ) tmp_x--;
+      gotoxy( tmp_x, s.cursor_y );
+    }
 
 
     // If a keystroke is waiting process it
@@ -630,9 +650,10 @@ int main( int argc, char *argv[] ) {
             s.updateVidBufPtr( );
             break;
 
-          #ifdef RLE_GRAPHICS
+          #if defined RLE_GRAPHICS || defined SIXEL_GRAPHICS
 
           case UserInputMode_t::RLEScreen:
+          case UserInputMode_t::SixelScreen:
             UserInputMode = UserInputMode_t::Telnet;
             StreamState = Normal;
 
@@ -698,7 +719,8 @@ int main( int argc, char *argv[] ) {
 
   }
 
-  if ( UserInputMode == UserInputMode_t::RLEScreen ) {
+  #if defined RLE_GRAPHICS || defined SIXEL_GRAPHICS
+  if ( UserInputMode == UserInputMode_t::RLEScreen || UserInputMode == UserInputMode_t::SixelScreen ) {
 
     // Whoops - lost the connection while in graphics mode.
     // Just restore the text screen.
@@ -709,6 +731,7 @@ int main( int argc, char *argv[] ) {
     s.paint( );
     s.updateVidBufPtr( );
   }
+  #endif
 
   s.curAttr = 0x07;
   s.add( "\r\nConnection closed - have a great day!\r\n" );
@@ -1550,6 +1573,8 @@ static void shutdown( int rc ) {
   // 
   if ( s.Screen_base != NULL ) s.paint( );
 
+  s.restoreCursorShape( );
+
   Utils::endStack( );
   exit( rc );
 }
@@ -1584,6 +1609,39 @@ static uint8_t RLE_pixelsPerByte;
 
 
 
+
+#ifdef SIXEL_GRAPHICS
+
+extern void scrollScreenSixel( void );
+#pragma aux scrollScreenSixel = \
+  "push bp"             \
+  "mov ax, 0x0601"      \
+  "xor bh, bh"          \
+  "xor cx, cx"          \
+  "mov dx, 0x184f"      \
+  "int 10h"             \
+  "pop bp"              \
+  modify [ax bh cx dx];
+
+
+extern uint8_t rotateRightOnce( uint8_t r );
+#pragma aux rotateRightOnce = \
+  "ror al, 1" \
+  parm [al]   \
+  value [al];
+
+
+static uint16_t SIXEL_screenRow;
+static uint16_t SIXEL_col;
+static uint8_t  SIXEL_bit;
+static bool     SIXEL_initialQ;
+static uint8_t  SIXEL_term_seq;
+
+#endif
+
+
+
+
 // processSocket - read and process the data received from the socket
 //
 // Return code is the number of bytes that were left in the buffer and not
@@ -1611,11 +1669,21 @@ static uint16_t processSocket( uint8_t *recvBuffer, uint16_t len ) {
         StreamState = CSI_SEEN;
 
       }
+
       #ifdef RLE_GRAPHICS
       else if ( recvBuffer[i] == 'G' ) {
         StreamState = RLE;
       }
       #endif
+
+      #ifdef SIXEL_GRAPHICS
+      else if ( recvBuffer[i] == 'P' ) {
+        StreamState = SIXEL;
+      }
+      #endif
+
+
+
       else {
         // Esc char was eaten - return to normal processing.
 
@@ -1681,6 +1749,40 @@ static uint16_t processSocket( uint8_t *recvBuffer, uint16_t len ) {
       StreamState = Normal;
     }
 
+    #ifdef SIXEL_GRAPHICS
+
+    else if ( StreamState == SIXEL ) {
+
+      if ( s.getCardType() > 0 ) {
+
+        StreamState = Normal;
+
+        SIXEL_screenRow = 0;
+        SIXEL_col = 0;
+        SIXEL_bit = 0;
+        SIXEL_initialQ = false;
+        SIXEL_term_seq = 0;
+
+        // Set graphics mode: 640x200 black and white, 1 bit per pixel.
+        setVideoMode( 6 );
+
+        SocketInputMode = SocketInputMode_t::Sixel;
+        UserInputMode = UserInputMode_t::SixelScreen;
+        s.doNotUpdateRealScreen( );
+
+        // We are not processing any any more data here.  Remove the bytes
+        // we have already consumed and exit the for loop so that the Sixel
+        // processing code can pick up byte processing.
+
+        memmove( recvBuffer, recvBuffer+i, (len-i) );
+        break;
+
+      }
+
+    }
+
+    #endif
+
     #ifdef RLE_GRAPHICS
 
     else if ( StreamState == RLE ) {
@@ -1735,18 +1837,20 @@ static uint16_t processSocket( uint8_t *recvBuffer, uint16_t len ) {
 
         RLE_term_seq = 0;
 
-        // Set graphics mode: 320x200 color, 4 pixels per byte.
+        // Set graphics mode: 640x200 black and white, 1 bit per pixel.
         setVideoMode( 6 );
 
         SocketInputMode = SocketInputMode_t::RLE;
         UserInputMode = UserInputMode_t::RLEScreen;
         s.doNotUpdateRealScreen( );
 
+        // Consume the byte we just looked at.
+        i++;
+
         // We are not processing any any more data here.  Remove the bytes
         // we have already consumed and exit the for loop so that the RLE
         // processing code can pick up byte processing.
 
-        i++;
         memmove( recvBuffer, recvBuffer+i, (len-i) );
         break;
 
@@ -1802,7 +1906,6 @@ static uint16_t processSocket( uint8_t *recvBuffer, uint16_t len ) {
       }
 
       else if ( recvBuffer[i] == 27 ) {
-        s.suppressOverhang( );
         StreamState = ESC_SEEN;
       }
 
@@ -1859,10 +1962,162 @@ static uint16_t processSocket( uint8_t *recvBuffer, uint16_t len ) {
 }
 
 
+#ifdef SIXEL_GRAPHICS
+
+static void _near renderSixel( uint8_t c, uint16_t screenRow, uint16_t col, uint8_t bit ) {
+
+  if ( col > 639 ) return;
+
+  uint16_t offset = (screenRow >> 1) * 80 + (col>>3);
+
+  uint8_t far * t = s.Screen_base + offset;
+
+  if ( c & 0x01 ) { *(t              ) |= bit; }
+  if ( c & 0x02 ) { *(t + 8192       ) |= bit; }
+  if ( c & 0x04 ) { *(t        +  80 ) |= bit; }
+  if ( c & 0x08 ) { *(t + 8192 +  80 ) |= bit; }
+  if ( c & 0x10 ) { *(t        + 160 ) |= bit; }
+  if ( c & 0x20 ) { *(t + 8192 + 160 ) |= bit; }
+
+}
+
+
+static uint16_t processSocket_Sixel( uint8_t *recvBuffer, uint16_t len ) {
+
+  // Reload global state.  (Or if this is the first call, initial state.)
+
+  uint16_t screenRow = SIXEL_screenRow;
+  uint16_t col = SIXEL_col;
+  uint8_t  bit = SIXEL_bit;
+
+  uint16_t index = 0;
+
+  while ( index < len ) {
+
+    uint8_t c = recvBuffer[index];
+
+    if ( SIXEL_term_seq == 1 ) {
+      // Whether you see the '\' or not we are leaving.  We just want to consume
+      // the '\' if we see it to be proper and not leave it as noise on the screen.
+      if ( c == '\\' ) {
+        index++;
+      }
+      SIXEL_term_seq++;
+      break;
+    }
+
+
+    // SIXEL allows for initial parameters.  We are ignoring them
+    if ( SIXEL_initialQ == false ) {
+      if ( c == 'q' ) {
+        SIXEL_initialQ = true;
+      } else if ( c == 27 ) {
+        // Break out early on any ESC char, whether it's the termination
+        // sequence or not.
+        SIXEL_term_seq = 1;
+        break;
+      }
+      index++;
+      continue;
+    }
+
+
+    if ( c >= '?' ) {
+
+      if ( col == 0 ) {
+        if (screenRow > 193 ) {
+          scrollScreenSixel();
+          screenRow -= 8;
+        }
+      }
+
+      renderSixel(c-63, screenRow, col, bit);
+      col++;
+      bit = rotateRightOnce(bit);
+
+    } else if ( c == '-' ) {
+
+      col = 0;
+      bit = 1 << 7;
+      screenRow += 6;
+
+    } else if ( c == '!' ) {
+
+      // This is a multi-character sequence.  If we run out of chars in the
+      // input buffer remember where it started so that we can slide the
+      // input buffer down to make room for new characters to process.
+
+      uint16_t tmpIndex = index;
+
+      // Advance past the '!' char and read the numerical parameter.
+      index++;
+
+      uint16_t count = 0;
+
+      while ( (index < len) && (recvBuffer[index] >= '0' && recvBuffer[index] <= '9') ) {
+        count = count * 10;
+        count = count + recvBuffer[index] - '0';
+        index++;
+      }
+
+      // We ran out of buffer ..  reset index and exit the main loop.
+      if ( index == len ) {
+        index = tmpIndex;
+        break;
+      }
+
+      if ( col == 0 ) {
+        if (screenRow > 193 ) {
+          scrollScreenSixel();
+          screenRow -= 8;
+        }
+      }
+
+      uint8_t repeatC = recvBuffer[index] - 63;
+
+      for ( int i=0; i < count; i++ ) {
+        renderSixel( repeatC, screenRow, col, bit );
+        col++;
+        bit = rotateRightOnce(bit);
+      }
+
+    } else if ( c == 27 ) {
+      SIXEL_term_seq = 1;
+    }
+
+    index++;
+
+  }
+
+  if ( SIXEL_term_seq == 2 ) {
+    SocketInputMode = SocketInputMode_t::Telnet;
+    memmove( recvBuffer, recvBuffer + index, (len - index) );
+    return ( len - index );
+  }
+
+  // We are continuing in Sixel mode.  Save state for the next time.
+  SIXEL_screenRow = screenRow;
+  SIXEL_col = col;
+  SIXEL_bit = bit;
+
+
+  if ( index < len ) {
+    // We stopped early because we need more input.  Slide the buffer to make room.
+    memmove( recvBuffer, recvBuffer + index, (len - index) );
+    return ( len - index );
+  }
+
+  // All bytes consumed
+  return 0;
+
+}
+
+#endif
+
 
 #ifdef RLE_GRAPHICS
 
-uint16_t processSocket_RLE( uint8_t *recvBuffer, uint16_t len ) {
+static uint16_t processSocket_RLE( uint8_t *recvBuffer, uint16_t len ) {
 
   // Reload global state.  (Or if this is the first call, initial state.)
 
@@ -1893,6 +2148,10 @@ uint16_t processSocket_RLE( uint8_t *recvBuffer, uint16_t len ) {
 
     // Handle the termination sequence.  In reality once we see an ESC character
     // we are done, but we want to eat the G and the N to be proper.
+    //
+    // 1 means we saw ESC
+    // 2 means we saw 'G'
+    // 3 means we saw 'N' or error exit; they are both the same action.
 
     if ( RLE_term_seq > 0 ) {
 
@@ -1903,9 +2162,13 @@ uint16_t processSocket_RLE( uint8_t *recvBuffer, uint16_t len ) {
           continue;
         } else {
           // Error exit
+          RLE_term_seq = 3;
+          index++;
           break;
         }
       } else if ( RLE_term_seq == 2 ) {
+        RLE_term_seq = 3;
+        index++;
         // Whether you see an 'N' or not we are leaving.
         // 'N' would be the happy path.
         break;
@@ -2042,15 +2305,11 @@ uint16_t processSocket_RLE( uint8_t *recvBuffer, uint16_t len ) {
   } // end while process bytes loop
 
 
-  // If RLE_term_seq is non-zero we are leaving RLE mode.  This happens for
+  // If RLE_term_seq is above 2 so it is time to go.  This happens for
   // both the happy path and error paths.
 
-  if ( RLE_term_seq > 0 ) {
+  if ( RLE_term_seq > 2 ) {
     SocketInputMode = SocketInputMode_t::Telnet;
-
-    // Consume that last char we looked at that got us here.
-    index++;
-
     memmove( recvBuffer, recvBuffer + index, (len - index) );
     return ( len - index );
   }
@@ -2607,8 +2866,10 @@ static uint16_t processCSISeq( uint8_t *buffer, uint16_t len ) {
   traceBuffer[traceBufferLen] = 0;
   traceBufferLen = 0;
 
-  TRACE(( "Ansi: Found: %d  Parms: %d %d %d %d %d %d\n", parmsFound,
-          parms[0], parms[1], parms[2], parms[3], parms[4], parms[5] ));
+  if ( DebugAnsi ) {
+    TRACE(( "Ansi: Found: %d  Parms: %d %d %d %d %d %d\n", parmsFound,
+            parms[0], parms[1], parms[2], parms[3], parms[4], parms[5] ));
+  }
 
   if ( decPrivateControl == true ) {
     processDecPrivateControl( commandLetter );
@@ -2650,6 +2911,7 @@ void processAnsiCommand( uint8_t commandLetter ) {
         if ( parms[0] == CSI_DEFAULT_ARG ) parms[0] = 1;
         s.insChars( parms[0] );
       }
+      s.resetLastColumnFlag();
       break;
     }
 
@@ -2662,6 +2924,7 @@ void processAnsiCommand( uint8_t commandLetter ) {
     case 'A': {
       if ( parms[0] == CSI_DEFAULT_ARG ) parms[0] = 1;
       s.adjustVertical( 0 - parms[0] );
+      s.resetLastColumnFlag();
       break;
     }
 
@@ -2675,6 +2938,7 @@ void processAnsiCommand( uint8_t commandLetter ) {
     case 'B': {
       if ( parms[0] == CSI_DEFAULT_ARG ) parms[0] = 1;
       s.adjustVertical( parms[0] );
+      s.resetLastColumnFlag();
       break;
     }
 
@@ -2686,6 +2950,7 @@ void processAnsiCommand( uint8_t commandLetter ) {
     case 'C': {
       if ( parms[0] == CSI_DEFAULT_ARG ) parms[0] = 1;
       s.setHorizontal( s.cursor_x + parms[0] );
+      s.resetLastColumnFlag();
       break;
     }
 
@@ -2696,6 +2961,7 @@ void processAnsiCommand( uint8_t commandLetter ) {
     case 'D': {
       if ( parms[0] == CSI_DEFAULT_ARG ) parms[0] = 1;
       s.setHorizontal( s.cursor_x - parms[0] );
+      s.resetLastColumnFlag();
       break;
     }
 
@@ -2755,6 +3021,7 @@ void processAnsiCommand( uint8_t commandLetter ) {
       if ( parms[1] == CSI_DEFAULT_ARG ) parms[1] = 1;
       s.setVertical( parms[0] - 1 );
       s.setHorizontal( parms[1] - 1 );
+      s.resetLastColumnFlag();
       break;
     }
 
@@ -2827,6 +3094,7 @@ void processAnsiCommand( uint8_t commandLetter ) {
           break;
         }
       }
+      s.resetLastColumnFlag();
       break;
     }
 
@@ -2852,6 +3120,7 @@ void processAnsiCommand( uint8_t commandLetter ) {
           break;
         }
       }
+      s.resetLastColumnFlag();
       break;
     }
 
@@ -3030,6 +3299,7 @@ void processAnsiCommand( uint8_t commandLetter ) {
       if ( parms[0] == CSI_DEFAULT_ARG ) parms[0] = 1;
 
       s.delChars( parms[0] );
+      s.resetLastColumnFlag();
       break;
     }
 
@@ -3037,6 +3307,7 @@ void processAnsiCommand( uint8_t commandLetter ) {
       if ( parms[0] == CSI_DEFAULT_ARG ) parms[0] = 1;
 
       s.eraseChars( parms[0] );
+      s.resetLastColumnFlag();
       break;
     }
 
@@ -3092,6 +3363,8 @@ void processAnsiCommand( uint8_t commandLetter ) {
       s.setHorizontal( 0 );
       s.setVertical( 0 );
 
+      s.resetLastColumnFlag();
+
       break;
 
     }
@@ -3135,6 +3408,7 @@ void processDecPrivateControl( uint8_t commandLetter ) {
 
         if ( parms[i] == 6 ) {
           s.originMode = true;
+          s.resetLastColumnFlag();
         } else if ( parms[i] == 7 ) {
           s.autoWrap = true;
         } else if ( parms[i] == 25 ) {
@@ -3152,8 +3426,10 @@ void processDecPrivateControl( uint8_t commandLetter ) {
 
         if ( parms[i] == 6 ) {
           s.originMode = false;
+          s.resetLastColumnFlag();
         } else if ( parms[i] == 7 ) {
           s.autoWrap = false;
+          s.resetLastColumnFlag();
         } else if ( parms[i] == 25 ) {
           hideCursor( );
         }
@@ -3193,7 +3469,7 @@ static void processNonCSIEscSeq( uint8_t ch ) {
 
   } else if ( ch == 'D' ) {
 
-    // Index
+    // Index (IND)
 
     if ( s.cursor_y == s.scrollRegion_bottom ) {
       s.delLine( s.scrollRegion_top );
@@ -3201,10 +3477,11 @@ static void processNonCSIEscSeq( uint8_t ch ) {
     else {
       s.cursor_y++;
     }
+    s.resetLastColumnFlag();
 
   } else if ( ch == 'M' ) {
 
-    // Reverse Index
+    // Reverse Index (RI)
 
     if ( s.cursor_y == s.scrollRegion_top ) {
       s.insLine( s.scrollRegion_top );
@@ -3212,6 +3489,7 @@ static void processNonCSIEscSeq( uint8_t ch ) {
     else {
       s.cursor_y--;
     }
+    s.resetLastColumnFlag();
 
   }
 
@@ -3221,6 +3499,7 @@ static void processNonCSIEscSeq( uint8_t ch ) {
 
     s.adjustVertical( parms[0] );
     s.cursor_x = 0;
+    s.resetLastColumnFlag();
 
   } else if ( ch == 'c' ) {
 

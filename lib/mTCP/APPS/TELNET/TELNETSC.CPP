@@ -1,7 +1,7 @@
 /*
 
    mTCP TelnetSc.cpp
-   Copyright (C) 2009-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2009-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -47,7 +47,7 @@
 #include "types.h"
 #include "telnetsc.h"
 #include "utils.h"
-//#include "trace.h"
+#include "trace.h"
 
 
 
@@ -90,7 +90,7 @@
 // A function might call another helper function, which might change
 // these flags.
 
-int8_t Screen::init( uint8_t backScrollPages, uint8_t initWrapMode ) {
+int8_t Screen::init( uint8_t backScrollPages, uint8_t initialWrapState_p ) {
 
   // Reasonable defaults for any video card.
   terminalLines = 25;
@@ -173,7 +173,9 @@ int8_t Screen::init( uint8_t backScrollPages, uint8_t initWrapMode ) {
   // Used to quickly detect when we are past the end of our buffer.
   bufferEnd = buffer + bufferSize;
 
-  wrapMode = initWrapMode;
+  initialWrapState = initialWrapState_p;
+
+  origCursor = readCursorShape( );
 
   resetTerminalState( );
 
@@ -242,8 +244,7 @@ void Screen::resetTerminalState( void ) {
   cursor_x = 0;
   cursor_y = 0;
   curAttr = 7;
-
-  overhang = false;
+  lastColumn = false;
 
   topOffset = 0;
   backScrollOffset = 0;
@@ -266,7 +267,7 @@ void Screen::resetTerminalState( void ) {
   scrollRegion_bottom = terminalLines - 1;
 
   originMode = false;
-  autoWrap = false;
+  autoWrap = initialWrapState;
 
   // If the save area has not been initialized then these values are used.
   // Which also happen to be the same as the initial values.
@@ -275,7 +276,8 @@ void Screen::resetTerminalState( void ) {
   cursorSaveArea.cursor_y = 0;
   cursorSaveArea.curAttr = 7;
   cursorSaveArea.originMode = false;
-  cursorSaveArea.autoWrap = false;
+  cursorSaveArea.autoWrap = initialWrapState;
+  cursorSaveArea.lastColumn = false;
 
 }
 
@@ -565,59 +567,51 @@ void Screen::add( char *buf ) {
 
 
 
-
-// Overhang mode is kind of goofy and I created it based on experimentation I
-// did with putty.  Basically, if the cursor is in the last column and you
-// print a character there you do not automatically wrap.  You only wrap to
-// the first column on the next line if another character gets printed.
-// This allows you to put a character in the last column, and then interpret
-// a control code such as Backspace, LF or CR while still on that same line.
+// Wrapping behavior:
+//
+// Ansi terminals implement "AM" which is "auto margin".  Auto margin means
+// that when you write in the last column the next printable character will
+// wrap around.  However, non-printable characters or escape codes should
+// not cause that wrap around so you should not actually do the wrap around
+// until you see the next printable character.
 
 void Screen::addPrintableChar( char c ) {
 
   // Remember this in case we need to repeat the last char for an ANSI op
   lastChar = c;
 
-  //TRACE(( "Printing char %x, overhang = %u, cursor_x = %u\n", c, overhang, cursor_x ));
+  uint16_t ch = ( curAttr << 8 | c );
 
-  // If the previous cursor position left us in the overhang now we
-  // can wrap (if required) and scroll down.  Do this before printing
-  // the next character.
+  bool postAdvanceCursor = true;
 
-  if ( overhang == true ) {
-
-    if ( wrapMode ) {
-      vidBufPtr += 2;  // Wrap to the next line.
-      cursor_x = 0;
-      scroll( );
+  if ( cursor_x == (terminalCols-1) ) {
+    if ( lastColumn == false ) {
+      lastColumn = true;
+      postAdvanceCursor = false;
+    } else {
+      if ( autoWrap ) {
+        lastColumn = false;
+        cursor_x = 0;
+        scroll( );
+        vidBufPtr += 2;
+      } else {
+        postAdvanceCursor = false;
+      }
     }
-    else {
-      cursor_x = terminalCols - 1;
-    }
-
-    overhang = false;
   }
 
 
-  buffer[ ScrOffset(cursor_x, cursor_y ) ] = c;
-  buffer[ ScrOffset(cursor_x, cursor_y ) + 1 ] = curAttr;
+  // Technically we should call ScrOffset twice because it checks for wrap-around.
+  // However we know we always allocate the buffer using an even number of bytes
+  // so if there is a wrap-around it happens on the first call, and then we are
+  // safe to increment it once as we do here.
 
+  uint16_t o = ScrOffset(cursor_x, cursor_y );
+  *((uint16_t far *)(buffer+o)) = ch;
 
-  // If you are in the last column do not advance; go into the "overhang"
-  // instead and wait to see what the next character is.
-
-  if ( cursor_x == terminalCols-1 ) {
-    overhang = true;
-  }
-  else {
-    cursor_x++;
-  }
-
-  //TRACE(( "    overhang = %u, cursor_x = %u\n", overhang, cursor_x ));
+  if ( postAdvanceCursor ) cursor_x++;
 
   if ( updateRealScreen ) {
-
-    uint16_t ch = ( curAttr << 8 | c );
 
     if ( preventSnow ) {
       writeCharWithoutSnow( screenBaseSeg, FP_OFF(vidBufPtr), ch );
@@ -625,9 +619,8 @@ void Screen::addPrintableChar( char c ) {
       *((uint16_t far *)vidBufPtr) = ch;
     }
 
-    // If overhang is not set then we can advance.  Otherwise, wait
-    if ( overhang == false ) {
-      vidBufPtr += 2;  // Wrap to the next line.
+    if ( lastColumn == false ) {
+      vidBufPtr += 2;
     }
 
   }
@@ -661,13 +654,13 @@ void Screen::add( char *buf, uint16_t len ) {
 
         case '\r': { // Carriage return
           cursor_x = 0;
-          overhang = false;
+          resetLastColumnFlag();
           break;
         }
 
         case '\n': { // Line feed
           scroll( );
-          overhang = false;
+          resetLastColumnFlag();
           break;
         }
 
@@ -677,7 +670,6 @@ void Screen::add( char *buf, uint16_t len ) {
         }
 
         case '\t': { // Tab
-          overhang = false;
           uint16_t newCursor_x = (cursor_x + 8) & 0xF8;
           if ( newCursor_x < terminalCols ) cursor_x = newCursor_x;
           break;
@@ -686,25 +678,16 @@ void Screen::add( char *buf, uint16_t len ) {
         case 8:   // Backspace
         case 127: { // Delete
 
-          if ( overhang == true ) {
-            overhang = false;
+          // Fixme: If this was delete char we really should blank it out.
+
+          // Do not allow backspace back up to a previous row; no terminal
+          // does that in real life.
+
+          if ( cursor_x > 0 ) {
+            cursor_x--;
           }
-          else {
 
-            // Fixme: If this was delete char we really should blank it out.
-
-            // Backspace across columns works in putty so we'll do it here.
-            // The good news is that if we are in the home position we don't
-            // have to scroll the screen down.
-
-            if ( cursor_x > 0 ) {
-              cursor_x--;
-            }
-            else {
-              cursor_x = terminalCols - 1;
-              if ( cursor_y > 0 ) cursor_y--;
-            }
-          }
+          resetLastColumnFlag();
 
           break;
         }
@@ -733,6 +716,23 @@ void Screen::add( char *buf, uint16_t len ) {
     virtualUpdated = 1;
   }
 
+}
+
+
+
+// putch only touches the real screen - it's meant for throwing
+// characters and dialog boxes up in specific places.  You will
+// need to repaint the screen after you are done.
+
+void Screen::putch( uint8_t x, uint8_t y, uint8_t attr, char ch ) {
+  uint16_t offset = ((y * terminalCols) + x) * 2;
+  uint16_t tmp = (attr<<8 | ch );
+  if ( preventSnow ) {
+    writeCharWithoutSnow( screenBaseSeg, offset, tmp );
+  } else {
+    uint16_t far *start = (uint16_t far *)(Screen_base + offset);
+    *start = tmp;
+  }
 }
 
 
@@ -1129,12 +1129,14 @@ void Screen::eraseChars( uint16_t len ) {
 }
 
 
+// The AutoWrap flag is not saved or restored, matching Xterm (and almost all real terminal) behavior.
+
 void Screen::saveCursor( void ) {
   cursorSaveArea.cursor_x = cursor_x;
   cursorSaveArea.cursor_y = cursor_y;
   cursorSaveArea.curAttr = curAttr;
   cursorSaveArea.originMode = originMode;
-  cursorSaveArea.autoWrap = autoWrap;
+  cursorSaveArea.lastColumn = lastColumn;
 }
 
 
@@ -1143,5 +1145,5 @@ void Screen::restoreCursor( void ) {
   cursor_y = cursorSaveArea.cursor_y;
   curAttr = cursorSaveArea.curAttr;
   originMode = cursorSaveArea.originMode;
-  autoWrap = cursorSaveArea.autoWrap;
+  lastColumn = cursorSaveArea.lastColumn;
 }

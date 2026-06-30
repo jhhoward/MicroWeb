@@ -1,7 +1,7 @@
 /*
 
    mTCP pkttool.cpp
-   Copyright (C) 2012-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2012-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -20,6 +20,7 @@
 
 #include <conio.h>
 #include <dos.h>
+#include <malloc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -114,7 +115,7 @@ void ( __interrupt __far *oldCtrlBreakHandler)( );
 const char *BadPacketDriverErrMsg = "Error initializing packet driver - was that the correct software interrupt?";
 const char *BadHandleErrMsg = "Bad handle: Int: 0x%x, Handle: %x\n";
 
-const char CopyrightMsg[] = "\nmTCP pkttool by M Brutman (mbbrutman@gmail.com) (C)opyright 2012-2023\nVersion: " __DATE__ "\n";
+const char CopyrightMsg[] = "\nmTCP pkttool by M Brutman (mbbrutman@gmail.com) (C)opyright 2012-2025\nVersion: " __DATE__ "\n";
 
 int main( int argc, char *argv[] ) {
 
@@ -1272,3 +1273,16 @@ char *printIpAddr( IpAddr_t addr, char *buffer ) {
 
   return (buffer + offset + 2);
 }
+
+
+
+
+// We don't have TRACE capability in this program so just use the standard
+// malloc routine.
+
+#ifdef MALLOC_TRACE
+void *mTCP_malloc( size_t s, const char *name ) {
+  return malloc( s );
+}
+#endif
+

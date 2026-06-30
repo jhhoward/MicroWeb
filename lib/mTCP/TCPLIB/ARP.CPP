@@ -1,7 +1,7 @@
 /*
 
    mTCP Arp.cpp
-   Copyright (C) 2005-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2005-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -274,7 +274,12 @@ void Arp::processArp( uint8_t *packet, uint16_t packetLen ) {
       }
     }
 
-    if ( pendingSatisfied ) {
+    // If pendingSatisfied is true then we already added or updated our cache.
+    // If it is false then it did not satisfy one of our pending requests, but
+    // it might still be useful to us.  Update our cache if either the sender
+    // or the target are in it.
+
+    if ( pendingSatisfied == false ) {
       int8_t rc = findEth( ah->target_ip, NULL );
       if ( rc != -1 ) {
         updateEntry( rc, ah->target_ha );
@@ -510,5 +515,3 @@ int8_t Arp::resolve( IpAddr_t target_ip, EthAddr_t eth_dest ) {
   sendArpRequest( target_ip );
   return 1;
 }
-
-

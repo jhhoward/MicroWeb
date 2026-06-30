@@ -1,7 +1,7 @@
 /*
 
    mTCP Ping.cpp
-   Copyright (C) 2009-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2009-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -187,7 +187,7 @@ void ping_unhook( void ) {
 
 
 
-static char *CopyrightMsg= "\nmTCP Ping by M Brutman (mbbrutman@gmail.com) (C)opyright 2009-2023\nVersion: " __DATE__ "\n";
+static char *CopyrightMsg= "\nmTCP Ping by M Brutman (mbbrutman@gmail.com) (C)opyright 2009-2025\nVersion: " __DATE__ "\n";
 
 
 int main( int argc, char *argv[] ) {

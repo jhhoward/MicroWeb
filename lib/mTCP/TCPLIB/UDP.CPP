@@ -1,7 +1,7 @@
 /*
 
    mTCP Udp.cpp
-   Copyright (C) 2005-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2005-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -244,7 +244,7 @@ int8_t Udp::sendUdp( const IpAddr_t host, uint16_t srcPort, uint16_t dstPort,
   if ( preAlloc == 0 ) {
 
     // Malloc space for headers and user data and then copy the user data in.
-    packetPtr = (UdpPacket_t*)malloc( packetLen );
+    packetPtr = (UdpPacket_t*)mTCP_malloc( packetLen, "UDP_tmp_buf" );
     if ( packetPtr == NULL ) {
       TRACE_UDP_WARN(( "Udp: malloc error sending data\n" ));
       return -1;
@@ -271,6 +271,11 @@ int8_t Udp::sendUdp( const IpAddr_t host, uint16_t srcPort, uint16_t dstPort,
   packetPtr->udp.chksum = ip_p_chksum( MyIpAddr, host,
                                        ((uint16_t *)&(packetPtr->udp)),
                                        IP_PROTOCOL_UDP, udpLen );
+
+  // UDP rule: Checksum == 0x0000 means no checksum was computed.  So fix it up.
+  if ( packetPtr->udp.chksum == 0x0000 ) {
+    packetPtr->udp.chksum = 0xFFFF;
+  }
 
 
   // Fill in the IP header
@@ -322,9 +327,9 @@ int8_t Udp::sendUdpFragments( const IpAddr_t host, uint16_t srcPort,
   // sense if you had an app that constantly sent large UDP packets.
 
   uint16_t packetLen = MyMTU + sizeof(EthHeader);
-  UdpPacket_t* packetPtr = (UdpPacket_t *)malloc( packetLen );
+  UdpPacket_t* packetPtr = (UdpPacket_t *)mTCP_malloc( packetLen, "UDP_tmp_frag_buf" );
   if ( packetPtr == NULL ) {
-      TRACE_UDP_WARN(( "Udp: malloc error sending fragments"\n ));
+      TRACE_UDP_WARN(( "Udp: malloc error sending fragments\n" ));
       return -1;
   }
 
@@ -364,6 +369,11 @@ int8_t Udp::sendUdpFragments( const IpAddr_t host, uint16_t srcPort,
                                         IP_PROTOCOL_UDP,
                                         sizeof(UdpHeader),
                                         (uint16_t *)payload, payloadLen );
+
+  // UDP rule: Checksum == 0x0000 means no checksum was computed.  So fix it up.
+  if ( packetPtr->udp.chksum == 0x0000 ) {
+    packetPtr->udp.chksum = 0xFFFF;
+  }
 
 
   // Copy first load of data to the outgoing frame

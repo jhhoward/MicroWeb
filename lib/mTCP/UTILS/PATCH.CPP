@@ -1,7 +1,7 @@
 /*
 
    mTCP Patch.cpp
-   Copyright (C) 2010-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2010-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -104,7 +104,7 @@ int readMapFile( void ) {
 
 int main( int argc, char *argv[] ) {
 
-  puts( "Patch" );
+  puts( "mTCP Watcom patcher by M Brutman (mbbrutman@gmail.com) (C)opyright 2010-2025\n" );
   fflush( NULL );
 
   if ( argc < 4 ) {

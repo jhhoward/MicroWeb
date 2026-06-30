@@ -1,7 +1,7 @@
 /*
 
    mTCP Unicode.H
-   Copyright (C) 2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2023-2025 Michael B. Brutman (mbbrutman@gmail.com)
 
 
    This file is part of mTCP.

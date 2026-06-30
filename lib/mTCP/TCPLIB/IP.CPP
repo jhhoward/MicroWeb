@@ -1,7 +1,7 @@
 /*
 
    mTCP Ip.cpp
-   Copyright (C) 2005-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2005-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -642,7 +642,7 @@ int Ip::initForReassembly( void ) {
 
   uint16_t tmpSize = sizeof( BigPacket_t ) * IP_MAX_FRAG_PACKETS;
 
-  uint8_t *tmp = (uint8_t *)malloc( tmpSize );
+  uint8_t *tmp = (uint8_t *)mTCP_malloc( tmpSize, "LIB_IP_Frag_bufs" );
   if ( tmp == NULL ) {
     return -1;
   }

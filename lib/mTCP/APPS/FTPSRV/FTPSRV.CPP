@@ -1,7 +1,7 @@
 /*
 
    mTCP FtpSrv.cpp
-   Copyright (C) 2009-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2009-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -45,6 +45,7 @@
                mode to avoid crushing the machine.
    2013-03-30: 132 column support/awareness; minor UI changes
    2015-01-18: Minor change to Ctrl-Break and Ctrl-C handling.
+   2024-09-29: Add support for clobbering files by default.
 
 */
 
@@ -289,10 +290,7 @@ char     Pasv_Name[60] = "";
 uint16_t Pasv_Base = 2048;
 uint16_t Pasv_Ports = 1024;
 
-
-// Fixme: This might roll over on us!
 uint16_t Current_Year;
-
 
 uint32_t SessionCounter = 0;
 
@@ -332,6 +330,8 @@ uint16_t Data_Rcv_Buf_Size = DATA_RCV_BUF_SIZE;
 
 uint16_t PacketsPerPoll = 1;
 
+// Do we allow file overwriting by default?  No.  And never with an anonymous user.
+uint8_t  Clobber = 0;
 
 
 uint8_t far *Screen_base;
@@ -407,7 +407,7 @@ int ShutdownRequested = 0;
 
 static char ConfirmEndMsg[] = "Press Ctrl-C or Alt-X one more time to shut down or another key to cancel.\n";
 
-static char CopyrightMsg1[] = "mTCP FtpSrv by M Brutman (mbbrutman@gmail.com) (C)opyright 2010-2023\n";
+static char CopyrightMsg1[] = "mTCP FtpSrv by M Brutman (mbbrutman@gmail.com) (C)opyright 2010-2025\n";
 static char CopyrightMsg2[] = "Version: " __DATE__ "\n\n";
 
 int main( int argc, char *argv[] ) {
@@ -613,6 +613,17 @@ int main( int argc, char *argv[] ) {
       // Check for new connections
       TcpSocket *tmpSocket = TcpSocketMgr::accept( );
       if ( tmpSocket != NULL ) {
+
+        // Not really related, but we might as well update the current year each
+        // time we get a new connection.  This way we don't have to worry as much
+        // about rolling over if the server has been up a while.
+        //
+        // This is needed for directory listings.
+
+        DosDate_t currentDate;
+        getdate( &currentDate );
+        Current_Year = currentDate.year;
+
         processNewConnection( tmpSocket );
       }
     }
@@ -1688,14 +1699,26 @@ void doPasv( FtpClient *client ) {
   }
 
 
-  client->pasvPort = (rand( ) % Pasv_Ports) + Pasv_Base;
+  // Pick a random port.  Try up to three times in case there is a collision
+  // because another client is also trying to listen on the same port.  While
+  // unlikely, this can happen if the number of Pasv_Ports is constrained
+  // because of a firewall.
+  //
+  // There are other reasons for a listen to fail, but a port collision is
+  // going to be the most likely.
 
-  uint16_t hiByte = client->pasvPort / 256;
-  uint16_t loByte = client->pasvPort - hiByte*256;
+  uint16_t hiByte, loByte;
 
+  int listenRc = 0, tries = 0;
 
-  // Fixme: check the return code, we might have a collsion on a port.
-  if ( client->ls->listen( client->pasvPort, Data_Rcv_Buf_Size ) ) {
+  do {
+    client->pasvPort = (rand( ) % Pasv_Ports) + Pasv_Base;
+    hiByte = client->pasvPort / 256;
+    loByte = client->pasvPort - hiByte*256;
+    listenRc = client->ls->listen( client->pasvPort, Data_Rcv_Buf_Size );
+  } while ( (listenRc) && (tries < 3) );
+
+  if ( listenRc ) {
     client->addToOutput( Msg_425_Cant_Open_Conn );
     return;
   }
@@ -2465,6 +2488,8 @@ void doXfer( FtpClient *client, char *nextTokenPtr, FtpClient::DataXferType list
 
 void doDataXfer( FtpClient *client, char *parms ) {
 
+  bool anonFtpUser = strcmp( client->user.userPass, "[EMAIL]" ) == 0;
+
   if ( client->dataXferState == FtpClient::DL_Closing ) {
 
     // We are supposed to be cleaning up.  Wait for both sockets to close.
@@ -2544,9 +2569,12 @@ void doDataXfer( FtpClient *client, char *parms ) {
       if ( formFullPath_DataXfer( client, fullpath, USR_MAX_PATHFILE_LENGTH, client->filespec ) ) {
         return;
       }
+
       if ( doesExist( fullpath ) ) {
-        endDataTransfers( client, "553 File exists already" _NL_ );
-        return;
+        if ( (Clobber == 0) || (anonFtpUser) ) {
+          endDataTransfers( client, "553 File exists already" _NL_ );
+          return;
+        }
       }
     }
       
@@ -2747,8 +2775,10 @@ void doDataXfer( FtpClient *client, char *parms ) {
         if ( client->dataXferType == FtpClient::Stor ) {
 
           if ( doesExist( fullpath ) ) {
-            endDataTransfers( client, "550 File exists already" _NL_ );
-            return;
+            if ( (Clobber == 0) || (anonFtpUser) ) {
+              endDataTransfers( client, "550 File exists already" _NL_ );
+              return;
+            }
           }
 
           client->addToOutput_var( "150 %s type File STOR started" _NL_, dataTypeStr );
@@ -3625,6 +3655,12 @@ static int readConfigParms( void ) {
   }
 
 
+  if ( Utils::getAppValue( "FTPSRV_CLOBBER_FILES", tmpBuffer, 10 ) == 0 ) {
+    if ( stricmp( tmpBuffer, "true" ) == 0 ) {
+      Clobber = 1;
+    }
+  }
+
   Utils::closeCfgFile( );
 
   return 0;
@@ -3851,13 +3887,6 @@ static int initSrv( void ) {
   _asctime( &time_of_day, StartTime );
   StartTime[24] = 0; // Get rid of unwanted carriage return
 
-  // Make a note of the current year - we use this for directory listings.
-  DosDate_t currentDate;
-  getdate( &currentDate );
-  Current_Year = currentDate.year;
-
-
-
   char lineBuffer[80];
 
   addToScreen( 1, "Clients: %u, Client file buffer size: %u, TCP buffer size: %u\n",
@@ -3866,6 +3895,9 @@ static int initSrv( void ) {
                PacketsPerPoll, requestedSockets, requestedTcpBuffers, PACKET_BUFFERS );
   addToScreen( 1, "Client session timeout: %lu seconds\n", (FtpSrv_timeoutTicks / 18ul) );
   addToScreen( 1, "Control port: %u, Pasv ports: %u-%u\n", FtpSrv_Control_Port, Pasv_Base, (Pasv_Base+Pasv_Ports-1) );
+
+  if ( Clobber ) addToScreen( 1, "File overwriting is enabled\n" );
+
   showRealIpAddr( 1 );
 
   addToScreen( 0, "\nPress [Ctrl-C] or [Alt-X] to end the server\n\n" );

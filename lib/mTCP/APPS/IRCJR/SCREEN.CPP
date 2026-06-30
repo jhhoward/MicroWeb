@@ -1,7 +1,7 @@
 /*
 
    mTCP Screen.cpp
-   Copyright (C) 2008-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2008-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -74,6 +74,8 @@ bool Screen::eatNextChar;
 bool Screen::colorPopup;
 
 bool Screen::preventSnow = false;
+
+uint16_t Screen::origCursor;
 
 
 // Not used ...
@@ -214,6 +216,7 @@ int8_t Screen::init( char *userInputBuffer_p, uint8_t *switchToSession_p ) {
   if ( preventSnow ) { waitForCGARetraceLong( ); }
   fillUsingWord( separatorRowAddr, 7<<8|196, screenCols );
 
+  origCursor = readCursorShape( );
   setBlockCursor( );
 
   return 0;

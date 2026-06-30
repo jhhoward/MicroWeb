@@ -1,7 +1,7 @@
 /*
 
    mTCP Utils.cpp
-   Copyright (C) 2006-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2006-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -108,6 +108,13 @@ uint8_t mTCP_releaseTimesliceEnabled = 0;
 
 
 
+#ifdef MALLOC_TRACE
+void *mTCP_malloc( size_t s, const char *name ) {
+  void *rc = malloc( s );
+  TRACE(( "Malloc: %30s, %5u, %5u, %p\n", name, s, _msize(rc), rc ));
+  return rc;
+}
+#endif
 
 
 
@@ -127,7 +134,7 @@ const char Parm_DHCPLeaseRequest[]     = "DHCP_LEASE_REQUEST_SECS";
 
 
 const char ConfigFileErrMsg[] = "Config file '%s' not found\n";
-const char InitErrorMsg[] = "Init: could not setup %s\n";
+const char InitErrorMsg[] = "Init: Could not setup %s\n";
 
 
 
@@ -144,6 +151,7 @@ bool     Preferred_nameserver_set = false;
 // Utils class data storage
 
 uint8_t Utils::packetInt = 0;
+uint8_t Utils::packetInt2 = 0;
 FILE   *Utils::CfgFile = NULL;
 char   *Utils::CfgFilenamePtr = NULL;
 
@@ -339,8 +347,8 @@ int8_t Utils::parseEnv( void ) {
     if ( *parmName == 0 ) continue; // Blank line
 
     if ( stricmp( parmName, Parm_PacketInt ) == 0 ) {
-      int rc = sscanf( nextTokenPtr, "%x", &packetInt );
-      if ( rc != 1 ) {
+      int rc = sscanf( nextTokenPtr, "%x, %x", &packetInt, &packetInt2 );
+      if ( rc < 1 ) {
         errorParm = Parm_PacketInt;
       }
     }
@@ -458,7 +466,7 @@ int8_t Utils::parseEnv( void ) {
 
   // Check for errors of ommision and blatantly wrong values
 
-  if ( packetInt == 0x0 ) {
+  if ( (packetInt < 0x60) || (packetInt > 0x7f) ) {
     errorParm = Parm_PacketInt;
   }
 
@@ -704,11 +712,49 @@ int8_t Utils::initStack( uint8_t tcpSockets,
     return -1;
   }
 
-  if ( Packet_init( packetInt ) ) {
-    fprintf( stderr, InitErrorMsg, "packet driver" );
-    return -1;
+  // If NetDrive is connected to a remote drive and a secondary packet
+  // driver interrupt number was provided then NetDrive will provide a packet
+  // driver shim at that secondary packet driver interrupt.
+
+  uint8_t selectedPacketInt = 0;
+
+  if ( packetInt2 ) {
+
+    // A secondary was provided.  If it is active try to connect to it.
+
+    // Normally we could just detect an empty interrupt vector by looking for
+    // zeros, but no, the PCjr makes it more exciting by using F000:F815 which
+    // is basically a no-op routine.  If we see either zeros or F000:F815 then
+    // the vector is not inuse.
+
+    uint16_t far * intCode = (uint16_t far *)MK_FP( 0x0, packetInt2 * 4 );
+
+    bool vacant = ((*intCode == 0x0000) && (*(intCode+1) == 0x0000)) ||
+                  ((*intCode == 0xF815) && (*(intCode+1) == 0xF000));
+
+    if ( ! vacant ) {
+      // If we try to connect to the secondary packet driver and it fails,
+      // don't fall back automatically to the primary one.  It should not fail.
+      if ( Packet_init( packetInt2 ) == 0 ) { selectedPacketInt = packetInt2; }
+    } else {
+      // A secondary is specified but not enabled yet; use the primary.
+      if ( Packet_init( packetInt ) == 0 ) { selectedPacketInt = packetInt; }
+    }
+
+  } else {
+    if ( Packet_init( packetInt ) == 0 ) { selectedPacketInt = packetInt; }
   }
 
+  if ( selectedPacketInt == 0 ) {
+    fprintf( stderr, InitErrorMsg,
+             "packet driver, are the configured interrupts correct?"
+             "  Configured packet driver interrupt: 0x%X\n", packetInt );
+    if ( packetInt2 ) {
+      fprintf( stderr, "  Configured NetDrive shim interrupt: 0x%X\n", packetInt2 );
+    };
+    puts("");
+    return -1;
+  }
 
   //---------------------------------------------------------------------------
   //
@@ -759,7 +805,7 @@ int8_t Utils::initStack( uint8_t tcpSockets,
     Trace_tprintf( "mTCP " MTCP_PROGRAM_NAME " Version: " __DATE__ "\n" );
 
     Trace_tprintf( "  %s=0x%x MAC=%02X.%02X.%02X.%02X.%02X.%02X %s=%d\n",
-                   Parm_PacketInt, packetInt,
+                   Parm_PacketInt, selectedPacketInt,
                    MyEthAddr[0], MyEthAddr[1], MyEthAddr[2],
                    MyEthAddr[3], MyEthAddr[4], MyEthAddr[5],
                    Parm_Mtu, MyMTU );
@@ -936,7 +982,7 @@ int8_t Utils::initStack( uint8_t tcpSockets,
 // Do the opposite of initStack - terminate things in the correct order.  This
 // should always be safe to call, even from within initStack.
 
-void Utils::endStack( void ) {
+void Utils::endStack2( bool ignoreTracing ) {
 
   // Set the number of free incoming buffers for packets to zero so that the
   // packet driver can not give us any more work to do.  (All incoming packets
@@ -1001,7 +1047,9 @@ void Utils::endStack( void ) {
 
   // If any form of tracing was active then write the final stats out.
   #ifndef NOTRACE
-  if ( Trace_Debugging ) dumpStats( Trace_Stream );
+  if ( ignoreTracing == false ) {
+    if ( Trace_Debugging ) dumpStats( Trace_Stream );
+  }
   #endif
 
 
@@ -1010,7 +1058,9 @@ void Utils::endStack( void ) {
   }
 
 
-  Trace_endTracing( );
+  if ( ignoreTracing == false ) {
+    Trace_endTracing( );
+  }
 
   fflush( NULL );
 }

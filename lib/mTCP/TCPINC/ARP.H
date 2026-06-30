@@ -1,7 +1,7 @@
 /*
 
    mTCP Arp.H
-   Copyright (C) 2005-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2005-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -177,6 +177,12 @@ class Arp {
     static inline void driveArp( void ) {
       if ( pendingEntries ) { driveArp2( ); }
     }
+
+    // Small hack alert - provide a way to send an ARP packet without
+    // going through all of the ARP cache maintenance.  This is useful
+    // for revalidating something we are already talking to, or waking
+    // up timed-out connections on links.
+    static void sendArpRequestPacket( IpAddr_t target_ip ) { sendArpRequest2( target_ip ); }
 
     static void clearPendingTable( void );
 

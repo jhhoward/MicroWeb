@@ -1,7 +1,7 @@
 /*
 
    mTCP SNTPLIB.CPP
-   Copyright (C) 2010-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2010-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -211,7 +211,7 @@ int SntpLib::sendSNTPRequest( bool blocking, uint32_t *outTime, uint32_t *outTim
 
 void SntpLib::ntpUdpHandler( const unsigned char *packet, const UdpHeader *udp ) {
 
-  NTP_packet_t *ntp = &(((NTP_UDP_packet_t *)(packet))->ntp);
+  NTP_packet_t *ntp = (NTP_packet_t *)(((uint8_t *)(udp))+8);
 
   // Quick sanity check
 

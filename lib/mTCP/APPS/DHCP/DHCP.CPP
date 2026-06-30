@@ -1,7 +1,7 @@
 /*
 
    mTCP Dhcp.cpp
-   Copyright (C) 2008-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2008-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -172,7 +172,7 @@ const char *DhcpMsgName[] = {
 
 const char *CheckYourCabling_msg = "Check your cabling and packet driver settings, including the hardware IRQ.";
 
-static char *CopyrightMsg = "mTCP DHCP Client by M Brutman (mbbrutman@gmail.com) (C)opyright 2008-2023\nVersion: " __DATE__ "\n\n";
+static char *CopyrightMsg = "mTCP DHCP Client by M Brutman (mbbrutman@gmail.com) (C)opyright 2008-2025\nVersion: " __DATE__ "\n\n";
 
 
 
@@ -560,7 +560,7 @@ int8_t parseEnv( void ) {
 
   const char *errorParm = NULL;
 
-  uint8_t packetInt = 0;
+  uint8_t packetInt = 0, packetInt2 = 0;
 
   bool errorWhileReadingLine = false;
   bool trailingWhitespaceDetected = false;
@@ -586,8 +586,8 @@ int8_t parseEnv( void ) {
     if ( *parmName == 0 ) continue; // Blank line
 
     if ( stricmp( parmName, Parm_PacketInt ) == 0 ) {
-      int rc = sscanf( nextTokenPtr, "%x", &packetInt );
-      if ( rc != 1 ) {
+      int rc = sscanf( nextTokenPtr, "%x, %x", &packetInt, &packetInt2 );
+      if ( rc < 1 ) {
         errorParm = Parm_PacketInt;
       }
     }
@@ -641,7 +641,7 @@ int8_t parseEnv( void ) {
 
   if ( trailingWhitespaceDetected ) fprintf( stderr, "\n" );
 
-  if ( packetInt == 0x0 ) {
+  if ( (packetInt < 0x60) || (packetInt > 0x7F) ) {
     errorParm = Parm_PacketInt;
   }
 
@@ -653,7 +653,7 @@ int8_t parseEnv( void ) {
   // We have to do this explicitly because we don't use Utils::parseEnv which
   // would have set it.
   //
-  Utils::setPacketInt( packetInt );
+  Utils::setPacketInts( packetInt, packetInt2 );
 
 
   // Parse optional environment variables
@@ -1041,8 +1041,7 @@ void usage( FILE *stream ) {
     "Options:\n"
     "  -help\n"
     "  -retries <n>   Retry n times before giving up\n"
-    "  -timeout <n>   Set timeout for each attempt to n seconds\n"
-    "  -packetstats   Show packet statistics at the end\n\n"
+    "  -timeout <n>   Set timeout for each attempt to n seconds\n\n"
   );
   exit( 1 );
 }

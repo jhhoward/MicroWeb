@@ -1,6 +1,6 @@
 
 ;  mTCP IpAsm.asm
-;  Copyright (C) 2010-2023 Michael B. Brutman (mbbrutman@gmail.com)
+;  Copyright (C) 2010-2025 Michael B. Brutman (mbbrutman@gmail.com)
 ;  mTCP web page: http://www.brutman.com/mTCP
 ;
 ;
@@ -156,7 +156,7 @@ _ip_p_chksum proc
   ; Setup addressing: dest IP addr
   lds      si, [bp+X+4]   ; Get segment and offset of data loaded
   lodsw                   ; Get first word
-  adc      bx, ax         ; No carry to worry about
+  adc      bx, ax         ; Add with carry
   lodsw                   ; Get next word
   adc      bx, ax         ; Add with carry
 

@@ -1,7 +1,7 @@
 /*
 
    mTCP Inlines.H
-   Copyright (C) 2006-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2006-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -76,8 +76,12 @@ extern uint32_t htonl( uint32_t );
 
 extern uint16_t dosVersion( void );
 #pragma aux dosVersion = \
+  "push bx"              \
+  "push cx"              \
   "mov ah,0x30"          \
   "int 0x21"             \
+  "pop cx"               \
+  "pop bx"               \
   modify [ax]            \
   value [ax];
 
@@ -235,6 +239,30 @@ extern void gotoxy( unsigned char col, unsigned char row );
   parm [dl] [dh]     \
   modify [ax bh dx];
 
+extern uint16_t readCursorShape( void );
+#pragma aux readCursorShape = \
+  "push ax"                   \
+  "push bx"                   \
+  "push dx"                   \
+  "push bp"                   \
+  "mov  ah, 0x3"              \
+  "mov  bx, 0"                \
+  "int  10h"                  \
+  "pop  bp"                   \
+  "pop  dx"                   \
+  "pop  bx"                   \
+  "pop  ax"                   \
+  value [cx];
+
+extern void setCursorShape( uint16_t );
+#pragma aux setCursorShape = \
+  "push ax"                  \
+  "push bp"                  \
+  "mov  ah, 0x1"             \
+  "int  10h"                 \
+  "pop  bp"                  \
+  "pop  ax"                  \
+  parm [cx];
 
 extern void setBlockCursor( void );
 #pragma aux setBlockCursor = \

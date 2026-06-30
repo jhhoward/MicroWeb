@@ -1,7 +1,7 @@
 /*
 
    mTCP Packet.H
-   Copyright (C) 2005-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2005-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -51,7 +51,7 @@
 // emulated Ethernet header.  Less might work but do your research; at this minimum you
 // are already in danger of fragmenting DNS packets.
 
-static_assert( PACKET_BUFFERS > 4 );
+static_assert( PACKET_BUFFERS > 2 );
 static_assert( PACKET_BUFFERS <= 42 );
 static_assert( PACKET_BUFFER_LEN <= 1514 );
 static_assert( PACKET_BUFFER_LEN >= 310 );
@@ -243,6 +243,7 @@ typedef struct {
 //     Packet_getSoftwareInt to see what software interrupt we are using
 
 extern int8_t   Packet_init( uint8_t softwareInt );
+extern int8_t   Packet_init2( uint8_t softwareInt, uint16_t recv_seg, uint16_t recv_off );
 extern int8_t   Packet_registerEtherType( EtherType val, void (*f)(uint8_t *packet, uint16_t len) );
 extern void     Packet_registerDefault( void (*f)(uint8_t *packet, uint16_t len) );
 extern void     Packet_send_pkt( void *buffer, uint16_t bufferLen );
@@ -251,6 +252,8 @@ extern void     Packet_get_addr( uint8_t *target );
 extern void     Packet_dumpStats( FILE *stream );
 extern uint8_t  Packet_getSoftwareInt( void );
 extern uint16_t Packet_getHandle( void );
+extern void     Packet_setHandle( uint16_t );
+extern void     Packet_setInt( uint8_t );
 
 
 // Needs to be visible for the PACKET_PROCESS_SINGLE macro (and variants).
@@ -272,9 +275,9 @@ extern const char * PKT_DRVR_EYE_CATCHER;
 //
 extern uint32_t Packets_dropped;
 extern uint32_t Packets_received;
-extern uint32_t Packets_sent;
-extern uint32_t Packets_send_errs;
-extern uint32_t Packets_send_retries;
+extern uint32_t Packets_sent;            // Calls to Packet_send_pkt, not actual packets sent.
+extern uint32_t Packets_send_errs;       // Calls to Packet_send_pkt where no packet ever got sent even with retries.
+extern uint32_t Packets_send_retries;    // Number of times Packet_send_pkt retried a send after getting a bad code.
 
 
 

@@ -1,7 +1,7 @@
 /*
 
    mTCP Netcat.cpp
-   Copyright (C) 2006-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2006-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -230,7 +230,7 @@ void __interrupt __far ctrlCHandler( ) {
 
 
 
-static char CopyrightMsg1[] = "mTCP Netcat by M Brutman (mbbrutman@gmail.com) (C)opyright 2007-2023\n";
+static char CopyrightMsg1[] = "mTCP Netcat by M Brutman (mbbrutman@gmail.com) (C)opyright 2007-2025\n";
 static char CopyrightMsg2[] = "Version: " __DATE__ "\n\n";
 
 

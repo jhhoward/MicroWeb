@@ -1,7 +1,7 @@
 /*
 
    mTCP TelnetSc.h
-   Copyright (C) 2009-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2009-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -59,16 +59,7 @@ class Screen {
     void myCprintf( uint8_t x, uint8_t y, uint8_t attr, char *fmt, ... );
     void myCprintf_internal( uint8_t x, uint8_t y, uint8_t attr, char *fmt, va_list ap );
 
-    inline void putch( uint8_t x, uint8_t y, uint8_t attr, char ch ) {
-      uint16_t offset = ((y * terminalCols) + x) * 2;
-      uint16_t tmp = (attr<<8 | ch );
-      if ( preventSnow ) {
-        writeCharWithoutSnow( screenBaseSeg, offset, tmp );
-      } else {
-        uint16_t far *start = (uint16_t far *)(Screen_base + offset);
-        *start = tmp;
-      }
-    }
+    void putch( uint8_t x, uint8_t y, uint8_t attr, char ch );
 
     inline void repeatCh( uint8_t x, uint8_t y, uint8_t attr, char ch, uint8_t count ) {
       uint16_t far *start = (uint16_t far *)(Screen_base + (y*terminalCols+x)*2);
@@ -78,7 +69,6 @@ class Screen {
 
 
     // Compute the address of the physical screen location for a given x and y
-
     inline void updateVidBufPtr( void ) {
       vidBufPtr = Screen_base + (cursor_x<<1) + (cursor_y*bytesPerLine);
     }
@@ -110,11 +100,9 @@ class Screen {
     // Compute an offset into the virtual buffer for a given x and y
 
     inline uint16_t ScrOffset( uint16_t x, uint16_t y ) {
-
       uint32_t tmp = topOffset;
       tmp = tmp + y*bytesPerLine+(x<<1);
       if ( tmp >= bufferSize ) tmp = tmp - bufferSize;
-
       return tmp;
     }
 
@@ -123,13 +111,15 @@ class Screen {
     uint8_t getCardType( void ) { return cardType; }
     bool isPreventSnowOn( void ) { return preventSnow; }
 
-    inline uint16_t getScreenBaseSeg( void ) { return screenBaseSeg; }
+    uint16_t getScreenBaseSeg( void ) { return screenBaseSeg; }
 
     void doNotUpdateRealScreen( void ) { updateRealScreen = false; }
     bool isVirtualScreenUpdated( void ) { return virtualUpdated; }
 
-    void toggleWrapMode( void ) { wrapMode = !wrapMode; }
-    bool isWrapModeOn( void ) { return wrapMode; }
+    void toggleWrapMode( void ) { autoWrap = !autoWrap; }
+    bool isWrapModeOn( void ) { return autoWrap; }
+
+    void resetLastColumnFlag( void ) { lastColumn = false; }
 
 
     // The next set of methods are used by ANSI emulation code.
@@ -138,21 +128,10 @@ class Screen {
     void setVertical( int16_t newVertical );
     void adjustVertical( int16_t delta );
 
-    void suppressOverhang( void ) {
-
-      // If we are waiting to wrap-around and an ESC sequence comes in
-      // then complete the wrap-around.  I can't find documentation that
-      // this is how it should work so this is reverse engineered.
-
-      if ( overhang ) {
-        cursor_x = 0;
-        scroll( );
-      }
-      overhang = false;
-    }
-
     void saveCursor( void );
     void restoreCursor( void );
+
+    inline void restoreCursorShape( ) { setCursorShape( origCursor ); }
 
     void resetTerminalState( void );
 
@@ -185,50 +164,43 @@ class Screen {
     bool autoWrap;
 
 
+
   private:
 
     // Video card characteristics
 
-    uint8_t  cardType;          // MDA = 0, CGA = 1, EGA = 2, VGA = 3
-    bool     preventSnow;       // Prevent CGA snow
-    uint16_t screenBaseSeg;     // Segment for the screen framebuffer
-    uint16_t bytesPerLine;      // How many bytes does a terminal line require?
+    uint8_t      cardType;          // MDA = 0, CGA = 1, EGA = 2, VGA = 3
+    bool         preventSnow;       // Prevent CGA snow
+    uint16_t     screenBaseSeg;     // Segment for the screen framebuffer
+    uint16_t     bytesPerLine;      // How many bytes does a terminal line require?
 
 
     // Virtual buffer characteristics
 
-    uint8_t far *buffer;        // Start of virtual screen buffer
-    uint8_t far *bufferEnd;     // End of virtual screen buffer
-    uint16_t     bufferSize;    // Size of buffer area in bytes
-    uint16_t     topOffset;     // Offset in bytes to start of virtual screen
-    uint16_t     totalLines;    // How many lines for viewable and backscroll?
-    uint16_t backScrollOffset;  // If backscrolling is active, how far back?
+    uint8_t far *buffer;            // Start of virtual screen buffer
+    uint8_t far *bufferEnd;         // End of virtual screen buffer
+    uint16_t     bufferSize;        // Size of buffer area in bytes
+    uint16_t     topOffset;         // Offset in bytes to start of virtual screen
+    uint16_t     totalLines;        // How many lines for viewable and backscroll?
+    uint16_t     backScrollOffset;  // If backscrolling is active, how far back?
 
 
     // Pointer to our current position on the real screen.
     // This is sometimes out of date but it gets refreshed.
 
-    uint8_t far *vidBufPtr;     // Pointer into the real video buffer
+    uint8_t far *vidBufPtr;         // Pointer into the real video buffer
 
 
-    // Used by the user interface to suppress screen updating or to know when
-    // a repaint is needed.
+    // Used by the user interface to suppress screen updating or to know when a repaint is needed.
 
-    bool    updateRealScreen;   // Should we be updating the live screen?
-    bool    virtualUpdated;     // Have we updated the virtual screen?
+    bool    updateRealScreen;       // Should we be updating the live screen?
+    bool    virtualUpdated;         // Have we updated the virtual screen?
 
+    bool    initialWrapState;       // false for no wrapping, true for wrapping
 
-    // Toggles
+    bool    lastColumn;
 
-    uint8_t wrapMode;           // Are we wrapping around lines?
-
-
-    // Overhang is complex.  When a terminal prints in it's last column it
-    // does not immediately wrap to column 0.  This might be to allow for
-    // a backspace without having to wrap backwards or unscroll the screen.
-    // So we keep track of when we have printed a character in the last column
-    // but have not wrapped yet.
-    bool    overhang;
+    uint16_t origCursor;
 
     struct CursorSaveArea {
       int16_t cursor_x;
@@ -236,7 +208,7 @@ class Screen {
       uint8_t curAttr;
       bool    originMode;
       bool    autoWrap;
-      uint8_t padding;
+      uint8_t lastColumn;
     } cursorSaveArea;
 
 };

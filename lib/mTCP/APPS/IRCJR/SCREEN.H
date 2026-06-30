@@ -1,7 +1,7 @@
 /*
 
    mTCP Screen.h
-   Copyright (C) 2008-2023 Michael B. Brutman (mbbrutman@gmail.com)
+   Copyright (C) 2008-2025 Michael B. Brutman (mbbrutman@gmail.com)
    mTCP web page: http://www.brutman.com/mTCP
 
 
@@ -86,6 +86,7 @@ class Screen {
 
     static inline void updateCursor( void ) { gotoxy( cur_x, cur_y2 ); }
 
+    static inline void restoreCursorShape( ) { setCursorShape(origCursor); }
 
 
     // These functions write directly to the screen buffer and are designed
@@ -164,6 +165,7 @@ class Screen {
 
     static bool preventSnow;
 
+    static uint16_t origCursor;
 };
 
 
