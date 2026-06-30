@@ -43,6 +43,7 @@ file Decoder.obj
 file Gif.obj 
 file Jpeg.obj 
 file Png.obj 
+file LinAlloc.obj
 file MemBlock.obj 
 file Memory.obj 
 file EMS.obj 

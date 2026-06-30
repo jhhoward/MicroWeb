@@ -151,6 +151,7 @@
     <ClCompile Include="..\..\src\Image\Jpeg.cpp" />
     <ClCompile Include="..\..\src\Image\Png.cpp" />
     <ClCompile Include="..\..\src\Layout.cpp" />
+    <ClCompile Include="..\..\src\Memory\LinAlloc.cpp" />
     <ClCompile Include="..\..\src\Memory\MemBlock.cpp" />
     <ClCompile Include="..\..\src\Memory\Memory.cpp" />
     <ClCompile Include="..\..\src\Node.cpp" />

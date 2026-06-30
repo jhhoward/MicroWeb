@@ -111,6 +111,7 @@
     <ClCompile Include="..\..\src\Draw\Surf1bpp.cpp" />
     <ClCompile Include="..\..\src\Font.cpp" />
     <ClCompile Include="..\..\src\Interface.cpp" />
+    <ClCompile Include="..\..\src\Memory\LinAlloc.cpp" />
     <ClCompile Include="..\..\src\Microweb.cpp" />
     <ClCompile Include="..\..\src\Nodes\Block.cpp" />
     <ClCompile Include="..\..\src\Nodes\Break.cpp" />
