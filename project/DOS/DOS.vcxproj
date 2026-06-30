@@ -123,6 +123,7 @@
     <ClCompile Include="..\..\src\Page.cpp" />
     <ClCompile Include="..\..\src\Parser.cpp" />
     <ClCompile Include="..\..\src\Tags.cpp" />
+    <ClCompile Include="..\..\src\URL.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\App.h" />
