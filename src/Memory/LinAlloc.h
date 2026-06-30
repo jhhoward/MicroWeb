@@ -22,8 +22,17 @@
 #include "Alloc.h"
 #pragma warning(disable:4996)
 
-// 16K chunk size including next chunk pointer
-#define CHUNK_DATA_SIZE (16 * 1024 - sizeof(struct Chunk*))
+// 8K chunk size including next chunk pointer
+#define CHUNK_DATA_SIZE (8 * 1024 - sizeof(struct Chunk*))
+
+/*
+	2-byte alignment is the best DOS compromise here.
+
+	It removes odd addresses for structs containing words/far pointers, while
+	wasting much less memory than 4-byte alignment on pages with thousands of
+	small DOM/layout allocations.
+*/
+#define LINEAR_ALLOC_ALIGNMENT 1
 
 class LinearAllocator : public Allocator
 {
@@ -67,6 +76,9 @@ public:
 
 	virtual void* Allocate(size_t numBytes)
 	{
+		// Force 16-bit alignment by always allocating an even number of bytes
+		numBytes += numBytes & (LINEAR_ALLOC_ALIGNMENT - 1);
+
 		if (numBytes >= CHUNK_DATA_SIZE)
 		{
 			errorFlag = Error_AllocationTooLarge;
