@@ -12,6 +12,7 @@ LNK_SCRIPT = MicroWeb.lnk
 # begin mTCP stuff
 tcp_h_dir = ..\..\lib\mTCP\TCPINC\
 tcp_c_dir = ..\..\lib\mTCP\TCPLIB\
+tcp_utils_dir = ..\..\lib\mTCP\UTILS\
 
 tcpobjs = packet.obj arp.obj eth.obj ip.obj tcp.obj tcpsockm.obj udp.obj utils.obj dns.obj timer.obj ipasm.obj trace.obj
 
@@ -27,10 +28,13 @@ tcp_compile_options += -i=$(tcp_h_dir)
 
 .cpp.obj :
   wpp $[* $(tcp_compile_options)
+
 # end mTCP stuff
 
 $(bin): $(objects) $(tcpobjs)
-    $(LD) name $@ @$(LNK_SCRIPT) 
+    $(LD) name $@ @$(LNK_SCRIPT)
+	wcl386 -fe=ptach.exe $(tcp_utils_dir)patch.cpp 
+	ptach.exe $(bin) map.map $(memory_model)
 #    $(LD) system dos name $@ file { $(objects) $(tcpobjs) } option map=map.map option verbose
 
 MicroWeb.obj: $(SRC_PATH)\MicroWeb.cpp
