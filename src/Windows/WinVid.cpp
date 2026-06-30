@@ -141,7 +141,7 @@ void WindowsVideoDriver::Init(VideoModeInfo* inVideoMode)
 	{
 		memcpy(bitmapInfo->bmiColors, egaPalette, sizeof(RGBQUAD) * 16);
 
-		if (videoMode->surfaceFormat == DrawSurface::Format_8BPP)
+		if (videoMode->surfaceFormat == DrawSurface::Format_8BPP || videoMode->surfaceFormat == DrawSurface::Format_8BPP_VESA)
 		{
 			int index = 16;
 			for (int r = 0; r < 6; r++)
@@ -203,7 +203,7 @@ void WindowsVideoDriver::Init(VideoModeInfo* inVideoMode)
 		}
 
 
-		if (videoMode->surfaceFormat == DrawSurface::Format_8BPP)
+		if (videoMode->surfaceFormat == DrawSurface::Format_8BPP || videoMode->surfaceFormat == DrawSurface::Format_8BPP_VESA)
 		{
 			colourScheme = colourScheme666;
 			//paletteLUT = cgaPaletteLUT;
