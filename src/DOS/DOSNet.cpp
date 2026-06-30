@@ -47,21 +47,12 @@ void __interrupt __far ctrlBreakHandler() {
 	CtrlBreakDetected = 1;
 }
 
+static void (__interrupt __far* oldCtrlBreakHandler)();
+static void (__interrupt __far* oldCtrlCHandler)();
+
 void DOSNetworkDriver::Init()
 {
 	isConnected = false;
-
-	//printf("Init network driver\n");
-	if (Utils::parseEnv() != 0) {
-		printf("Failed in parseEnv()\n");
-		return;
-	}
-
-	//printf("Init network stack\n");
-	if (Utils::initStack(MAX_CONCURRENT_HTTP_REQUESTS, TCP_SOCKET_RING_SIZE, ctrlBreakHandler, ctrlBreakHandler)) {
-		printf("Failed to initialize TCP/IP\n");
-		return;
-	}
 
 	for (int n = 0; n < MAX_CONCURRENT_HTTP_REQUESTS; n++)
 	{
@@ -78,6 +69,22 @@ void DOSNetworkDriver::Init()
 		}
 	}
 
+	//printf("Init network driver\n");
+	if (Utils::parseEnv() != 0) {
+		printf("Failed in parseEnv()\n");
+		return;
+	}
+
+	// Store old Ctrl-C / Ctrl-Break handlers to avoid bug in mTCP where they don't get restored
+	oldCtrlBreakHandler = getvect(0x1b);
+	oldCtrlCHandler = getvect(0x23);
+
+	//printf("Init network stack\n");
+	if (Utils::initStack(MAX_CONCURRENT_HTTP_REQUESTS, TCP_SOCKET_RING_SIZE, ctrlBreakHandler, ctrlBreakHandler)) {
+		printf("Failed to initialize TCP/IP\n");
+		return;
+	}
+
 	printf("Network interface initialised\n");
 	isConnected = true;
 }
@@ -89,6 +96,9 @@ void DOSNetworkDriver::Shutdown()
 		Utils::endStack();
 		isConnected = false;
 	}
+
+	setvect(0x1b, oldCtrlBreakHandler);
+	setvect(0x23, oldCtrlCHandler);
 }
 
 void DOSNetworkDriver::Update()
